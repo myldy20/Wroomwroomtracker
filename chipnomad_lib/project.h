@@ -195,6 +195,9 @@ enum FX {
   // Alias for PCM sample start. Appended to preserve project FX IDs.
   fxSTA,
 
+  // Pure Data instrument macros. Appended to preserve project FX IDs.
+  fxPD1, fxPD2, fxPD3, fxPD4, fxPD5, fxPD6, fxPD7, fxPD8,
+
   // Total count - must be last
   fxTotalCount
 };

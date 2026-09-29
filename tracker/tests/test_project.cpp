@@ -7,6 +7,8 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <fstream>
+#include <string>
 
 TEST_SUITE("project") {
 
@@ -60,6 +62,32 @@ TEST_CASE("track tilt project settings survive save and load") {
   CHECK(loaded.trackTilt[0] == 0x00);
   CHECK(loaded.trackTilt[7] == 0xff);
   CHECK(loaded.tiltPivotHz == 2500);
+}
+
+TEST_CASE("Pure Data instruments persist macros and portable patch paths") {
+  Project saved, loaded;
+  projectInitAY(&saved);
+  projectInitAY(&loaded);
+  REQUIRE(getInstrumentFunctions(InstrumentType::PDVCO).init(&saved.instruments[0]) == 0);
+  InstrumentPDVCO& pd = saved.instruments[0].chip.pdVco;
+  std::strcpy(pd.path, "build/tests/patches/Warp Wobble.pd");
+  pd.macro[0] = 0x42;
+  std::strcpy(pd.macroName[0], "Warp amount");
+
+  const char* projectPath = "build/tests/pd_path_io.cct";
+  REQUIRE(projectSave(&saved, projectPath) == 0);
+  std::ifstream stream(projectPath);
+  std::string contents((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+  CHECK(contents.find("- Patch path: patches/Warp Wobble.pd") != std::string::npos);
+
+  REQUIRE(projectLoad(&loaded, projectPath) == 0);
+  CHECK(loaded.instruments[0].type == InstrumentType::PDVCO);
+  CHECK(std::string(loaded.instruments[0].chip.pdVco.path) == "build/tests/patches/Warp Wobble.pd");
+  CHECK(loaded.instruments[0].chip.pdVco.macro[0] == 0x42);
+  CHECK(std::string(loaded.instruments[0].chip.pdVco.macroName[0]) == "Warp amount");
+  CHECK(instrumentFXAvailable(InstrumentType::PDVCO, fxPD1));
+  CHECK(instrumentFXAvailable(InstrumentType::PDVoice, fxPD8));
+  CHECK(std::string(instrumentModDestinationNameForInstrument(&loaded.instruments[0], 3)) == "Warp amount");
 }
 
 TEST_CASE("scale project settings survive save and load") {

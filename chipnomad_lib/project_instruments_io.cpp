@@ -395,6 +395,25 @@ static int loadInstrumentSintered(FILE* file, Instrument* instrument) {
   }
 }
 
+static int loadInstrumentPD(FILE* file, Instrument* instrument) {
+  InstrumentPDBase* pd = instrument->type == InstrumentType::PDVCO
+    ? static_cast<InstrumentPDBase*>(&instrument->chip.pdVco) : &instrument->chip.pdVoice;
+  while (1) {
+    char* line = peekLine(file);
+    if (!line || line[0] == '#') return 0;
+    if (strncmp(line, "- Patch path: ", 14) == 0) sscanf(line, "- Patch path: %255[^\n]", pd->path);
+    else {
+      int index; unsigned value; char name[16];
+      if (sscanf(line, "- PD macro %d: %u,%15[^\n]", &index, &value, name) == 3 && index >= 1 && index <= 8) {
+        pd->macro[index - 1] = (uint8_t)(value > 255 ? 255 : value);
+        strncpy(pd->macroName[index - 1], name, 15); pd->macroName[index - 1][15] = 0;
+      } else if (instrument->type == InstrumentType::PDVCO) loadVoicePostSetting(line, &instrument->chip.pdVco);
+      else if (strncmp(line, "- PD stereo: ", 13) == 0) sscanf(line, "- PD stereo: %hhu", &instrument->chip.pdVoice.stereo);
+    }
+    consumeLine(file);
+  }
+}
+
 static int loadModulation(FILE* file, Instrument* instrument) {
   for (int i = 0; i < 4; i++) {
     char* line = peekLine(file);
@@ -516,6 +535,10 @@ int instrumentLoadData(FILE* file, Instrument* instrument, Project* p) {
         break;
       case InstrumentType::Sintered:
         if (loadInstrumentSintered(file, instrument)) return 1;
+        break;
+      case InstrumentType::PDVCO:
+      case InstrumentType::PDVoice:
+        if (loadInstrumentPD(file, instrument)) return 1;
         break;
       default:
         break;
@@ -729,6 +752,16 @@ static int saveInstrumentSintered(FILE* file, Instrument* instrument) {
   saveVoicePostSettings(file, s); return 0;
 }
 
+static int saveInstrumentPD(FILE* file, Instrument* instrument) {
+  InstrumentPDBase* pd = instrument->type == InstrumentType::PDVCO
+    ? static_cast<InstrumentPDBase*>(&instrument->chip.pdVco) : &instrument->chip.pdVoice;
+  fprintf(file, "- Patch path: %s\n", pd->path);
+  for (int i = 0; i < 8; ++i) fprintf(file, "- PD macro %d: %u,%s\n", i + 1, pd->macro[i], pd->macroName[i]);
+  if (instrument->type == InstrumentType::PDVCO) saveVoicePostSettings(file, &instrument->chip.pdVco);
+  else fprintf(file, "- PD stereo: %hhu\n", instrument->chip.pdVoice.stereo);
+  return 0;
+}
+
 // Save modulation data
 static int saveModulation(FILE* file, Instrument* instrument) {
   fprintf(file, "- Modulation:\n");
@@ -798,6 +831,10 @@ int instrumentSaveData(FILE* file, int idx, Instrument* instrument) {
       break;
     case InstrumentType::Sintered:
       saveInstrumentSintered(file, instrument);
+      break;
+    case InstrumentType::PDVCO:
+    case InstrumentType::PDVoice:
+      saveInstrumentPD(file, instrument);
       break;
     default:
       break;

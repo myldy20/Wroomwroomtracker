@@ -25,6 +25,8 @@ enum class InstrumentType : uint8_t {
   DrumSynth = 11,
   MME = 12,
   Sintered = 13,
+  PDVCO = 14,
+  PDVoice = 15,
   totalCount,
 };
 
@@ -269,6 +271,17 @@ struct InstrumentBYOWTBL : InstrumentSCWF {
   uint8_t frameIndex[2];
 };
 
+struct InstrumentPDBase {
+  char path[PROJECT_SAMPLE_PATH_LENGTH + 1];
+  uint8_t macro[8];
+  char macroName[8][16];
+};
+
+struct InstrumentPDVCO : InstrumentVoicePostSettings, InstrumentPDBase {};
+struct InstrumentPDVoice : InstrumentPDBase {
+  uint8_t stereo;
+};
+
 union InstrumentChipData {
   InstrumentAY1 ay;
   InstrumentAY2 ay2;
@@ -282,6 +295,8 @@ union InstrumentChipData {
   InstrumentDrumSynth drumSynth;
   InstrumentMME mme;
   InstrumentSintered sintered;
+  InstrumentPDVCO pdVco;
+  InstrumentPDVoice pdVoice;
 };
 
 struct Instrument {
@@ -306,7 +321,7 @@ struct InstrumentFunctions {
 // This is metadata, not an audio abstraction: renderers keep their typed
 // paths while screens, validation and motion routing share this one catalogue.
 enum class InstrumentCategory : uint8_t { none, chip, sample, synth, drums };
-enum class InstrumentScreenKind : uint8_t { none, ay1, ay2, aySample, braids, sample, scwf, byowtbl, plaits, achchid, drumSynth, mme, sintered };
+enum class InstrumentScreenKind : uint8_t { none, ay1, ay2, aySample, braids, sample, scwf, byowtbl, plaits, achchid, drumSynth, mme, sintered, pd };
 enum class InstrumentMotionValue : uint8_t { raw, speed, cutoff };
 
 static constexpr uint8_t instrumentNoFX = 0xff;

@@ -12,6 +12,7 @@
 #include "synth/drum_synth_voice.h"
 #include "synth/mme_voice.h"
 #include "synth/sintered_voice.h"
+#include "synth/pd_voice.h"
 #include "synth/master_effects.h"
 #include <math.h>
 #include <atomic>
@@ -29,6 +30,7 @@ static void updateAChChidVoices(ChipNomadState* state);
 static void updateDrumSynthVoices(ChipNomadState* state);
 static void updateMMEVoices(ChipNomadState* state);
 static void updateSinteredVoices(ChipNomadState* state);
+static void updatePDVoices(ChipNomadState* state);
 static void applyVoiceEvents(ChipNomadState* state);
 static int hasAudioRateModulation(const ChipNomadState* state);
 static void updateAudioRateModulations(ChipNomadState* state);
@@ -501,6 +503,7 @@ ChipNomadState* chipnomadCreate(void) {
   state->masterEffects->init(96000.0f);
 
   for (int i = 0; i < PROJECT_MAX_TRACKS; i++) {
+    state->pdVoices[i] = new PDVoice(); state->pdVoices[i]->init(96000.0f);
     for (int voice = 0; voice < CHORD_MAX_VOICES; ++voice) {
       state->braidsVoices[i][voice] = new BraidsVoice();
       state->braidsVoices[i][voice]->init();
@@ -538,6 +541,7 @@ void chipnomadDestroy(ChipNomadState* state) {
   }
 
   for (int i = 0; i < PROJECT_MAX_TRACKS; i++) {
+    delete state->pdVoices[i];
     for (int voice = 0; voice < CHORD_MAX_VOICES; ++voice) {
       delete state->braidsVoices[i][voice];
       delete state->sampleVoices[i][voice];
@@ -584,6 +588,7 @@ void chipnomadInitChips(ChipNomadState* state, int sampleRate, ChipFactory facto
   state->masterEffects->init((float)sampleRate);
   for (int i = 0; i < PROJECT_MAX_TRACKS; i++) {
     state->trackTilt[i].init((float)sampleRate);
+    state->pdVoices[i]->init((float)sampleRate);
     for (int voice = 0; voice < CHORD_MAX_VOICES; ++voice) {
       state->braidsVoices[i][voice]->init((float)sampleRate);
       state->sampleVoices[i][voice]->init((float)sampleRate);
@@ -725,7 +730,7 @@ static void updateAudioRateModulations(ChipNomadState* state) {
   updateAChChidVoices(state);
   updateDrumSynthVoices(state);
   updateMMEVoices(state);
-  updateSinteredVoices(state);
+  updateSinteredVoices(state); updatePDVoices(state);
 }
 
 static int advancePlaybackFrame(ChipNomadState* state) {
@@ -744,7 +749,7 @@ static int advancePlaybackFrame(ChipNomadState* state) {
   motionRecordFrame(state);
   if (allTracksStopped) playbackUpdateLiveStickModulation(&state->playbackState, axes, enabled);
   updateSampleVoices(state); updateSCWFVoices(state); updateBraidsVoices(state);
-  updatePlaitsVoices(state); updatePlaitsAltVoices(state); updateAChChidVoices(state); updateDrumSynthVoices(state); updateMMEVoices(state); updateSinteredVoices(state); applyVoiceEvents(state);
+  updatePlaitsVoices(state); updatePlaitsAltVoices(state); updateAChChidVoices(state); updateDrumSynthVoices(state); updateMMEVoices(state); updateSinteredVoices(state); updatePDVoices(state); applyVoiceEvents(state);
   if (state->audioOverload > 0) state->audioOverload--;
   for (int i = 0; i < PROJECT_MAX_TRACKS; ++i)
     if (state->trackClipping[i] > 0) state->trackClipping[i]--;
@@ -860,6 +865,15 @@ int chipnomadRender(ChipNomadState* state, float* buffer, int samples) {
     renderMonoVoiceTracks(state, state->drumSynthVoices, output, frames);
     renderMonoVoiceTracks(state, state->mmeVoices, output, frames);
     renderMonoVoiceTracks(state, state->sinteredVoices, output, frames);
+    for (int trackIdx = 0; trackIdx < state->audioProject.tracksCount; ++trackIdx) {
+      PDVoice* voice = state->pdVoices[trackIdx];
+      if (!state->playbackState.trackEnabled[trackIdx] || !voice->active()) continue;
+      voice->render(state->mixBuffer, frames);
+      captureVoiceMonitor(state, trackIdx, state->mixBuffer, frames, 2, voice->envelopeLevel());
+      float gain = state->audioProject.trackVolume[trackIdx] / 100.0f;
+      float reverbSend = effectiveTrackSend(state, trackIdx, true), delaySend = effectiveTrackSend(state, trackIdx, false);
+      for (int i = 0; i < frames * 2; ++i) mixTrackSample(state, trackIdx, &output[i], &state->reverbBuffer[i], &state->delayBuffer[i], state->mixBuffer[i] * gain, i & 1, reverbSend, delaySend);
+    }
     processMasterMix(state, output, frames);
     samplesLeft -= frames;
     state->frameSampleCounter -= (float)frames;
@@ -1044,6 +1058,17 @@ static void applyVoiceEvents(ChipNomadState* state) {
           if (track->note.noteKilled || (track->note.noteTriggered && slot >= track->chordVoiceCount)) state->sinteredVoices[trackIdx][slot]->kill();
           else if (track->note.noteTriggered) state->sinteredVoices[trackIdx][slot]->noteOn();
         break;
+      case InstrumentType::PDVCO:
+      case InstrumentType::PDVoice: {
+        PDVoice* voice = state->pdVoices[trackIdx];
+        if (track->note.noteKilled) voice->kill();
+        else if (track->note.noteTriggered) {
+          uint8_t note = track->chordPitchFinal[0];
+          float midi = note == EMPTY_VALUE_8 ? 60.0f : (project->linearPitch ? project->pitchTable.values[note] / 100.0f : note + 12.0f) + track->note.fineOffset / 100.0f;
+          voice->noteOn(midi);
+        } else voice->noteOff();
+        break;
+      }
       default: break;
     }
     track->note.noteTriggered = track->note.noteReleased = track->note.noteKilled = 0;
@@ -1711,5 +1736,27 @@ void chipnomadSetBraidsSettings(ChipNomadState* state, uint8_t bits,
     for (int voice = 0; voice < CHORD_MAX_VOICES; ++voice)
       state->braidsVoices[i][voice]->setGlobalSettings(bits, drift, signature,
         signatureSeed);
+  }
+}
+
+static void updatePDVoices(ChipNomadState* state) {
+  Project* project = &state->audioProject; PlaybackState* playback = &state->playbackState;
+  static const FX pdFX[8] = {fxPD1,fxPD2,fxPD3,fxPD4,fxPD5,fxPD6,fxPD7,fxPD8};
+  for (int trackIdx = 0; trackIdx < project->tracksCount; ++trackIdx) {
+    PlaybackTrackState* track = &playback->tracks[trackIdx]; PDVoice* voice = state->pdVoices[trackIdx];
+    if (track->note.instrument == EMPTY_VALUE_8) { voice->kill(); continue; }
+    Instrument* instrument = &project->instruments[track->note.instrument];
+    if (instrument->type != InstrumentType::PDVCO && instrument->type != InstrumentType::PDVoice) { voice->kill(); continue; }
+    InstrumentPDBase* pd = instrument->type == InstrumentType::PDVCO ? static_cast<InstrumentPDBase*>(&instrument->chip.pdVco) : &instrument->chip.pdVoice;
+    if (!voice->load(pd->path)) continue;
+    uint8_t macros[8]; for (int i = 0; i < 8; ++i) macros[i] = track->note.fx[pdFX[i]].isOn ? track->note.fx[pdFX[i]].fxValue : pd->macro[i];
+    bool vco = instrument->type == InstrumentType::PDVCO;
+    voice->configure(macros, vco, !vco && instrument->chip.pdVoice.stereo, phraseGain(playback, track, instrument));
+    if (vco) {
+      InstrumentPDVCO* p = &instrument->chip.pdVco;
+      voice->setPost(p->filterEnabled != 0, p->filterCharacter, p->filterMode, p->filterSlope24dB != 0,
+        p->filterCutoffHz, p->filterResonance / 255.0f, envelopeTime(p->attack), envelopeTime(p->decay),
+        p->sustain / 255.0f, envelopeTime(p->release), p->envelopeShape);
+    }
   }
 }
