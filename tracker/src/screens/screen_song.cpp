@@ -10,6 +10,10 @@
 #include "copy_paste.h"
 #include <string.h>
 
+#ifdef WEB_BUILD
+#include <emscripten/emscripten.h>
+#endif
+
 // Screen state variables
 static uint16_t lastChainValue = 0;
 
@@ -705,6 +709,101 @@ int songKeyJazzHandleRawKey(InputCode input, int isDown) {
 }
 
 #endif // DESKTOP_BUILD
+
+#ifdef WEB_BUILD
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongRowCount(void) {
+  return PROJECT_MAX_LENGTH;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongTrackCount(void) {
+  return chipnomadState ? chipnomadState->project.tracksCount : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongMaxChain(void) {
+  return PROJECT_MAX_CHAINS - 1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellValue(int row, int track) {
+  if (!chipnomadState || row < 0 || row >= PROJECT_MAX_LENGTH ||
+      track < 0 || track >= chipnomadState->project.tracksCount) return -2;
+  uint16_t value = chipnomadState->project.song[row][track];
+  return value == EMPTY_VALUE_16 ? -1 : (int)value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongLastUsedRow(void) {
+  if (!chipnomadState) return 0;
+  for (int row = PROJECT_MAX_LENGTH - 1; row >= 0; --row)
+    for (int track = 0; track < chipnomadState->project.tracksCount; ++track)
+      if (chipnomadState->project.song[row][track] != EMPTY_VALUE_16) return row;
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellPacked(int row, int track) {
+  int value = webSongCellValue(row, track);
+  if (value < -1) return -1;
+  int packed = value < 0 ? 0 : value + 1;
+  if (value >= 0 && chainHasNotes(&chipnomadState->project, value)) packed |= (1 << 16);
+  if (chipnomadState->project.songHighlight[row][track]) packed |= (1 << 17);
+  return packed;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellHasNotes(int row, int track) {
+  int value = webSongCellValue(row, track);
+  return value >= 0 && chainHasNotes(&chipnomadState->project, value) ? 1 : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellHighlighted(int row, int track) {
+  if (!chipnomadState || row < 0 || row >= PROJECT_MAX_LENGTH ||
+      track < 0 || track >= chipnomadState->project.tracksCount) return 0;
+  return chipnomadState->project.songHighlight[row][track] ? 1 : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCursorRow(void) {
+  return screen.cursorRow;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCursorTrack(void) {
+  return screen.cursorCol;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongSelect(int row, int track) {
+  if (!chipnomadState || row < 0 || row >= PROJECT_MAX_LENGTH ||
+      track < 0 || track >= chipnomadState->project.tracksCount) return 1;
+  screen.cursorRow = row;
+  screen.cursorCol = track;
+  if (screen.cursorRow < screen.topRow) screen.topRow = screen.cursorRow;
+  if (screen.cursorRow >= screen.topRow + screenVisibleRows())
+    screen.topRow = screen.cursorRow - (screenVisibleRows() - 1);
+  if (currentScreen == &screenSong) fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongSetCell(int row, int track, int value) {
+  if (!chipnomadState || row < 0 || row >= PROJECT_MAX_LENGTH ||
+      track < 0 || track >= chipnomadState->project.tracksCount) return 1;
+  if (value < 0) {
+    chipnomadState->project.song[row][track] = EMPTY_VALUE_16;
+  } else {
+    if (value > PROJECT_MAX_CHAINS - 1) return 1;
+    chipnomadState->project.song[row][track] = (uint16_t)value;
+    lastChainValue = (uint16_t)value;
+  }
+  screen.cursorRow = row;
+  screen.cursorCol = track;
+  projectModified = 1;
+  if (currentScreen == &screenSong) fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongToggleHighlight(int row, int track) {
+  if (!chipnomadState || row < 0 || row >= PROJECT_MAX_LENGTH ||
+      track < 0 || track >= chipnomadState->project.tracksCount) return 1;
+  chipnomadState->project.songHighlight[row][track] ^= 1;
+  projectModified = 1;
+  if (currentScreen == &screenSong) fullRedraw();
+  return chipnomadState->project.songHighlight[row][track] ? 1 : 0;
+}
+#endif
 
 static ScreenPlaybackLevel getPlaybackLevel(void) {
   return ScreenPlaybackLevel::song;

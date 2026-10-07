@@ -1128,6 +1128,16 @@ int gfxGetTouchGridPosition(int physicalX, int physicalY, int* col, int* row) {
       physicalX >= viewport.x + viewport.w || physicalY >= viewport.y + viewport.h) return 0;
   logicalX = (physicalX - viewport.x) * logicalW / viewport.w;
   logicalY = (physicalY - viewport.y) * logicalH / viewport.h;
+#elif defined(WEB_BUILD)
+  // Emscripten/SDL may use a HiDPI backing store while the tracker keeps a
+  // fixed 640x480 logical canvas. Pointer coordinates arrive in backing-store
+  // pixels, so scale them back to the tracker's logical coordinate space.
+  int outputW = 0, outputH = 0;
+  if (renderer) SDL_GetRendererOutputSize(renderer, &outputW, &outputH);
+  if (outputW > 0 && outputH > 0) {
+    logicalX = physicalX * logicalW / outputW;
+    logicalY = physicalY * logicalH / outputH;
+  }
 #endif
   if (!charW || !charH || logicalX < offsetX || logicalY < offsetY) return 0;
   int gridX = (logicalX - offsetX) / charW;

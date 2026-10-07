@@ -21,6 +21,9 @@ static AppScreen const* pendingScreen;
 static int pendingScreenInput;
 
 void drawScreenMap() {
+#ifdef WEB_BUILD
+  return;
+#endif
   ScreenOverlayCoordinates overlay;
   // Native preset lists use the popup area through the footer.
   if (currentScreen == &screenSelectionPopup) return;
