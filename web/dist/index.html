@@ -58,11 +58,13 @@
         <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="WroomWroomTracker editor"></canvas>
 
         <div class="context-actions" aria-label="Context actions">
+          <button id="decreaseAction" class="adjust-action" type="button" data-needs-runtime disabled aria-label="Decrease selected value">−</button>
           <button id="editAction" class="primary" type="button" data-needs-runtime disabled>EDIT</button>
+          <button id="increaseAction" class="adjust-action" type="button" data-needs-runtime disabled aria-label="Increase selected value">+</button>
           <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
           <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
           <span class="spacer"></span>
-          <span class="hint">Mouse/touch edits the tracker directly. Keyboard still works.</span>
+          <span class="hint">Tap to select · drag or −/+ to change · double tap to edit</span>
         </div>
       </section>
     </main>
