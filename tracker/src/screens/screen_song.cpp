@@ -730,6 +730,23 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellValue(int row, int track) {
   return value == EMPTY_VALUE_16 ? -1 : (int)value;
 }
 
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongLastUsedRow(void) {
+  if (!chipnomadState) return 0;
+  for (int row = PROJECT_MAX_LENGTH - 1; row >= 0; --row)
+    for (int track = 0; track < chipnomadState->project.tracksCount; ++track)
+      if (chipnomadState->project.song[row][track] != EMPTY_VALUE_16) return row;
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellPacked(int row, int track) {
+  int value = webSongCellValue(row, track);
+  if (value < -1) return -1;
+  int packed = value < 0 ? 0 : value + 1;
+  if (value >= 0 && chainHasNotes(&chipnomadState->project, value)) packed |= (1 << 16);
+  if (chipnomadState->project.songHighlight[row][track]) packed |= (1 << 17);
+  return packed;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellHasNotes(int row, int track) {
   int value = webSongCellValue(row, track);
   return value >= 0 && chainHasNotes(&chipnomadState->project, value) ? 1 : 0;
