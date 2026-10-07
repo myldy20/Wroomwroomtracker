@@ -537,7 +537,11 @@ int gfxSetup(int *screenWidth, int *screenHeight) {
     return 1;
   }
 
+#ifdef WEB_BUILD
+  snprintf(printBuffer, PRINT_BUFFER_SIZE, "WroomWroomTracker v%s", appVersion);
+#else
   snprintf(printBuffer, PRINT_BUFFER_SIZE, "%s v%s (%s)", appTitle, appVersion, appBuild);
+#endif
 
   // Desktop deliberately uses the tracker's native window size.  Do not
   // restore a DPI-scaled drawable size from a prior run as a window size.
