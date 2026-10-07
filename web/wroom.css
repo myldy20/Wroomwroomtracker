@@ -205,6 +205,18 @@ button:disabled { opacity: .4; cursor: wait; }
 }
 
 .context-actions .primary { color: var(--pink); border-color: rgba(255,63,146,.34); }
+.context-actions .adjust-action {
+  min-width: 44px;
+  color: var(--cyan);
+  border-color: rgba(94,215,255,.3);
+  background: rgba(94,215,255,.045);
+  font-size: 16px;
+  line-height: 1;
+}
+.context-actions .adjust-action:active {
+  background: rgba(94,215,255,.13);
+  box-shadow: inset 0 -2px 0 var(--cyan);
+}
 .context-actions .spacer { flex: 1; }
 .context-actions .hint { color: var(--dim); font-size: 8px; }
 
