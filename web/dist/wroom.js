@@ -10,11 +10,16 @@
   const legacyWorkspace = $("#legacyWorkspace");
   const songGrid = $("#songGrid");
   const songScroll = $("#songScroll");
+  const chainPickerDialog = $("#chainPickerDialog");
+  const chainPickerSearch = $("#chainPickerSearch");
+  const chainPickerList = $("#chainPickerList");
   let trackerStarted = false;
   let activeUiScreen = 0;
   let songRendered = false;
   let songSelection = { row: 0, track: 0 };
   let songLastTap = { row: -1, track: -1, time: 0 };
+  let chainPickerEntries = [];
+  let lastPlaybackVisualKey = "";
   let storageSyncing = false;
   let storageMounted = false;
   let storageReady = false;
@@ -182,6 +187,17 @@
   const screenEyebrows = ["ARRANGEMENT", "STRUCTURE", "NOTES + FX", "INSTRUMENT", "MIXER", "PROJECT", "SETTINGS", "START"];
   const hex2 = (value) => Math.max(0, value | 0).toString(16).toUpperCase().padStart(2, "0");
 
+  const chainSummary = (chain) => {
+    const packed = call("webSongChainSummary", "number", ["number"], [chain]);
+    if (packed == null || packed < 0) return null;
+    return {
+      chain,
+      usage: packed & 0x0fff,
+      steps: (packed >> 12) & 0x1f,
+      hasNotes: !!(packed & (1 << 17)),
+    };
+  };
+
   const songCellState = (row, track) => {
     const packed = call("webSongCellPacked", "number", ["number", "number"], [row, track]);
     if (packed == null || packed < 0) return { value: -1, hasNotes: false, highlighted: false };
@@ -206,6 +222,7 @@
       return false;
     }
     songSelection = { row, track };
+    chainPickerEntries = [];
     publishProjectEdit();
     songRendered = false;
     renderSongWorkspace();
@@ -235,6 +252,67 @@
     navigateToScreen(1);
   };
 
+  const loadChainPickerEntries = () => {
+    const maxChain = call("webSongMaxChain", "number") ?? 254;
+    chainPickerEntries = [];
+    for (let chain = 0; chain <= maxChain; chain++) {
+      const entry = chainSummary(chain);
+      if (entry) chainPickerEntries.push(entry);
+    }
+    chainPickerEntries.sort((a, b) =>
+      Number(b.usage > 0) - Number(a.usage > 0) ||
+      Number(b.hasNotes) - Number(a.hasNotes) ||
+      Number(b.steps > 0) - Number(a.steps > 0) ||
+      a.chain - b.chain);
+  };
+
+  const renderChainPicker = () => {
+    const query = chainPickerSearch.value.trim().toUpperCase();
+    const current = songCellState(songSelection.row, songSelection.track).value;
+    const fragment = document.createDocumentFragment();
+
+    for (const entry of chainPickerEntries) {
+      const hex = hex2(entry.chain);
+      const decimal = String(entry.chain);
+      if (query && !hex.includes(query) && !decimal.includes(query)) continue;
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chain-picker-item";
+      if (entry.hasNotes) button.classList.add("has-notes");
+      if (entry.chain === current) button.classList.add("current");
+      button.dataset.chainValue = String(entry.chain);
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", entry.chain === current ? "true" : "false");
+
+      const code = document.createElement("strong");
+      code.textContent = hex;
+      const meta = document.createElement("span");
+      const usage = entry.usage ? "USED " + entry.usage + "×" : "UNUSED";
+      const content = entry.steps ? entry.steps + " STEP" + (entry.steps === 1 ? "" : "S") : "EMPTY";
+      meta.textContent = usage + " · " + content;
+      const dot = document.createElement("i");
+      dot.setAttribute("aria-hidden", "true");
+      button.append(code, meta, dot);
+      fragment.appendChild(button);
+    }
+
+    chainPickerList.replaceChildren(fragment);
+  };
+
+  const openChainPicker = () => {
+    loadChainPickerEntries();
+    chainPickerSearch.value = "";
+    $("#chainPickerTitle").textContent =
+      "Row " + hex2(songSelection.row) + " · Track " + (songSelection.track + 1);
+    renderChainPicker();
+    if (!chainPickerDialog.open) chainPickerDialog.showModal();
+    requestAnimationFrame(() => {
+      const current = chainPickerList.querySelector(".chain-picker-item.current");
+      (current || chainPickerList.querySelector(".chain-picker-item"))?.scrollIntoView({ block: "center" });
+    });
+  };
+
   const buildSongEditorControls = (root, dialogMode = false) => {
     const { row, track } = songSelection;
     const state = songCellState(row, track);
@@ -251,6 +329,34 @@
       root.appendChild(stats);
     }
 
+    const choose = document.createElement("button");
+    choose.type = "button";
+    choose.id = dialogMode ? "songDialogChooseChain" : "songInspectorChooseChain";
+    choose.className = "song-choose-chain";
+    choose.textContent = state.value < 0 ? "CHOOSE CHAIN" : "CHANGE CHAIN · " + hex2(state.value);
+    choose.addEventListener("click", openChainPicker);
+    root.appendChild(choose);
+
+    const actions = document.createElement("div");
+    actions.className = dialogMode ? "song-cell-actions" : "inspector-actions";
+    const empty = document.createElement("button");
+    empty.type = "button";
+    empty.textContent = "CLEAR";
+    const highlight = document.createElement("button");
+    highlight.type = "button";
+    highlight.textContent = state.highlighted ? "UNHIGHLIGHT" : "HIGHLIGHT";
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "primary";
+    open.textContent = "OPEN CHAIN";
+    open.disabled = state.value < 0;
+    actions.append(empty, highlight, open);
+    root.appendChild(actions);
+
+    const direct = document.createElement("details");
+    direct.className = "song-direct-number";
+    const summary = document.createElement("summary");
+    summary.textContent = "DIRECT CHAIN NUMBER";
     const control = document.createElement("div");
     control.className = dialogMode ? "song-chain-input-row" : "inspector-chain-control";
     const minus = document.createElement("button");
@@ -263,27 +369,13 @@
     input.inputMode = "numeric";
     input.placeholder = "--";
     input.value = state.value < 0 ? "" : String(state.value);
-    input.setAttribute("aria-label", "Chain number");
+    input.setAttribute("aria-label", "Direct chain number");
     const plus = document.createElement("button");
     plus.type = "button";
     plus.textContent = "+";
     control.append(minus, input, plus);
-    root.appendChild(control);
-
-    const actions = document.createElement("div");
-    actions.className = dialogMode ? "song-cell-actions" : "inspector-actions";
-    const empty = document.createElement("button");
-    empty.type = "button";
-    empty.textContent = "EMPTY";
-    const highlight = document.createElement("button");
-    highlight.type = "button";
-    highlight.textContent = state.highlighted ? "UNHIGHLIGHT" : "HIGHLIGHT";
-    const open = document.createElement("button");
-    open.type = "button";
-    open.className = "primary";
-    open.textContent = "OPEN CHAIN";
-    actions.append(empty, highlight, open);
-    root.appendChild(actions);
+    direct.append(summary, control);
+    root.appendChild(direct);
 
     const applyInput = () => {
       if (input.value.trim() === "") return setSongValue(row, track, -1);
@@ -372,7 +464,7 @@
     for (let track = 0; track < tracks; track++) {
       const head = document.createElement("div");
       head.className = "song-track-header";
-      head.innerHTML = "<strong>TRACK " + (track + 1) + "</strong><span>CHAIN</span>";
+      head.innerHTML = "<strong>TRACK " + (track + 1) + "</strong>";
       header.appendChild(head);
     }
     fragment.appendChild(header);
@@ -395,6 +487,7 @@
         cell.type = "button";
         cell.className = "song-cell";
         if (state.value < 0) cell.classList.add("song-cell-empty");
+        if (state.value >= 0 && !state.hasNotes) cell.classList.add("assigned-empty");
         if (state.hasNotes) cell.classList.add("has-notes");
         if (state.highlighted) cell.classList.add("highlighted");
         if (row === songSelection.row && track === songSelection.track) cell.classList.add("selected");
@@ -408,10 +501,7 @@
         const value = document.createElement("span");
         value.className = "song-cell-value";
         value.textContent = state.value < 0 ? "—" : hex2(state.value);
-        const meta = document.createElement("span");
-        meta.className = "song-cell-meta";
-        meta.textContent = state.value < 0 ? "EMPTY" : state.hasNotes ? "CHAIN" : "EMPTY CHAIN";
-        cell.append(value, meta);
+        cell.append(value);
         line.appendChild(cell);
       }
       fragment.appendChild(line);
@@ -421,7 +511,9 @@
     songScroll.scrollTop = previousTop;
     songScroll.scrollLeft = previousLeft;
     songRendered = true;
+    lastPlaybackVisualKey = "";
     updateSongInspector();
+    updateSongPlaybackVisuals();
   };
 
   const setWorkspaceMode = (screen, syncNative = false) => {
@@ -521,6 +613,30 @@
 
   $("#songCellDialogClose").addEventListener("click", () => $("#songCellDialog").close());
 
+  $("#chainPickerClose").addEventListener("click", () => chainPickerDialog.close());
+  chainPickerSearch.addEventListener("input", renderChainPicker);
+  chainPickerList.addEventListener("click", (event) => {
+    const item = event.target.closest(".chain-picker-item");
+    if (!item) return;
+    if (setSongValue(songSelection.row, songSelection.track, Number(item.dataset.chainValue))) {
+      chainPickerDialog.close();
+    }
+  });
+  $("#chainPickerClear").addEventListener("click", () => {
+    if (setSongValue(songSelection.row, songSelection.track, -1)) chainPickerDialog.close();
+  });
+  $("#chainPickerNew").addEventListener("click", () => {
+    const chain = call("webSongFindFreeChain", "number");
+    if (chain == null || chain < 0) {
+      setStatus("No free Chain slots");
+      return;
+    }
+    if (setSongValue(songSelection.row, songSelection.track, chain, false)) {
+      chainPickerDialog.close();
+      setStatus("Free Chain " + hex2(chain) + " assigned");
+    }
+  });
+
   canvas.addEventListener("pointerdown", (event) => {
     if (!trackerStarted || !window.Module?.ccall) return;
     event.preventDefault();
@@ -565,6 +681,50 @@
   });
   canvas.addEventListener("pointercancel", () => { pointer = null; });
 
+  const decodePlaybackTrack = (packed) => ({
+    songRow: (packed & 0x1ff) ? (packed & 0x1ff) - 1 : -1,
+    chainRow: ((packed >> 9) & 0x1f) ? ((packed >> 9) & 0x1f) - 1 : -1,
+    phraseRow: ((packed >> 14) & 0x1f) ? ((packed >> 14) & 0x1f) - 1 : -1,
+    mode: (packed >> 19) & 0x1f,
+  });
+
+  const updateSongPlaybackVisuals = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 0 || !songRendered) return;
+
+    const playing = !!call("webPlaybackIsPlaying", "number");
+    const tracks = Math.max(1, call("webSongTrackCount", "number") || 1);
+    const rows = [];
+    const snapshot = [playing ? 1 : 0];
+
+    for (let track = 0; track < tracks; track++) {
+      const packed = call("webPlaybackTrackPacked", "number", ["number"], [track]) || 0;
+      const state = decodePlaybackTrack(packed);
+      rows.push(state.songRow);
+      snapshot.push(packed);
+    }
+
+    const key = snapshot.join(",");
+    if (key === lastPlaybackVisualKey) return;
+    lastPlaybackVisualKey = key;
+
+    songGrid.querySelectorAll(".song-cell.playing").forEach((cell) => cell.classList.remove("playing"));
+    songGrid.querySelectorAll(".song-grid-row.playing-row").forEach((row) => row.classList.remove("playing-row"));
+
+    if (!playing) return;
+
+    const playingRows = new Set();
+    rows.forEach((row, track) => {
+      if (row < 0) return;
+      const cell = songGrid.querySelector('[data-song-row="' + row + '"][data-song-track="' + track + '"]');
+      if (!cell) return;
+      cell.classList.add("playing");
+      playingRows.add(row);
+    });
+    for (const row of playingRows) {
+      songGrid.querySelector('[data-song-row="' + row + '"]')?.closest(".song-grid-row")?.classList.add("playing-row");
+    }
+  };
+
   const refreshScreenState = () => {
     if (!window.Module?.ccall) return;
     const current = call("webCurrentScreen", "number");
@@ -584,6 +744,7 @@
     const playing = !!call("webPlaybackIsPlaying", "number");
     $("#playToggle").setAttribute("aria-pressed", playing ? "true" : "false");
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
+    updateSongPlaybackVisuals();
   };
 
   $$(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
@@ -752,6 +913,17 @@
             console.error("Periodic UI refresh failed", error);
           }
         }, 1200);
+
+        // Playback visualization is intentionally bounded and reads one compact
+        // snapshot per track. It only toggles DOM classes when engine state
+        // changes; it never rebuilds the Song grid on a playback tick.
+        setInterval(() => {
+          try {
+            updateSongPlaybackVisuals();
+          } catch (error) {
+            console.error("Playback UI refresh failed", error);
+          }
+        }, 50);
 
         if (!localStorage.getItem("wroomwroom-web-seen")) {
           localStorage.setItem("wroomwroom-web-seen", "1");

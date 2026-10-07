@@ -12,6 +12,22 @@ UI / screens ── UI Project ── snapshots + commands ── audio engine
      └──────── playback status + motion events ───────┘
 ```
 
+## Browser semantic workspace migration
+
+The Web build keeps native screens as a fallback until each musical workspace has semantic feature parity. Browser UI must read and write the same project and playback state as native code; it must not maintain a second sequencer model.
+
+Current migration contract:
+
+| Native behavior | Semantic Web equivalent | Regression coverage |
+| --- | --- | --- |
+| Song cursor / selected cell | `webSongSelect` + DOM `.selected` | live Pages exact-cell selection |
+| Song playback markers from `PlaybackStatus.tracks[].songRow` | compact `webPlaybackTrackPacked` + `.playing-row` / `.playing` classes | live Pages PLAY / selection independence / STOP |
+| Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
+| Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
+| Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
+
+For every later screen migration, preserve the same order: inventory native behavior, add a minimal `WEB_BUILD` bridge to canonical state, implement direct browser interaction, add regression coverage, then reduce reliance on the legacy view.
+
 ## Modules
 
 - `tracker/src/`: application loop, SDL audio, tracker screens, editing,

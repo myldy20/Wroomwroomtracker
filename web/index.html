@@ -198,6 +198,25 @@
     </div>
   </dialog>
 
+  <dialog id="chainPickerDialog" class="field-dialog chain-picker-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">SONG · CHAIN</span>
+        <h2 id="chainPickerTitle">Choose Chain</h2>
+      </div>
+      <button id="chainPickerClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="chain-picker-body">
+      <input id="chainPickerSearch" class="chain-picker-search" type="search" inputmode="search"
+        placeholder="Search chain number…" autocomplete="off" aria-label="Search chains">
+      <div class="chain-picker-actions">
+        <button id="chainPickerClear" type="button">CLEAR CELL</button>
+        <button id="chainPickerNew" type="button">NEW FREE CHAIN</button>
+      </div>
+      <div id="chainPickerList" class="chain-picker-list" role="listbox" aria-label="Available chains"></div>
+    </div>
+  </dialog>
+
   <dialog id="noteDialog" class="note-dialog">
     <header>
       <div>

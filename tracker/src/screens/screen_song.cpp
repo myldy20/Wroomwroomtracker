@@ -747,6 +747,32 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellPacked(int row, int track) {
   return packed;
 }
 
+// One-call picker summary: usage count (bits 0..11), non-empty step count
+// (bits 12..16), and has-notes (bit 17).
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongChainSummary(int chain) {
+  if (!chipnomadState || chain < 0 || chain >= PROJECT_MAX_CHAINS) return -1;
+
+  int usage = 0;
+  for (int row = 0; row < PROJECT_MAX_LENGTH; ++row)
+    for (int track = 0; track < chipnomadState->project.tracksCount; ++track)
+      if (chipnomadState->project.song[row][track] == chain) ++usage;
+
+  int steps = 0;
+  for (int row = 0; row < 16; ++row)
+    if (chipnomadState->project.chains[chain].rows[row].phrase != EMPTY_VALUE_16) ++steps;
+
+  int packed = usage & 0x0fff;
+  packed |= (steps & 0x1f) << 12;
+  if (chainHasNotes(&chipnomadState->project, chain)) packed |= 1 << 17;
+  return packed;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongFindFreeChain(void) {
+  if (!chipnomadState) return -1;
+  int chain = findEmptyChain(&chipnomadState->project, 0);
+  return chain == EMPTY_VALUE_16 ? -1 : chain;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webSongCellHasNotes(int row, int track) {
   int value = webSongCellValue(row, track);
   return value >= 0 && chainHasNotes(&chipnomadState->project, value) ? 1 : 0;
