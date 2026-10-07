@@ -822,9 +822,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetNote(int note) {
     lastNote = row->note;
     if (row->instrument != EMPTY_VALUE_8) lastInstrument = row->instrument;
     if (row->volume != EMPTY_VALUE_16) lastVolume = row->volume;
-    triggerRowPreview(screen.cursorRow);
   }
 
+  triggerRowPreview(screen.cursorRow);
   projectModified = 1;
   fullRedraw();
   return 0;
