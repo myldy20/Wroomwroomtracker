@@ -443,13 +443,14 @@ void appSetup(void) {
   midiRouterSetChannelInstrumentMap(chipnomadState->midiRouter, appSettings.midiChannelInstrument);
 
 #ifdef WEB_BUILD
-  webStartupStage("READY");
-  // The browser shell owns startup UX and navigation. Enter the first musical
-  // workspace directly and synchronously notify JavaScript only after the
-  // complete app state exists. This avoids racing onRuntimeInitialized against
-  // main()/appSetup()/SDL's browser main loop.
+  // Do not yield after the last native startup stage. A final emscripten_sleep(0)
+  // here can leave the browser waiting for the main loop before JavaScript ever
+  // receives the ready handoff.
   screenSetup(&screenSong, 0);
   EM_ASM({
+    if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') {
+      window.wroomStartupStage('READY');
+    }
     if (typeof window !== 'undefined' && typeof window.wroomRuntimeReady === 'function') {
       window.wroomRuntimeReady();
     }
