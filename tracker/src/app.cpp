@@ -451,6 +451,18 @@ void appSetup(void) {
     if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') {
       window.wroomStartupStage('READY');
     }
+
+    // Fail-safe: once native startup has reached READY, never leave the browser
+    // trapped behind the splash even if the shell callback is unavailable.
+    if (typeof document !== 'undefined') {
+      var overlay = document.getElementById('startOverlay');
+      if (overlay) {
+        overlay.hidden = true;
+        overlay.style.display = 'none';
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+    }
+
     if (typeof window !== 'undefined' && typeof window.wroomRuntimeReady === 'function') {
       window.wroomRuntimeReady();
     }
