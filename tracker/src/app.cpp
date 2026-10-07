@@ -513,6 +513,27 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webPlaybackIsPlaying(void) {
   return status && status->isPlaying ? 1 : 0;
 }
 
+// Compact UI-facing playback snapshot for one track.
+// song/chain/phrase positions are encoded as value+1 so zero means "inactive".
+// Keeping this behind WEB_BUILD lets the browser render canonical engine state
+// without exposing mutable PlaybackState or polling every Song cell.
+extern "C" EMSCRIPTEN_KEEPALIVE int webPlaybackTrackPacked(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return 0;
+  const PlaybackStatus* status = chipnomadGetPlaybackStatus(chipnomadState);
+  if (!status) return 0;
+
+  const PlaybackTrackState* state = &status->tracks[track];
+  int song = state->songRow >= 0 && state->songRow < PROJECT_MAX_LENGTH ? state->songRow + 1 : 0;
+  int chain = state->chainRow >= 0 && state->chainRow < 16 ? state->chainRow + 1 : 0;
+  int phrase = state->phraseRow >= 0 && state->phraseRow < 16 ? state->phraseRow + 1 : 0;
+  int mode = ((int)state->mode) & 0x1f;
+
+  return (song & 0x1ff) |
+    ((chain & 0x1f) << 9) |
+    ((phrase & 0x1f) << 14) |
+    (mode << 19);
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void webStopPlayback(void) {
   if (chipnomadState) chipnomadQueuePlaybackStop(chipnomadState);
 }
