@@ -111,6 +111,59 @@ try {
   failure = error;
 }
 
+let interaction = null;
+if (success) {
+  const firstCell = page.locator('.song-cell[data-song-row="0"][data-song-track="0"]');
+  await firstCell.click();
+  const exactSelected = await firstCell.evaluate((cell) => cell.classList.contains("selected"));
+  if (!exactSelected) throw new Error("Song selection did not land on row 0 / track 0");
+
+  await page.locator("#songInspectorChooseChain").click();
+  await page.waitForSelector("#chainPickerDialog[open]", { timeout: 5_000 });
+  const pickerItems = page.locator("#chainPickerList .chain-picker-item");
+  const pickerCount = await pickerItems.count();
+  if (!pickerCount) throw new Error("Chain picker rendered no choices");
+  const preferred = page.locator("#chainPickerList .chain-picker-item.has-notes").first();
+  if (await preferred.count()) await preferred.click();
+  else await pickerItems.first().click();
+
+  const assignedValue = await firstCell.locator(".song-cell-value").innerText();
+  if (assignedValue === "—") throw new Error("Chain picker did not assign the selected Song cell");
+
+  await page.locator("#playToggle").click();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".song-cell.playing").length > 0,
+    null,
+    { timeout: 12_000 },
+  );
+
+  const farCell = page.locator('.song-cell[data-song-row="31"][data-song-track="0"]');
+  await farCell.click();
+  await page.waitForFunction(() => {
+    const selected = document.querySelector(".song-cell.selected");
+    const playing = [...document.querySelectorAll(".song-cell.playing")];
+    return selected?.dataset.songRow === "31" &&
+      playing.length > 0 &&
+      !selected.classList.contains("playing");
+  }, null, { timeout: 5_000 });
+
+  const playingBeforeStop = await page.locator(".song-cell.playing").count();
+  await page.locator("#stopButton").click();
+  await page.waitForFunction(
+    () => document.querySelectorAll(".song-cell.playing").length === 0,
+    null,
+    { timeout: 5_000 },
+  );
+
+  interaction = {
+    exactSelected,
+    pickerCount,
+    assignedValue,
+    playingBeforeStop,
+    selectedRowAfterPlaybackMove: await page.locator(".song-cell.selected").getAttribute("data-song-row"),
+  };
+}
+
 const diagnostics = await page.evaluate(() => {
   const overlay = document.querySelector("#startOverlay");
   const semantic = document.querySelector("#semanticWorkspace");
@@ -144,6 +197,7 @@ const report = {
   success,
   expectedBuild,
   diagnostics,
+  interaction,
   pageErrors,
   requestFailures,
   badResponses,
