@@ -426,7 +426,7 @@
 
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
-    $(".view-tabs [data-screen]").forEach((button) => {
+    $$(".view-tabs [data-screen]").forEach((button) => {
       button.classList.toggle("active", Number(button.dataset.screen) === screen);
     });
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
@@ -644,7 +644,7 @@
 
   $("#mobileMenuButton").addEventListener("click", () => $("#mobileMenuDialog").showModal());
   $("#mobileMenuClose").addEventListener("click", closeMobileMenu);
-  $("[data-menu-screen]").forEach((button) => {
+  $$("[data-menu-screen]").forEach((button) => {
     button.addEventListener("click", () => {
       closeMobileMenu();
       navigateToScreen(Number(button.dataset.menuScreen));
