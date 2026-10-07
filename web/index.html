@@ -51,18 +51,38 @@
     <main class="stage">
       <section class="tracker-frame" aria-label="Tracker workspace">
         <header class="frame-head">
-          <strong id="screenName">TRACKER</strong>
-          <span id="gestureHint">TAP SELECTS · DRAG CHANGES · DOUBLE TAP EDITS</span>
+          <div class="workspace-heading">
+            <span id="workspaceEyebrow">ARRANGEMENT</span>
+            <strong id="screenName">SONG</strong>
+          </div>
+          <span id="gestureHint">CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN</span>
         </header>
 
-        <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="WroomWroomTracker editor"></canvas>
+        <div id="semanticWorkspace" class="semantic-workspace">
+          <section id="songWorkspace" class="workspace-view song-workspace" aria-label="Song arrangement">
+            <div class="song-toolbar">
+              <div>
+                <strong>ARRANGEMENT</strong>
+                <span>Rows are song positions. Columns are tracks. Cells point to chains.</span>
+              </div>
+              <button id="songJumpCursor" type="button" data-needs-runtime disabled>JUMP TO CURSOR</button>
+            </div>
+            <div id="songScroll" class="song-scroll">
+              <div id="songGrid" class="song-grid" role="grid" aria-label="Song arrangement grid"></div>
+            </div>
+          </section>
+        </div>
 
-        <div class="context-actions" aria-label="Context actions">
-          <button id="editAction" class="primary" type="button" data-needs-runtime disabled>EDIT</button>
-          <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
-          <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
-          <span class="spacer"></span>
-          <span class="hint">Mouse/touch edits the tracker directly. Keyboard still works.</span>
+        <div id="legacyWorkspace" class="legacy-workspace" hidden>
+          <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="WroomWroomTracker legacy editor"></canvas>
+
+          <div class="context-actions" aria-label="Legacy context actions">
+            <button id="editAction" class="primary" type="button" data-needs-runtime disabled>EDIT</button>
+            <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
+            <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
+            <span class="spacer"></span>
+            <span class="hint">This screen is still using the legacy tracker view while its web workspace is being migrated.</span>
+          </div>
         </div>
       </section>
     </main>
@@ -84,13 +104,10 @@
         </div>
       </section>
 
-      <section class="tool-section">
-        <header><strong>TOUCH</strong><span>BRKTRK-style</span></header>
-        <div class="tool-body">
-          <p><strong>Tap</strong> a tracker cell to select it.</p>
-          <p><strong>Drag left/right</strong> on the selected value to change it.</p>
-          <p><strong>Double tap</strong> or use <kbd>EDIT</kbd> for the cell's action/editor.</p>
-          <p>Use the workspace tabs instead of a virtual gamepad.</p>
+      <section id="selectionInspector" class="tool-section selection-inspector">
+        <header><strong id="inspectorTitle">SELECTION</strong><span id="inspectorLocation">nothing selected</span></header>
+        <div id="inspectorBody" class="tool-body inspector-body">
+          <p>Select a Song cell to edit its chain reference directly.</p>
         </div>
       </section>
 
@@ -153,6 +170,31 @@
       <button type="button" data-file-action="add-folder" data-needs-runtime disabled>
         <strong>ADD SAMPLE FOLDER</strong><span>import a folder of samples</span>
       </button>
+    </div>
+  </dialog>
+
+  <dialog id="songCellDialog" class="field-dialog song-cell-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">SONG CELL</span>
+        <h2 id="songCellDialogTitle">Chain</h2>
+      </div>
+      <button id="songCellDialogClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="field-body">
+      <div class="song-cell-editor">
+        <label for="songChainInput">CHAIN</label>
+        <div class="song-chain-input-row">
+          <button id="songChainMinus" type="button">−</button>
+          <input id="songChainInput" type="number" min="0" max="254" inputmode="numeric">
+          <button id="songChainPlus" type="button">+</button>
+        </div>
+        <div class="song-cell-actions">
+          <button id="songChainEmpty" type="button">EMPTY</button>
+          <button id="songChainHighlight" type="button">HIGHLIGHT</button>
+          <button id="songChainOpen" class="primary" type="button">OPEN CHAIN</button>
+        </div>
+      </div>
     </div>
   </dialog>
 
