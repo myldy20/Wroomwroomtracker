@@ -125,8 +125,283 @@
     return true;
   };
 
+  const hex2 = (value) => Math.max(0, value | 0).toString(16).toUpperCase().padStart(2, "0");
+
+  const openFieldDialog = (title, eyebrow = "PHRASE") => {
+    $("#fieldEyebrow").textContent = eyebrow;
+    $("#fieldTitle").textContent = title;
+    $("#fieldBody").replaceChildren();
+    $("#phraseFieldDialog").showModal();
+  };
+
+  const closeFieldDialog = () => {
+    const dialog = $("#phraseFieldDialog");
+    if (dialog.open) dialog.close();
+    canvas.focus();
+  };
+
+  const publishPhraseEdit = () => {
+    call("webProjectChanged");
+    refreshScreenState();
+  };
+
+  const openInstrumentEditor = () => {
+    if (call("webCurrentScreen", "number") !== 2 ||
+        call("webPhraseCursorColumn", "number") !== 1) return false;
+
+    const current = call("webPhraseCurrentInstrument", "number");
+    const count = Math.max(0, call("webInstrumentSlotCount", "number") || 0);
+    openFieldDialog("Instrument");
+
+    const search = document.createElement("input");
+    search.type = "search";
+    search.className = "field-search";
+    search.placeholder = "Filter instruments…";
+    search.autocomplete = "off";
+
+    const list = document.createElement("div");
+    list.className = "field-list";
+
+    const addButton = (value, title, subtitle, empty = false) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.instrumentValue = String(value);
+      if (empty) button.classList.add("field-empty");
+      if (value === current) button.classList.add("active");
+      const strong = document.createElement("strong");
+      strong.textContent = title;
+      const span = document.createElement("span");
+      span.textContent = subtitle;
+      button.append(strong, span);
+      button.addEventListener("click", () => {
+        if (call("webPhraseSetInstrument", "number", ["number"], [value]) === 0) {
+          publishPhraseEdit();
+          closeFieldDialog();
+          setStatus(value < 0 ? "Instrument inherited" : "Instrument changed");
+        }
+      });
+      list.appendChild(button);
+    };
+
+    addButton(-1, "INHERIT", "Use the previous instrument", true);
+    for (let instrument = 0; instrument < count; instrument++) {
+      if (!call("webInstrumentSlotUsed", "number", ["number"], [instrument])) continue;
+      const name = call("webInstrumentSlotName", "string", ["number"], [instrument]) || "Instrument";
+      const type = call("webInstrumentSlotType", "string", ["number"], [instrument]) || "";
+      addButton(instrument, hex2(instrument) + " · " + name, type);
+    }
+
+    search.addEventListener("input", () => {
+      const needle = search.value.trim().toLowerCase();
+      [...list.children].forEach((button) => {
+        button.hidden = Boolean(needle) && !button.textContent.toLowerCase().includes(needle);
+      });
+    });
+
+    $("#fieldBody").append(search, list);
+    requestAnimationFrame(() => list.querySelector(".active")?.scrollIntoView({ block: "center" }));
+    return true;
+  };
+
+  const openVolumeEditor = () => {
+    if (call("webCurrentScreen", "number") !== 2 ||
+        call("webPhraseCursorColumn", "number") !== 2) return false;
+
+    let current = call("webPhraseCurrentVolume", "number");
+    const max = Math.max(1, call("webPhraseVolumeMax", "number") || 127);
+    openFieldDialog("Volume");
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "volume-editor";
+    const readout = document.createElement("div");
+    readout.className = "volume-readout";
+    const strong = document.createElement("strong");
+    const detail = document.createElement("span");
+    readout.append(strong, detail);
+
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = String(max);
+    slider.step = "1";
+    slider.value = String(current >= 0 ? current : max);
+
+    const render = (value, inherited = false) => {
+      strong.textContent = inherited ? "INHERIT" : hex2(value);
+      detail.textContent = inherited ? "Use previous volume" :
+        Math.round(value * 100 / max) + "% · " + value + "/" + max;
+    };
+    render(current >= 0 ? current : max, current < 0);
+
+    slider.addEventListener("input", () => render(Number(slider.value), false));
+    slider.addEventListener("change", () => {
+      const value = Number(slider.value);
+      if (call("webPhraseSetVolume", "number", ["number"], [value]) === 0) {
+        current = value;
+        publishPhraseEdit();
+        render(value, false);
+        setStatus("Volume " + hex2(value));
+      }
+    });
+
+    const presets = document.createElement("div");
+    presets.className = "preset-row";
+    const values = [
+      [-1, "INHERIT"],
+      [0, "0%"],
+      [Math.round(max * .25), "25%"],
+      [Math.round(max * .5), "50%"],
+      [Math.round(max * .75), "75%"],
+      [max, "100%"],
+    ];
+    values.forEach(([value, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        if (call("webPhraseSetVolume", "number", ["number"], [value]) === 0) {
+          current = value;
+          if (value >= 0) slider.value = String(value);
+          publishPhraseEdit();
+          render(value >= 0 ? value : Number(slider.value), value < 0);
+          setStatus(value < 0 ? "Volume inherited" : "Volume " + hex2(value));
+        }
+      });
+      presets.appendChild(button);
+    });
+
+    wrapper.append(readout, slider, presets);
+    $("#fieldBody").appendChild(wrapper);
+    return true;
+  };
+
+  const openFXEditor = () => {
+    if (call("webCurrentScreen", "number") !== 2) return false;
+    const column = call("webPhraseCursorColumn", "number");
+    if (![3, 5, 7].includes(column)) return false;
+
+    const current = call("webPhraseCurrentFX", "number");
+    const instrument = call("webPhraseContextInstrument", "number");
+    const count = Math.max(0, call("webFXAvailableCount", "number", ["number"], [instrument]) || 0);
+    openFieldDialog("Effect");
+
+    const search = document.createElement("input");
+    search.type = "search";
+    search.className = "field-search";
+    search.placeholder = "Filter FX by code or name…";
+    search.autocomplete = "off";
+
+    const list = document.createElement("div");
+    list.className = "field-list";
+
+    const addFX = (value, code, description, empty = false) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      if (empty) button.classList.add("field-empty");
+      if (value === current) button.classList.add("active");
+      const strong = document.createElement("strong");
+      strong.textContent = code;
+      const span = document.createElement("span");
+      span.textContent = description.split("\n")[0] || description;
+      button.append(strong, span);
+      button.addEventListener("click", () => {
+        if (call("webPhraseSetFX", "number", ["number"], [value]) === 0) {
+          publishPhraseEdit();
+          closeFieldDialog();
+          setStatus(value < 0 ? "FX cleared" : "FX " + code);
+        }
+      });
+      list.appendChild(button);
+    };
+
+    addFX(-1, "EMPTY", "Remove this effect", true);
+    for (let i = 0; i < count; i++) {
+      const fx = call("webFXAvailableAt", "number", ["number", "number"], [instrument, i]);
+      if (fx < 0) continue;
+      const code = call("webFXName", "string", ["number"], [fx]) || ("FX " + fx);
+      const description = call("webFXDescription", "string", ["number", "number"], [fx, instrument]) || "";
+      addFX(fx, code, description);
+    }
+
+    search.addEventListener("input", () => {
+      const needle = search.value.trim().toLowerCase();
+      [...list.children].forEach((button) => {
+        button.hidden = Boolean(needle) && !button.textContent.toLowerCase().includes(needle);
+      });
+    });
+
+    $("#fieldBody").append(search, list);
+    requestAnimationFrame(() => list.querySelector(".active")?.scrollIntoView({ block: "center" }));
+    return true;
+  };
+
+  const openFXValueEditor = () => {
+    if (call("webCurrentScreen", "number") !== 2) return false;
+    const column = call("webPhraseCursorColumn", "number");
+    if (![4, 6, 8].includes(column)) return false;
+
+    const fx = call("webPhraseCurrentFX", "number");
+    const instrument = call("webPhraseContextInstrument", "number");
+    if (fx < 0) {
+      setStatus("Choose an FX first");
+      return true;
+    }
+
+    const code = call("webFXName", "string", ["number"], [fx]) || "FX";
+    const description = call("webFXDescription", "string", ["number", "number"], [fx, instrument]) || "";
+    openFieldDialog(code + " value", "PHRASE FX");
+
+    const readout = document.createElement("div");
+    readout.className = "value-readout";
+    const strong = document.createElement("strong");
+    const detail = document.createElement("span");
+    readout.append(strong, detail);
+
+    const descriptionEl = document.createElement("p");
+    descriptionEl.className = "value-description";
+    descriptionEl.textContent = description || "Effect parameter";
+
+    const render = () => {
+      const value = call("webPhraseCurrentFXValue", "number");
+      strong.textContent = hex2(value);
+      detail.textContent = value + " decimal";
+    };
+    render();
+
+    const stepper = document.createElement("div");
+    stepper.className = "stepper-row";
+    [
+      [-16, "−16"],
+      [-1, "−1"],
+      [1, "+1"],
+      [16, "+16"],
+    ].forEach(([amount, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        if (call("webPhraseAdjustCurrent", "number", ["number"], [amount]) === 0) {
+          publishPhraseEdit();
+          render();
+        }
+      });
+      stepper.appendChild(button);
+    });
+
+    $("#fieldBody").append(readout, descriptionEl, stepper);
+    return true;
+  };
+
   const editCurrent = () => {
-    if (!openNoteEditor()) performEdit();
+    if (call("webCurrentScreen", "number") === 2) {
+      const column = call("webPhraseCursorColumn", "number");
+      if (column === 0 && openNoteEditor()) return;
+      if (column === 1 && openInstrumentEditor()) return;
+      if (column === 2 && openVolumeEditor()) return;
+      if ([3, 5, 7].includes(column) && openFXEditor()) return;
+      if ([4, 6, 8].includes(column) && openFXValueEditor()) return;
+    }
+    performEdit();
   };
 
   canvas.addEventListener("pointerdown", (event) => {
@@ -227,6 +502,7 @@
     $("#noteDialog").close();
     canvas.focus();
   });
+  $("#fieldClose").addEventListener("click", closeFieldDialog);
 
   $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
   $("#helpClose").addEventListener("click", () => $("#helpDialog").close());
@@ -246,7 +522,7 @@
     setStatus("Project downloaded");
   };
 
-  $("[data-file-action]").forEach((button) => {
+  $$("[data-file-action]").forEach((button) => {
     button.addEventListener("click", () => {
       closeMobileMenu();
       switch (button.dataset.fileAction) {
@@ -260,7 +536,7 @@
 
   $("#mobileMenuButton").addEventListener("click", () => $("#mobileMenuDialog").showModal());
   $("#mobileMenuClose").addEventListener("click", closeMobileMenu);
-  $("[data-menu-screen]").forEach((button) => {
+  $$("[data-menu-screen]").forEach((button) => {
     button.addEventListener("click", () => {
       call("webOpenScreen", null, ["number"], [Number(button.dataset.menuScreen)]);
       closeMobileMenu();
