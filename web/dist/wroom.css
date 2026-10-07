@@ -442,3 +442,121 @@ button:disabled { opacity: .4; cursor: wait; }
   #canvas { max-height: calc(100svh - 52px - 56px - 30px - 70px); object-fit: contain; }
   .context-actions button { flex:1 1 auto; padding-inline:6px; }
 }
+
+
+.note-dialog {
+  width: min(720px, calc(100vw - 24px));
+  max-height: min(78svh, 720px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #071019;
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(0,0,0,.58);
+}
+
+.note-dialog::backdrop { background: rgba(0,0,0,.72); }
+
+.note-dialog header {
+  min-height: 54px;
+  padding: 9px 11px 9px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.note-dialog h2 {
+  margin: 2px 0 0;
+  font-size: 13px;
+  letter-spacing: .06em;
+}
+
+.sheet-eyebrow {
+  display: block;
+  color: var(--cyan);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+#noteClose {
+  min-width: 36px;
+  padding: 0;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.note-specials {
+  padding: 8px 10px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.note-specials button {
+  min-height: 38px;
+  color: var(--amber);
+  border-color: rgba(255,184,47,.34);
+  background: rgba(255,184,47,.055);
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+
+.note-grid {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(62px, 1fr));
+  gap: 5px;
+  overflow-y: auto;
+  max-height: calc(min(78svh, 720px) - 108px);
+  overscroll-behavior: contain;
+}
+
+.note-grid button {
+  min-height: 42px;
+  padding: 0 5px;
+  background: #08131d;
+  color: var(--muted);
+  border-color: var(--line-soft);
+  font-weight: 850;
+  letter-spacing: .035em;
+}
+
+.note-grid button[data-octave-start="true"] {
+  border-left-color: var(--cyan);
+}
+
+.note-grid button.active {
+  color: var(--pink);
+  border-color: rgba(255,63,146,.55);
+  background: rgba(255,63,146,.1);
+  box-shadow: inset 0 -2px 0 var(--pink);
+}
+
+.note-grid button:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 560px) {
+  .note-dialog {
+    width: 100vw;
+    max-width: none;
+    max-height: 78svh;
+    margin: auto 0 0;
+    border-radius: 12px 12px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .note-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-height: calc(78svh - 112px);
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .note-grid button { min-height: 46px; }
+}
