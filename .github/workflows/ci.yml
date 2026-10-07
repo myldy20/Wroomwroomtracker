@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -25,3 +29,20 @@ jobs:
           cmp web/index.html web/dist/index.html
           grep -Fq '<canvas id="canvas"' web/index.html
           ! grep -Eq '^WEB_CFLAGS.*DESKTOP_BUILD' tracker/Makefile.web
+
+  web-build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.6'
+      - name: Build browser bundle
+        run: |
+          make -C tracker -j2 -f Makefile.web web-deploy \
+            COMMON_CFLAGS='-std=c++17 -Wall -g -Os -DTEST'
+          test -s web/dist/choochootracker.js
+          test -s web/dist/choochootracker.wasm
+          cmp web/index.html web/dist/index.html
+          cmp web/wroom.css web/dist/wroom.css
+          cmp web/wroom.js web/dist/wroom.js
