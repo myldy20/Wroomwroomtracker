@@ -25,6 +25,7 @@
       <div class="utility-buttons" aria-label="Utilities">
         <button type="button" data-screen="5" data-needs-runtime disabled title="Project">PROJ</button>
         <button type="button" data-screen="6" data-needs-runtime disabled title="Settings">SET</button>
+        <button id="mobileMenuButton" class="mobile-menu-button" type="button" title="Menu">MENU</button>
         <button id="helpButton" type="button" title="Help">?</button>
       </div>
     </header>
@@ -70,16 +71,16 @@
       <section class="tool-section">
         <header><strong>PROJECT</strong><span>browser storage</span></header>
         <div class="tool-body">
-          <button id="importProject" type="button" data-needs-runtime disabled><strong>OPEN PROJECT</strong><br>.cct from this device</button>
-          <button id="saveProject" type="button" data-needs-runtime disabled><strong>DOWNLOAD PROJECT</strong><br>save current .cct</button>
+          <button id="importProject" type="button" data-file-action="open-project" data-needs-runtime disabled><strong>OPEN PROJECT</strong><br>.cct from this device</button>
+          <button id="saveProject" type="button" data-file-action="download-project" data-needs-runtime disabled><strong>DOWNLOAD PROJECT</strong><br>save current .cct</button>
         </div>
       </section>
 
       <section class="tool-section">
         <header><strong>SAMPLES</strong><span>local only</span></header>
         <div class="tool-body">
-          <button id="importSamples" type="button" data-needs-runtime disabled><strong>ADD WAV FILES</strong></button>
-          <button id="importFolder" type="button" data-needs-runtime disabled><strong>ADD SAMPLE FOLDER</strong></button>
+          <button id="importSamples" type="button" data-file-action="add-samples" data-needs-runtime disabled><strong>ADD WAV FILES</strong></button>
+          <button id="importFolder" type="button" data-file-action="add-folder" data-needs-runtime disabled><strong>ADD SAMPLE FOLDER</strong></button>
         </div>
       </section>
 
@@ -124,6 +125,36 @@
       <button id="startButton" type="button">START TRACKER</button>
     </div>
   </section>
+
+  <dialog id="mobileMenuDialog" class="mobile-menu-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">WROOMWROOM</span>
+        <h2>Project & tools</h2>
+      </div>
+      <button id="mobileMenuClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="mobile-menu-grid">
+      <button type="button" data-menu-screen="5" data-needs-runtime disabled>
+        <strong>PROJECT</strong><span>metadata, new project, export</span>
+      </button>
+      <button type="button" data-menu-screen="6" data-needs-runtime disabled>
+        <strong>SETTINGS</strong><span>audio, MIDI, graphics and controls</span>
+      </button>
+      <button type="button" data-file-action="open-project" data-needs-runtime disabled>
+        <strong>OPEN PROJECT</strong><span>choose a .cct from this device</span>
+      </button>
+      <button type="button" data-file-action="download-project" data-needs-runtime disabled>
+        <strong>DOWNLOAD PROJECT</strong><span>save the current .cct to this device</span>
+      </button>
+      <button type="button" data-file-action="add-samples" data-needs-runtime disabled>
+        <strong>ADD WAV FILES</strong><span>import samples into browser storage</span>
+      </button>
+      <button type="button" data-file-action="add-folder" data-needs-runtime disabled>
+        <strong>ADD SAMPLE FOLDER</strong><span>import a folder of samples</span>
+      </button>
+    </div>
+  </dialog>
 
   <dialog id="noteDialog" class="note-dialog">
     <header>
