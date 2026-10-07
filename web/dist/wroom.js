@@ -586,7 +586,7 @@
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
   };
 
-  $(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
+  $$(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
     button.addEventListener("click", () => navigateToScreen(Number(button.dataset.screen)));
   });
 
