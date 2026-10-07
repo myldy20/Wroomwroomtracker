@@ -478,7 +478,22 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webCurrentScreen(void) {
   return -1;
 }
 
-extern "C" EMSCRIPTEN_KEEPALIVE void webOpenScreen(int screen) {
+extern "C" EMSCRIPTEN_KEEPALIVE int webOpenScreen(int screen) {
+  if (!chipnomadState) return 1;
+
+  if (screen == 1 || screen == 2) {
+    if (!pSongRow || !pSongTrack || *pSongRow < 0 || *pSongRow >= PROJECT_MAX_LENGTH ||
+        *pSongTrack < 0 || *pSongTrack >= chipnomadState->project.tracksCount) return 2;
+    uint16_t chain = chipnomadState->project.song[*pSongRow][*pSongTrack];
+    if (chain == EMPTY_VALUE_16 || chain >= PROJECT_MAX_CHAINS) return 3;
+
+    if (screen == 2) {
+      if (!pChainRow || *pChainRow < 0 || *pChainRow >= 16) return 4;
+      uint16_t phrase = chipnomadState->project.chains[chain].rows[*pChainRow].phrase;
+      if (phrase == EMPTY_VALUE_16 || phrase >= PROJECT_MAX_PHRASES) return 5;
+    }
+  }
+
   switch (screen) {
     case 0: screenSetup(&screenSong, 0); break;
     case 1: screenSetup(&screenChain, 0); break;
@@ -487,8 +502,9 @@ extern "C" EMSCRIPTEN_KEEPALIVE void webOpenScreen(int screen) {
     case 4: screenSetup(&screenMixer, 0); break;
     case 5: screenSetup(&screenProject, 0); break;
     case 6: screenSetup(&screenSettings, 0); break;
-    default: return;
+    default: return 6;
   }
+  return 0;
 }
 
 extern "C" EMSCRIPTEN_KEEPALIVE int webPlaybackIsPlaying(void) {
