@@ -461,6 +461,10 @@ extern "C" EMSCRIPTEN_KEEPALIVE void webStopPlayback(void) {
   if (chipnomadState) chipnomadQueuePlaybackStop(chipnomadState);
 }
 
+extern "C" EMSCRIPTEN_KEEPALIVE void webProjectChanged(void) {
+  audioProjectDirty = 1;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
   switch (action) {
