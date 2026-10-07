@@ -8,6 +8,8 @@
   const fileButtons = $$("[data-needs-runtime]");
   let trackerStarted = false;
   let storageSyncing = false;
+  let storageMounted = false;
+  let storageReady = false;
   let pointer = null;
   let lastTap = { time: 0, x: 0, y: 0 };
 
@@ -28,12 +30,51 @@
 
   const syncUserStorage = (done) => {
     const fs = getFs();
-    if (!fs || storageSyncing) return;
+    if (!fs || !storageMounted || storageSyncing) {
+      done?.(null);
+      return;
+    }
     storageSyncing = true;
     fs.syncfs(false, (error) => {
       storageSyncing = false;
       if (error) setStatus("Browser storage could not be saved");
       done?.(error);
+    });
+  };
+
+  const initUserStorage = () => {
+    const fs = getFs();
+    if (!fs || storageMounted) return;
+
+    try { fs.mkdir("/user"); } catch (_) {}
+    try {
+      fs.mount(IDBFS, {}, "/user");
+      storageMounted = true;
+    } catch (error) {
+      console.warn("Persistent browser storage unavailable", error);
+      setStatus("READY · persistent browser storage unavailable");
+      return;
+    }
+
+    // Persistence is useful but not required for the tracker to start.
+    // Populate IDBFS in the background so a slow/blocked IndexedDB can never
+    // hold the Emscripten runtime behind a run dependency.
+    fs.syncfs(true, (error) => {
+      if (error) {
+        console.warn("Could not open browser storage", error);
+        setStatus("READY · browser storage unavailable");
+        return;
+      }
+      ensureUserDirectories(fs);
+      fs.syncfs(false, (saveError) => {
+        storageReady = !saveError;
+        if (saveError) {
+          console.warn("Could not initialize browser storage", saveError);
+          setStatus("READY · browser storage is temporary");
+        } else {
+          setStatus("READY · browser storage connected");
+        }
+      });
     });
   };
 
@@ -295,19 +336,24 @@
 
     window.Module = window.Module || {};
     window.Module.canvas = canvas;
-    window.Module.preRun = (window.Module.preRun || []).concat(() => {
-      try { FS.mkdir("/user"); } catch (_) {}
-      FS.mount(IDBFS, {}, "/user");
-      addRunDependency("wroomwroom-user-storage");
-      FS.syncfs(true, (error) => {
-        if (error) setStatus("Browser storage could not be opened");
-        ensureUserDirectories(FS);
-        FS.syncfs(false, (saveError) => {
-          if (saveError) setStatus("Browser storage could not be initialized");
-          removeRunDependency("wroomwroom-user-storage");
-        });
-      });
-    });
+    window.Module.setStatus = (message) => {
+      if (!message) return;
+      setStatus(message);
+      const match = message.match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+      if (match) {
+        const loaded = Number(match[1]);
+        const total = Number(match[2]);
+        const percent = total > 0 ? Math.min(99, Math.round(loaded * 100 / total)) : 0;
+        startButton.textContent = "LOADING " + percent + "%";
+      } else if (/download|prepare|compile|instantiate/i.test(message)) {
+        startButton.textContent = "LOADING…";
+      }
+    };
+    window.Module.monitorRunDependencies = (left) => {
+      if (left > 0 && startButton.textContent === "STARTING…") {
+        startButton.textContent = "LOADING…";
+      }
+    };
 
     window.Module.onAbort = () => {
       trackerStarted = false;
@@ -318,7 +364,9 @@
 
     window.Module.onRuntimeInitialized = () => {
       fileButtons.forEach((button) => { button.disabled = false; });
+      startButton.textContent = "OPENING…";
       setStatus("Starting tracker UI…");
+      initUserStorage();
 
       // Runtime init can fire before Emscripten invokes main(). Keep the car
       // splash visible until appSetup() has created a real screen, then enter
@@ -351,7 +399,8 @@
     const script = document.createElement("script");
     script.src = "./choochootracker.js";
     script.onerror = () => {
-      setStatus("WebAssembly bundle not found");
+      trackerStarted = false;
+      setStatus("WebAssembly bundle could not be loaded");
       startButton.disabled = false;
       startButton.textContent = "RETRY";
     };
