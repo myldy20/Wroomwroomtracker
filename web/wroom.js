@@ -246,7 +246,7 @@
     setStatus("Project downloaded");
   };
 
-  $("[data-file-action]").forEach((button) => {
+  $$("[data-file-action]").forEach((button) => {
     button.addEventListener("click", () => {
       closeMobileMenu();
       switch (button.dataset.fileAction) {
@@ -260,7 +260,7 @@
 
   $("#mobileMenuButton").addEventListener("click", () => $("#mobileMenuDialog").showModal());
   $("#mobileMenuClose").addEventListener("click", closeMobileMenu);
-  $("[data-menu-screen]").forEach((button) => {
+  $$("[data-menu-screen]").forEach((button) => {
     button.addEventListener("click", () => {
       call("webOpenScreen", null, ["number"], [Number(button.dataset.menuScreen)]);
       closeMobileMenu();
