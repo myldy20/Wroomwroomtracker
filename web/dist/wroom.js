@@ -681,6 +681,11 @@
 
     document.title = "WroomWroomTracker — Web";
     window.Module = window.Module || {};
+    const buildId = encodeURIComponent(String(window.WROOM_BUILD || "dev"));
+    window.Module.locateFile = (asset, prefix = "") => {
+      const url = prefix + asset;
+      return url + (url.includes("?") ? "&" : "?") + "v=" + buildId;
+    };
     window.Module.canvas = canvas;
     window.Module.setStatus = (message) => {
       if (!message) return;
@@ -762,7 +767,7 @@
     };
 
     const script = document.createElement("script");
-    script.src = "./choochootracker.js";
+    script.src = "./choochootracker.js?v=" + buildId;
     script.onerror = () => {
       trackerStarted = false;
       setStatus("WebAssembly bundle could not be loaded");
@@ -772,6 +777,13 @@
     document.body.appendChild(script);
   };
 
-  startButton.addEventListener("click", loadTracker);
+  // index.html owns the tiny START bootstrap so a failure elsewhere in this
+  // shell cannot leave the primary button completely inert.
+  window.wroomStartTracker = loadTracker;
+  if (window.__wroomStartRequested) {
+    window.__wroomStartRequested = false;
+    loadTracker();
+  }
+
   window.addEventListener("pagehide", () => syncUserStorage());
 })();
