@@ -180,6 +180,18 @@
       button.classList.toggle("active", Number(button.dataset.screen) === current);
     });
     $("#screenName").textContent = screenNames[current] || "TRACKER";
+
+    let editLabel = "EDIT";
+    if (current === 2) {
+      const column = call("webPhraseCursorColumn", "number");
+      if (column === 0) editLabel = "NOTE";
+      else if (column === 1) editLabel = "INSTRUMENT";
+      else if (column === 2) editLabel = "VOLUME";
+      else if (column === 3 || column === 5 || column === 7) editLabel = "FX";
+      else if (column === 4 || column === 6 || column === 8) editLabel = "VALUE";
+    }
+    $("#editAction").textContent = editLabel;
+
     const playing = !!call("webPlaybackIsPlaying", "number");
     $("#playToggle").setAttribute("aria-pressed", playing ? "true" : "false");
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
@@ -218,10 +230,12 @@
   $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
   $("#helpClose").addEventListener("click", () => $("#helpDialog").close());
 
-  $("#importProject").addEventListener("click", () => $("#projectInput").click());
-  $("#importSamples").addEventListener("click", () => $("#sampleInput").click());
-  $("#importFolder").addEventListener("click", () => $("#sampleFolderInput").click());
-  $("#saveProject").addEventListener("click", () => {
+  const closeMobileMenu = () => {
+    const dialog = $("#mobileMenuDialog");
+    if (dialog?.open) dialog.close();
+  };
+
+  const downloadProject = () => {
     const path = "/user/exports/wroomwroomtracker.cct";
     if (call("webSaveProject", "number", ["string"], [path]) !== 0) {
       setStatus("Could not save the current project");
@@ -229,6 +243,29 @@
     }
     window.choochooDownloadFile(path);
     setStatus("Project downloaded");
+  };
+
+  $("[data-file-action]").forEach((button) => {
+    button.addEventListener("click", () => {
+      closeMobileMenu();
+      switch (button.dataset.fileAction) {
+        case "open-project": $("#projectInput").click(); break;
+        case "download-project": downloadProject(); break;
+        case "add-samples": $("#sampleInput").click(); break;
+        case "add-folder": $("#sampleFolderInput").click(); break;
+      }
+    });
+  });
+
+  $("#mobileMenuButton").addEventListener("click", () => $("#mobileMenuDialog").showModal());
+  $("#mobileMenuClose").addEventListener("click", closeMobileMenu);
+  $("[data-menu-screen]").forEach((button) => {
+    button.addEventListener("click", () => {
+      call("webOpenScreen", null, ["number"], [Number(button.dataset.menuScreen)]);
+      closeMobileMenu();
+      refreshScreenState();
+      canvas.focus();
+    });
   });
 
   $("#projectInput").addEventListener("change", async (event) => {
