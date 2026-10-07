@@ -447,13 +447,21 @@
   };
 
   function navigateToScreen(screen) {
+    const result = call("webOpenScreen", "number", ["number"], [screen]);
+    if (result !== 0) {
+      if (screen === 1) setStatus("Choose a non-empty Song cell before opening Chain");
+      else if (screen === 2) setStatus("Choose a Chain row with a Phrase before opening Phrase");
+      else setStatus("This workspace is not available in the current context");
+      return false;
+    }
+
     setWorkspaceMode(screen, true);
-    call("webOpenScreen", null, ["number"], [screen]);
     if (screen === 0) {
       songRendered = false;
       requestAnimationFrame(renderSongWorkspace);
     }
     setTimeout(refreshScreenState, 80);
+    return true;
   }
 
   songGrid.addEventListener("click", (event) => {
