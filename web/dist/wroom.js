@@ -78,7 +78,55 @@
   };
 
   const selectAt = (point) => call("webTouchTapAt", null, ["number", "number"], [point.x, point.y]);
-  const editCurrent = () => call("webSemanticAction", null, ["number"], [1]);
+  const performEdit = () => call("webSemanticAction", null, ["number"], [1]);
+
+  const setPhraseNote = (value) => {
+    const result = call("webPhraseSetNote", "number", ["number"], [value]);
+    if (result === 0) {
+      $("#noteDialog").close();
+      canvas.focus();
+      setStatus(value === -1 ? "Note cleared" : value === -2 ? "Note Off inserted" : "Note changed");
+    }
+  };
+
+  const openNoteEditor = () => {
+    if (call("webCurrentScreen", "number") !== 2 ||
+        call("webPhraseCursorColumn", "number") !== 0) return false;
+
+    const noteDialog = $("#noteDialog");
+    const noteGrid = $("#noteGrid");
+    const pitchCount = Math.max(0, call("webPitchCount", "number") || 0);
+    const octaveSize = Math.max(1, call("webPitchOctaveSize", "number") || 12);
+    const current = call("webPhraseCurrentNote", "number");
+    const row = call("webPhraseCursorRow", "number");
+
+    $("#noteDialogTitle").textContent = "Row " + (row >= 0 ? row.toString(16).toUpperCase().padStart(2, "0") : "--");
+    noteGrid.replaceChildren();
+
+    const fragment = document.createDocumentFragment();
+    for (let note = 0; note < pitchCount; note++) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.noteValue = String(note);
+      button.dataset.octaveStart = note % octaveSize === 0 ? "true" : "false";
+      button.classList.toggle("active", note === current);
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", note === current ? "true" : "false");
+      button.textContent = call("webPitchName", "string", ["number"], [note]) || String(note);
+      fragment.appendChild(button);
+    }
+    noteGrid.appendChild(fragment);
+
+    noteDialog.showModal();
+    requestAnimationFrame(() => {
+      noteGrid.querySelector(".active")?.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    return true;
+  };
+
+  const editCurrent = () => {
+    if (!openNoteEditor()) performEdit();
+  };
 
   canvas.addEventListener("pointerdown", (event) => {
     if (!trackerStarted || !window.Module?.ccall) return;
@@ -155,6 +203,16 @@
   $("#editAction").addEventListener("click", editCurrent);
   $("#backAction").addEventListener("click", () => call("webSemanticAction", null, ["number"], [2]));
   $("#clearAction").addEventListener("click", () => call("webSemanticAction", null, ["number"], [3]));
+
+  $("#noteDialog").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-note-value]");
+    if (!button) return;
+    setPhraseNote(Number(button.dataset.noteValue));
+  });
+  $("#noteClose").addEventListener("click", () => {
+    $("#noteDialog").close();
+    canvas.focus();
+  });
 
   $("#helpButton").addEventListener("click", () => $("#helpDialog").showModal());
   $("#helpClose").addEventListener("click", () => $("#helpDialog").close());
