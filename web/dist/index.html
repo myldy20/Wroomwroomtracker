@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#05080d">
   <meta name="description" content="WroomWroomTracker — web-first multi-engine music tracker">
   <title>WroomWroomTracker — Web</title>
-  <link rel="stylesheet" href="./wroom.css">
+  <link rel="stylesheet" href="./wroom.css?v=__WROOM_BUILD__">
 </head>
 <body>
   <div class="app-shell">
@@ -236,6 +236,44 @@
   <input id="sampleInput" type="file" accept=".wav,audio/wav" multiple hidden>
   <input id="sampleFolderInput" type="file" accept=".wav,audio/wav" webkitdirectory multiple hidden>
 
-  <script src="./wroom.js"></script>
+  <script id="wroom-bootstrap">
+    window.WROOM_BUILD = "__WROOM_BUILD__";
+    (() => {
+      const button = document.getElementById("startButton");
+      const status = document.getElementById("status");
+      if (!button) return;
+
+      window.__wroomStartRequested = false;
+
+      button.addEventListener("click", () => {
+        if (typeof window.wroomStartTracker === "function") {
+          window.wroomStartTracker();
+          return;
+        }
+
+        // This listener lives in index.html on purpose: START must visibly
+        // react even if the larger browser shell fails before it initializes.
+        window.__wroomStartRequested = true;
+        button.disabled = true;
+        button.textContent = "LOADING UI…";
+        if (status) status.textContent = "Loading browser UI";
+
+        setTimeout(() => {
+          if (typeof window.wroomStartTracker === "function" || !window.__wroomStartRequested) return;
+          button.disabled = false;
+          button.textContent = "RETRY";
+          if (status) status.textContent = "Browser UI did not initialize · retry or reload";
+        }, 4000);
+      });
+
+      window.addEventListener("error", () => {
+        if (!window.__wroomStartRequested || typeof window.wroomStartTracker === "function") return;
+        button.disabled = false;
+        button.textContent = "RETRY";
+        if (status) status.textContent = "Browser UI failed to initialize";
+      });
+    })();
+  </script>
+  <script src="./wroom.js?v=__WROOM_BUILD__"></script>
 </body>
 </html>

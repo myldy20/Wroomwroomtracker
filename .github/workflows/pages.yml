@@ -28,6 +28,9 @@ jobs:
           em++ --version
           make -C tracker -j2 -f Makefile.web web-deploy \
             COMMON_CFLAGS='-std=c++17 -Wall -g -Os -DTEST'
+          sed -i "s/__WROOM_BUILD__/${GITHUB_SHA}/g" web/dist/index.html
+          grep -Fq "wroom.js?v=${GITHUB_SHA}" web/dist/index.html
+          grep -Fq "wroom.css?v=${GITHUB_SHA}" web/dist/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
