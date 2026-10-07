@@ -214,6 +214,53 @@
     call("webStopPlayback");
     setTimeout(refreshScreenState, 20);
   });
+  const bindAdjustAction = (button, direction) => {
+    let delayTimer = 0;
+    let repeatTimer = 0;
+    let activePointer = null;
+
+    const clearRepeat = () => {
+      if (delayTimer) window.clearTimeout(delayTimer);
+      if (repeatTimer) window.clearInterval(repeatTimer);
+      delayTimer = repeatTimer = 0;
+      activePointer = null;
+    };
+
+    const step = (coarse = 0) => {
+      call("webAdjustCurrent", null, ["number", "number"], [direction, coarse]);
+      refreshScreenState();
+    };
+
+    button.addEventListener("pointerdown", (event) => {
+      if (button.disabled) return;
+      event.preventDefault();
+      clearRepeat();
+      activePointer = event.pointerId;
+      button.setPointerCapture?.(event.pointerId);
+      step(event.shiftKey ? 1 : 0);
+      delayTimer = window.setTimeout(() => {
+        repeatTimer = window.setInterval(() => step(event.shiftKey ? 1 : 0), 90);
+      }, 360);
+    });
+
+    const release = (event) => {
+      if (activePointer !== null && event.pointerId !== undefined && event.pointerId !== activePointer) return;
+      clearRepeat();
+    };
+    button.addEventListener("pointerup", release);
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("lostpointercapture", clearRepeat);
+
+    // Keyboard activation should remain one deterministic semantic step.
+    button.addEventListener("click", (event) => {
+      if (event.detail !== 0) return;
+      step(event.shiftKey ? 1 : 0);
+    });
+  };
+
+  bindAdjustAction($("#decreaseAction"), -1);
+  bindAdjustAction($("#increaseAction"), 1);
+
   $("#editAction").addEventListener("click", editCurrent);
   $("#backAction").addEventListener("click", () => call("webSemanticAction", null, ["number"], [2]));
   $("#clearAction").addEventListener("click", () => call("webSemanticAction", null, ["number"], [3]));
