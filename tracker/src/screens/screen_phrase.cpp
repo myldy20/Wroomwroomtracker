@@ -7,6 +7,10 @@
 #include "copy_paste.h"
 #include "help.h"
 
+#ifdef WEB_BUILD
+#include <emscripten/emscripten.h>
+#endif
+
 static int phraseIdx = 0;
 static PhraseRow *phraseRows = NULL;
 static int isFxEdit = 0;
@@ -767,6 +771,65 @@ int phraseKeyJazzHandleRawKey(InputCode input, int isDown) {
 }
 
 #endif // DESKTOP_BUILD
+
+#ifdef WEB_BUILD
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCursorColumn(void) {
+  return currentScreen == &screenPhrase ? screen.cursorCol : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCursorRow(void) {
+  return currentScreen == &screenPhrase ? screen.cursorRow : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentNote(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -3;
+  uint8_t note = phraseRows[screen.cursorRow].note;
+  if (note == EMPTY_VALUE_8) return -1;
+  if (note == NOTE_OFF) return -2;
+  return note;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPitchCount(void) {
+  return chipnomadState ? chipnomadState->project.pitchTable.length : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPitchOctaveSize(void) {
+  return chipnomadState ? chipnomadState->project.pitchTable.octaveSize : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webPitchName(int note) {
+  if (!chipnomadState || note < 0 || note >= chipnomadState->project.pitchTable.length) return "---";
+  return noteName(&chipnomadState->project, (uint8_t)note);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetNote(int note) {
+  if (currentScreen != &screenPhrase || !phraseRows || screen.cursorCol != 0) return 1;
+
+  PhraseRow* row = &phraseRows[screen.cursorRow];
+  if (note == -1) {
+    row->note = EMPTY_VALUE_8;
+    row->instrument = EMPTY_VALUE_8;
+    row->volume = EMPTY_VALUE_16;
+  } else if (note == -2) {
+    row->note = NOTE_OFF;
+    row->instrument = EMPTY_VALUE_8;
+    row->volume = EMPTY_VALUE_16;
+  } else {
+    if (note < 0 || note >= chipnomadState->project.pitchTable.length) return 1;
+    row->note = (uint8_t)note;
+    if (row->instrument == EMPTY_VALUE_8) row->instrument = lastInstrument;
+    if (row->volume == EMPTY_VALUE_16) row->volume = lastVolume;
+    lastNote = row->note;
+    if (row->instrument != EMPTY_VALUE_8) lastInstrument = row->instrument;
+    if (row->volume != EMPTY_VALUE_16) lastVolume = row->volume;
+    triggerRowPreview(screen.cursorRow);
+  }
+
+  projectModified = 1;
+  fullRedraw();
+  return 0;
+}
+#endif
 
 const AppScreen screenPhrase = {
   .init = init,
