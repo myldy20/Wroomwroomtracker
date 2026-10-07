@@ -3,6 +3,9 @@
 #include "help.h"
 #include "chord.h"
 #include <algorithm>
+#ifdef WEB_BUILD
+#include <emscripten/emscripten.h>
+#endif
 
 // State for FX selection screen
 int currentGroup;      // Current group being navigated
@@ -77,7 +80,7 @@ static const char* contextualFXHint(uint8_t* fx,int table,uint8_t instrument) {
   snprintf(text,sizeof(text),"F%d%d TF%d %s: %s",a/8+1,a%8+1,a/8+1,d.name,a%8<d.count?d.parameters[a%8].name:"Inactive");
   return text;
 }
-static bool isFXAvailable(enum FX fx, uint8_t instrumentIdx, int isTable) {
+int fxIsAvailableForContext(enum FX fx, uint8_t instrumentIdx, int isTable) {
   if(fx==fxFBR||(fx>=fxFET&&fx<=fxFLD))return false;
   if((fx>=fxFO1&&fx<=fxFO6)||fx==fxFFB)return false; // Retired personal commands.
   if (isTable && (fx == fxSCL || fx == fxCRD)) return false;
@@ -101,7 +104,7 @@ static bool isFXAvailable(enum FX fx, uint8_t instrumentIdx, int isTable) {
 static void stepFX(uint8_t* fx, int direction, uint8_t instrumentIdx, int isTable) {
   for (int candidate = (int)fx[0] + direction;
        candidate >= 0 && candidate < fxTotalCount; candidate += direction) {
-    if (isFXAvailable((enum FX)candidate, instrumentIdx, isTable)) {
+    if (fxIsAvailableForContext((enum FX)candidate, instrumentIdx, isTable)) {
       selectInstrumentFX(fx,candidate,instrumentIdx);
       return;
     }
@@ -433,6 +436,39 @@ void fxEditFullDraw(uint8_t currentFX, uint8_t instrumentIdx, int isTable) {
   }
 }
 
+
+#ifdef WEB_BUILD
+extern "C" EMSCRIPTEN_KEEPALIVE int webFXAvailableCount(int instrumentIdx) {
+  uint8_t instrument = instrumentIdx < 0 || instrumentIdx >= PROJECT_MAX_INSTRUMENTS
+    ? EMPTY_VALUE_8 : (uint8_t)instrumentIdx;
+  int count = 0;
+  for (int fx = 0; fx < fxTotalCount; ++fx)
+    if (fxIsAvailableForContext((enum FX)fx, instrument, 0)) ++count;
+  return count;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webFXAvailableAt(int instrumentIdx, int visibleIndex) {
+  uint8_t instrument = instrumentIdx < 0 || instrumentIdx >= PROJECT_MAX_INSTRUMENTS
+    ? EMPTY_VALUE_8 : (uint8_t)instrumentIdx;
+  for (int fx = 0; fx < fxTotalCount; ++fx) {
+    if (!fxIsAvailableForContext((enum FX)fx, instrument, 0)) continue;
+    if (visibleIndex-- == 0) return fx;
+  }
+  return -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webFXName(int fx) {
+  if (fx < 0 || fx >= fxTotalCount) return "---";
+  return fxNames[fx].name;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webFXDescription(int fx, int instrumentIdx) {
+  if (fx < 0 || fx >= fxTotalCount) return "";
+  uint8_t instrument = instrumentIdx < 0 || instrumentIdx >= PROJECT_MAX_INSTRUMENTS
+    ? EMPTY_VALUE_8 : (uint8_t)instrumentIdx;
+  return helpFXDescription((enum FX)fx, instrument);
+}
+#endif
 
 int fxEditInput(int keys, int tapCount, uint8_t* fx, uint8_t* lastFX) {
   if (keys == 0) {
