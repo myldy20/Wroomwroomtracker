@@ -28,9 +28,7 @@ jobs:
         run: |
           em++ --version
           make -C tracker -j2 -f Makefile.web web-deploy \
-            COMMON_CFLAGS='-std=c++17 -Wall -Oz -flto -DNDEBUG' \
-            WEB_RUNTIME_FLAGS='-sASSERTIONS=0 -sGL_ASSERTIONS=0'
-          du -h web/dist/choochootracker.wasm web/dist/choochootracker.data web/dist/choochootracker.js
+            COMMON_CFLAGS='-std=c++17 -Wall -g -Os -DTEST'
       - name: Commit generated Web bundle
         if: github.event_name != 'pull_request'
         run: |
