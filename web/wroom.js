@@ -83,6 +83,7 @@
   const setPhraseNote = (value) => {
     const result = call("webPhraseSetNote", "number", ["number"], [value]);
     if (result === 0) {
+      call("webProjectChanged");
       $("#noteDialog").close();
       canvas.focus();
       setStatus(value === -1 ? "Note cleared" : value === -2 ? "Note Off inserted" : "Note changed");
