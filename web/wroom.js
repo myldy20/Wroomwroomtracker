@@ -317,18 +317,25 @@
 
     window.Module.onRuntimeInitialized = () => {
       fileButtons.forEach((button) => { button.disabled = false; });
-      startOverlay.hidden = true;
-      canvas.focus();
       setStatus("Starting tracker UI…");
 
-      // Runtime init can fire before Emscripten invokes main(). Give appSetup()
-      // a moment to create project/screen state before entering the web Song
-      // workspace.
-      setTimeout(() => {
+      // Runtime init can fire before Emscripten invokes main(). Keep the car
+      // splash visible until appSetup() has created a real screen, then enter
+      // SONG directly so the native train title never flashes underneath it.
+      let startAttempts = 0;
+      const enterWorkspace = () => {
+        const current = call("webCurrentScreen", "number");
+        if (current < 0 && startAttempts++ < 60) {
+          setTimeout(enterWorkspace, 20);
+          return;
+        }
         call("webOpenScreen", null, ["number"], [0]);
         refreshScreenState();
+        startOverlay.hidden = true;
+        canvas.focus();
         setStatus("READY · tap a cell · drag horizontally to change it");
-      }, 120);
+      };
+      enterWorkspace();
 
       setInterval(() => {
         refreshScreenState();
