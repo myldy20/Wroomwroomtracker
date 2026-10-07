@@ -125,6 +125,21 @@
     </div>
   </section>
 
+  <dialog id="noteDialog" class="note-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">PHRASE NOTE</span>
+        <h2 id="noteDialogTitle">Choose note</h2>
+      </div>
+      <button id="noteClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="note-specials">
+      <button type="button" data-note-value="-1">EMPTY</button>
+      <button type="button" data-note-value="-2">NOTE OFF</button>
+    </div>
+    <div id="noteGrid" class="note-grid" role="listbox" aria-label="Pitch"></div>
+  </dialog>
+
   <dialog id="helpDialog" class="help-dialog">
     <header>
       <h2>WroomWroom Web controls</h2>
