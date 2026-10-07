@@ -213,6 +213,7 @@
     });
 
     window.Module.onAbort = () => {
+      trackerStarted = false;
       setStatus("Tracker startup failed");
       startButton.disabled = false;
       startButton.textContent = "RETRY";
@@ -220,18 +221,26 @@
 
     window.Module.onRuntimeInitialized = () => {
       fileButtons.forEach((button) => { button.disabled = false; });
-      call("webOpenScreen", null, ["number"], [0]);
       startOverlay.hidden = true;
       canvas.focus();
-      refreshScreenState();
-      setStatus("READY · tap a cell · drag horizontally to change it");
+      setStatus("Starting tracker UI…");
+
+      // Runtime init can fire before Emscripten invokes main(). Give appSetup()
+      // a moment to create project/screen state before entering the web Song
+      // workspace.
+      setTimeout(() => {
+        call("webOpenScreen", null, ["number"], [0]);
+        refreshScreenState();
+        setStatus("READY · tap a cell · drag horizontally to change it");
+      }, 120);
+
       setInterval(() => {
         refreshScreenState();
         syncUserStorage();
       }, 1200);
       if (!localStorage.getItem("wroomwroom-web-seen")) {
         localStorage.setItem("wroomwroom-web-seen", "1");
-        setTimeout(() => $("#helpDialog").showModal(), 450);
+        setTimeout(() => $("#helpDialog").showModal(), 650);
       }
     };
 
