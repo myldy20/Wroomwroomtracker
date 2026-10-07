@@ -5,8 +5,16 @@
   const status = $("#status");
   const startOverlay = $("#startOverlay");
   const startButton = $("#startButton");
-  const fileButtons = $$("[data-needs-runtime]");
+  const fileButtons = $("[data-needs-runtime]");
+  const semanticWorkspace = $("#semanticWorkspace");
+  const legacyWorkspace = $("#legacyWorkspace");
+  const songGrid = $("#songGrid");
+  const songScroll = $("#songScroll");
   let trackerStarted = false;
+  let activeUiScreen = 0;
+  let songRendered = false;
+  let songSelection = { row: 0, track: 0 };
+  let songLastTap = { row: -1, track: -1, time: 0 };
   let storageSyncing = false;
   let storageMounted = false;
   let storageReady = false;
@@ -170,6 +178,341 @@
     if (!openNoteEditor()) performEdit();
   };
 
+  const screenNames = ["SONG", "CHAIN", "PHRASE", "SOUND", "MIX", "PROJECT", "SETTINGS", "START"];
+  const screenEyebrows = ["ARRANGEMENT", "STRUCTURE", "NOTES + FX", "INSTRUMENT", "MIXER", "PROJECT", "SETTINGS", "START"];
+  const hex2 = (value) => Math.max(0, value | 0).toString(16).toUpperCase().padStart(2, "0");
+
+  const songCellState = (row, track) => {
+    const packed = call("webSongCellPacked", "number", ["number", "number"], [row, track]);
+    if (packed == null || packed < 0) return { value: -1, hasNotes: false, highlighted: false };
+    const encoded = packed & 0xffff;
+    return {
+      value: encoded === 0 ? -1 : encoded - 1,
+      hasNotes: !!(packed & (1 << 16)),
+      highlighted: !!(packed & (1 << 17)),
+    };
+  };
+
+  const publishProjectEdit = () => {
+    call("webProjectChanged");
+    syncUserStorage();
+  };
+
+  const setSongValue = (row, track, value, announce = true) => {
+    const maxChain = call("webSongMaxChain", "number") ?? 254;
+    const normalized = value < 0 ? -1 : Math.max(0, Math.min(maxChain, value | 0));
+    if (call("webSongSetCell", "number", ["number", "number", "number"], [row, track, normalized]) !== 0) {
+      setStatus("Could not change Song cell");
+      return false;
+    }
+    songSelection = { row, track };
+    publishProjectEdit();
+    songRendered = false;
+    renderSongWorkspace();
+    if (announce) setStatus(normalized < 0 ? "Song cell cleared" : "Chain " + hex2(normalized) + " assigned");
+    return true;
+  };
+
+  const selectSongCell = (row, track, scroll = false) => {
+    if (call("webSongSelect", "number", ["number", "number"], [row, track]) !== 0) return;
+    songSelection = { row, track };
+    songGrid.querySelectorAll(".song-cell.selected").forEach((cell) => cell.classList.remove("selected"));
+    songGrid.querySelectorAll(".song-grid-row.cursor-row").forEach((line) => line.classList.remove("cursor-row"));
+    const cell = songGrid.querySelector(`[data-song-row="${row}"][data-song-track="${track}"]`);
+    cell?.classList.add("selected");
+    cell?.closest(".song-grid-row")?.classList.add("cursor-row");
+    updateSongInspector();
+    if (scroll) cell?.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
+  };
+
+  const openSelectedChain = () => {
+    const state = songCellState(songSelection.row, songSelection.track);
+    if (state.value < 0) {
+      setStatus("Assign a chain before opening it");
+      return;
+    }
+    call("webSongSelect", "number", ["number", "number"], [songSelection.row, songSelection.track]);
+    navigateToScreen(1);
+  };
+
+  const buildSongEditorControls = (root, dialogMode = false) => {
+    const { row, track } = songSelection;
+    const state = songCellState(row, track);
+    const maxChain = call("webSongMaxChain", "number") ?? 254;
+
+    root.replaceChildren();
+
+    if (!dialogMode) {
+      const stats = document.createElement("div");
+      stats.className = "inspector-selection";
+      stats.innerHTML =
+        '<div class="inspector-stat"><span>ROW</span><strong>' + hex2(row) + '</strong></div>' +
+        '<div class="inspector-stat"><span>TRACK</span><strong>' + (track + 1) + '</strong></div>';
+      root.appendChild(stats);
+    }
+
+    const control = document.createElement("div");
+    control.className = dialogMode ? "song-chain-input-row" : "inspector-chain-control";
+    const minus = document.createElement("button");
+    minus.type = "button";
+    minus.textContent = "−";
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = String(maxChain);
+    input.inputMode = "numeric";
+    input.placeholder = "--";
+    input.value = state.value < 0 ? "" : String(state.value);
+    input.setAttribute("aria-label", "Chain number");
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.textContent = "+";
+    control.append(minus, input, plus);
+    root.appendChild(control);
+
+    const actions = document.createElement("div");
+    actions.className = dialogMode ? "song-cell-actions" : "inspector-actions";
+    const empty = document.createElement("button");
+    empty.type = "button";
+    empty.textContent = "EMPTY";
+    const highlight = document.createElement("button");
+    highlight.type = "button";
+    highlight.textContent = state.highlighted ? "UNHIGHLIGHT" : "HIGHLIGHT";
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "primary";
+    open.textContent = "OPEN CHAIN";
+    actions.append(empty, highlight, open);
+    root.appendChild(actions);
+
+    const applyInput = () => {
+      if (input.value.trim() === "") return setSongValue(row, track, -1);
+      const value = Number.parseInt(input.value, 10);
+      if (!Number.isFinite(value)) return false;
+      return setSongValue(row, track, value);
+    };
+
+    input.addEventListener("change", applyInput);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (applyInput() && dialogMode) $("#songCellDialog").close();
+      }
+    });
+    minus.addEventListener("click", () => {
+      const current = songCellState(row, track).value;
+      setSongValue(row, track, current < 0 ? 0 : Math.max(0, current - 1));
+      if (dialogMode) buildSongDialog();
+    });
+    plus.addEventListener("click", () => {
+      const current = songCellState(row, track).value;
+      setSongValue(row, track, current < 0 ? 0 : Math.min(maxChain, current + 1));
+      if (dialogMode) buildSongDialog();
+    });
+    empty.addEventListener("click", () => {
+      setSongValue(row, track, -1);
+      if (dialogMode) buildSongDialog();
+    });
+    highlight.addEventListener("click", () => {
+      call("webSongToggleHighlight", "number", ["number", "number"], [row, track]);
+      publishProjectEdit();
+      songRendered = false;
+      renderSongWorkspace();
+      if (dialogMode) buildSongDialog();
+    });
+    open.addEventListener("click", openSelectedChain);
+  };
+
+  const updateSongInspector = () => {
+    const title = $("#inspectorTitle");
+    const location = $("#inspectorLocation");
+    const body = $("#inspectorBody");
+    if (!title || !body) return;
+    title.textContent = "SONG CELL";
+    location.textContent = "row " + hex2(songSelection.row) + " · track " + (songSelection.track + 1);
+    buildSongEditorControls(body, false);
+  };
+
+  const buildSongDialog = () => {
+    $("#songCellDialogTitle").textContent =
+      "Row " + hex2(songSelection.row) + " · Track " + (songSelection.track + 1);
+    const body = $("#songCellDialog .field-body");
+    buildSongEditorControls(body, true);
+  };
+
+  const openSongDialog = () => {
+    buildSongDialog();
+    const dialog = $("#songCellDialog");
+    if (!dialog.open) dialog.showModal();
+  };
+
+  const renderSongWorkspace = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 0) return;
+    const tracks = Math.max(1, call("webSongTrackCount", "number") || 1);
+    const maxRows = Math.max(1, call("webSongRowCount", "number") || 256);
+    const cursorRow = Math.max(0, call("webSongCursorRow", "number") || 0);
+    const cursorTrack = Math.max(0, call("webSongCursorTrack", "number") || 0);
+    const lastUsed = Math.max(0, call("webSongLastUsedRow", "number") || 0);
+    const rows = Math.min(maxRows, Math.max(32, lastUsed + 10, cursorRow + 6));
+    const previousTop = songScroll.scrollTop;
+    const previousLeft = songScroll.scrollLeft;
+
+    songSelection = { row: cursorRow, track: Math.min(tracks - 1, cursorTrack) };
+    songGrid.style.setProperty("--song-track-count", String(tracks));
+
+    const fragment = document.createDocumentFragment();
+    const header = document.createElement("div");
+    header.className = "song-grid-header";
+    header.style.setProperty("--song-tracks", tracks);
+    header.setAttribute("role", "row");
+    const corner = document.createElement("div");
+    corner.className = "song-corner";
+    corner.textContent = "ROW";
+    header.appendChild(corner);
+    for (let track = 0; track < tracks; track++) {
+      const head = document.createElement("div");
+      head.className = "song-track-header";
+      head.innerHTML = "<strong>TRACK " + (track + 1) + "</strong><span>CHAIN</span>";
+      header.appendChild(head);
+    }
+    fragment.appendChild(header);
+
+    for (let row = 0; row < rows; row++) {
+      const line = document.createElement("div");
+      line.className = "song-grid-row";
+      line.style.setProperty("--song-tracks", tracks);
+      line.setAttribute("role", "row");
+      if (row === songSelection.row) line.classList.add("cursor-row");
+
+      const label = document.createElement("div");
+      label.className = "song-row-label";
+      label.textContent = hex2(row);
+      line.appendChild(label);
+
+      for (let track = 0; track < tracks; track++) {
+        const state = songCellState(row, track);
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "song-cell";
+        if (state.value < 0) cell.classList.add("song-cell-empty");
+        if (state.hasNotes) cell.classList.add("has-notes");
+        if (state.highlighted) cell.classList.add("highlighted");
+        if (row === songSelection.row && track === songSelection.track) cell.classList.add("selected");
+        cell.dataset.songRow = String(row);
+        cell.dataset.songTrack = String(track);
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-label",
+          "Row " + hex2(row) + ", track " + (track + 1) + ", " +
+          (state.value < 0 ? "empty" : "chain " + hex2(state.value)));
+
+        const value = document.createElement("span");
+        value.className = "song-cell-value";
+        value.textContent = state.value < 0 ? "—" : hex2(state.value);
+        const meta = document.createElement("span");
+        meta.className = "song-cell-meta";
+        meta.textContent = state.value < 0 ? "EMPTY" : state.hasNotes ? "CHAIN" : "EMPTY CHAIN";
+        cell.append(value, meta);
+        line.appendChild(cell);
+      }
+      fragment.appendChild(line);
+    }
+
+    songGrid.replaceChildren(fragment);
+    songScroll.scrollTop = previousTop;
+    songScroll.scrollLeft = previousLeft;
+    songRendered = true;
+    updateSongInspector();
+  };
+
+  const setWorkspaceMode = (screen, syncNative = false) => {
+    activeUiScreen = screen;
+    $(".view-tabs [data-screen]").forEach((button) => {
+      button.classList.toggle("active", Number(button.dataset.screen) === screen);
+    });
+    $("#screenName").textContent = screenNames[screen] || "TRACKER";
+    $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
+
+    const semantic = screen === 0;
+    semanticWorkspace.hidden = !semantic;
+    legacyWorkspace.hidden = semantic;
+    $("#gestureHint").textContent = semantic
+      ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
+      : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
+
+    if (semantic) {
+      if (!songRendered) renderSongWorkspace();
+    } else if (syncNative) {
+      requestAnimationFrame(() => canvas.focus());
+    }
+  };
+
+  function navigateToScreen(screen) {
+    setWorkspaceMode(screen, true);
+    call("webOpenScreen", null, ["number"], [screen]);
+    if (screen === 0) {
+      songRendered = false;
+      requestAnimationFrame(renderSongWorkspace);
+    }
+    setTimeout(refreshScreenState, 80);
+  }
+
+  songGrid.addEventListener("click", (event) => {
+    const cell = event.target.closest(".song-cell");
+    if (!cell) return;
+    const row = Number(cell.dataset.songRow);
+    const track = Number(cell.dataset.songTrack);
+    const wasSelected = row === songSelection.row && track === songSelection.track;
+    selectSongCell(row, track);
+
+    const coarsePointer = matchMedia("(pointer: coarse)").matches;
+    const now = performance.now();
+    const repeatedTap = songLastTap.row === row && songLastTap.track === track && now - songLastTap.time < 520;
+    songLastTap = { row, track, time: now };
+    if ((coarsePointer && wasSelected && repeatedTap) || event.detail >= 2) openSongDialog();
+  });
+
+  songGrid.addEventListener("dblclick", (event) => {
+    const cell = event.target.closest(".song-cell");
+    if (!cell) return;
+    selectSongCell(Number(cell.dataset.songRow), Number(cell.dataset.songTrack));
+    openSongDialog();
+  });
+
+  songGrid.addEventListener("keydown", (event) => {
+    const cell = event.target.closest(".song-cell");
+    if (!cell) return;
+    let row = Number(cell.dataset.songRow);
+    let track = Number(cell.dataset.songTrack);
+    const tracks = Math.max(1, call("webSongTrackCount", "number") || 1);
+    if (event.key === "ArrowUp") row--;
+    else if (event.key === "ArrowDown") row++;
+    else if (event.key === "ArrowLeft") track--;
+    else if (event.key === "ArrowRight") track++;
+    else if (event.key === "Enter") {
+      event.preventDefault();
+      openSongDialog();
+      return;
+    } else if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      setSongValue(row, track, -1);
+      return;
+    } else return;
+
+    event.preventDefault();
+    row = Math.max(0, Math.min((call("webSongRowCount", "number") || 256) - 1, row));
+    track = Math.max(0, Math.min(tracks - 1, track));
+    selectSongCell(row, track, true);
+    songGrid.querySelector(`[data-song-row="${row}"][data-song-track="${track}"]`)?.focus();
+  });
+
+  $("#songJumpCursor").addEventListener("click", () => {
+    const row = Math.max(0, call("webSongCursorRow", "number") || 0);
+    const track = Math.max(0, call("webSongCursorTrack", "number") || 0);
+    selectSongCell(row, track, true);
+  });
+
+  $("#songCellDialogClose").addEventListener("click", () => $("#songCellDialog").close());
+
   canvas.addEventListener("pointerdown", (event) => {
     if (!trackerStarted || !window.Module?.ccall) return;
     event.preventDefault();
@@ -214,14 +557,10 @@
   });
   canvas.addEventListener("pointercancel", () => { pointer = null; });
 
-  const screenNames = ["SONG", "CHAIN", "PHRASE", "SOUND", "MIX", "PROJECT", "SETTINGS", "START"];
   const refreshScreenState = () => {
     if (!window.Module?.ccall) return;
     const current = call("webCurrentScreen", "number");
-    $$(".view-tabs [data-screen]").forEach((button) => {
-      button.classList.toggle("active", Number(button.dataset.screen) === current);
-    });
-    $("#screenName").textContent = screenNames[current] || "TRACKER";
+    if (current >= 0 && current !== activeUiScreen) setWorkspaceMode(current);
 
     let editLabel = "EDIT";
     if (current === 2) {
@@ -239,12 +578,8 @@
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
   };
 
-  $$(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
-    button.addEventListener("click", () => {
-      call("webOpenScreen", null, ["number"], [Number(button.dataset.screen)]);
-      refreshScreenState();
-      canvas.focus();
-    });
+  $(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
+    button.addEventListener("click", () => navigateToScreen(Number(button.dataset.screen)));
   });
 
   $("#playToggle").addEventListener("click", () => {
@@ -301,12 +636,10 @@
 
   $("#mobileMenuButton").addEventListener("click", () => $("#mobileMenuDialog").showModal());
   $("#mobileMenuClose").addEventListener("click", closeMobileMenu);
-  $$("[data-menu-screen]").forEach((button) => {
+  $("[data-menu-screen]").forEach((button) => {
     button.addEventListener("click", () => {
-      call("webOpenScreen", null, ["number"], [Number(button.dataset.menuScreen)]);
       closeMobileMenu();
-      refreshScreenState();
-      canvas.focus();
+      navigateToScreen(Number(button.dataset.menuScreen));
     });
   });
 
@@ -316,6 +649,10 @@
     const path = "/user/projects/" + userPath(file.name);
     await importFiles([file], "/user/projects");
     const result = call("webLoadProject", "number", ["string"], [path]);
+    if (result === 0) {
+      songRendered = false;
+      if (activeUiScreen === 0) renderSongWorkspace();
+    }
     setStatus(result === 0 ? "Loaded " + file.name : "Could not load " + file.name);
     event.target.value = "";
   });
@@ -385,8 +722,10 @@
 
       requestAnimationFrame(() => {
         try {
+          setWorkspaceMode(0);
+          songRendered = false;
+          renderSongWorkspace();
           refreshScreenState();
-          canvas.focus();
         } catch (error) {
           console.error("Post-start UI refresh failed", error);
           setStatus("READY · UI refresh warning");
