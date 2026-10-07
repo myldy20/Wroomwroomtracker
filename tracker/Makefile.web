@@ -24,6 +24,10 @@ WEB_LDFLAGS = -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB \
 	-lidbfs.js \
 	$(WEB_PRELOAD)
 
+# CI keeps assertions enabled by default. Production Pages overrides this to a
+# lean release profile without changing the native/handheld build flags.
+WEB_RUNTIME_FLAGS ?= -sASSERTIONS=1 -sGL_ASSERTIONS=1
+
 SOURCES := $(filter-out platforms/sdl2/corelib_mainloop.cpp,$(SOURCES)) \
 	platforms/web/corelib_mainloop.cpp
 
@@ -31,8 +35,8 @@ SOURCES := $(filter-out platforms/sdl2/corelib_mainloop.cpp,$(SOURCES)) \
 
 web:
 	@mkdir -p $(WEB_BUILD)
-	$(EMXX) $(WEB_CFLAGS) $(SOURCES) $(WEB_LDFLAGS) -o $(WEB_BUILD)/choochootracker.html \
-	-sASSERTIONS=1 -sSTACK_SIZE=8388608 -sGL_ASSERTIONS=1
+	$(EMXX) $(WEB_CFLAGS) $(SOURCES) $(WEB_LDFLAGS) $(WEB_RUNTIME_FLAGS) \
+	-sSTACK_SIZE=8388608 -o $(WEB_BUILD)/choochootracker.html
 	@cp ../web/index.html $(WEB_BUILD)/index.html
 	@cp ../web/wroom.css $(WEB_BUILD)/wroom.css
 	@cp ../web/wroom.js $(WEB_BUILD)/wroom.js
