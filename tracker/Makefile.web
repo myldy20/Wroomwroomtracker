@@ -8,15 +8,16 @@ OUTPUT_EXT = .html
 WEB_BUILD = build/web
 EMXX ?= em++
 WEB_CFLAGS = $(COMMON_CFLAGS) $(INCLUDES) -DWEB_BUILD -DGAMEPAD_SUPPORT
-WEB_DATA_DIRS = $(filter-out projects,$(COMMON_DATA_DIRS))
-WEB_PRELOAD = $(foreach dir,$(WEB_DATA_DIRS),--preload-file packaging/common/$(dir)@/$(dir)) \
-	--preload-file packaging/common/projects/native-chip-audition.cct@/projects/native-chip-audition.cct \
-	--preload-file packaging/common/projects/DNB.cct@/projects/DNB.cct \
-	--preload-file packaging/common/projects/dub-reich.cct@/projects/dub-reich.cct \
+# Keep initial browser payload lean. Large factory libraries (samples,
+# SR wavetables, instrument banks, external fonts and native title art) are
+# useful content, but they are not required to open the tracker and must not
+# block startup. They can be added back later as lazy/on-demand libraries.
+WEB_PRELOAD = \
 	--preload-file packaging/common/projects/grieg-mountain-king-fm.cct@/projects/grieg-mountain-king-fm.cct \
-	--preload-file packaging/common/projects/maple-leaf-rag.cct@/projects/maple-leaf-rag.cct \
-	--preload-file "packaging/common/projects/psy.cct@/projects/psy.cct" \
-	--preload-file "packaging/common/projects/alf dance.cct@/projects/alf dance.cct"
+	--preload-file packaging/common/pitch-tables@/pitch-tables \
+	--preload-file packaging/common/themes@/themes \
+	--preload-file packaging/common/AY_wavetables@/AY_wavetables \
+	--preload-file packaging/common/waveforms@/waveforms
 WEB_LDFLAGS = -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=256MB \
 	-sASYNCIFY=1 \
 	-sFORCE_FILESYSTEM=1 -sNO_EXIT_RUNTIME=1 -sEXPORTED_RUNTIME_METHODS=ccall,FS \

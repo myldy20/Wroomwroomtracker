@@ -24,6 +24,19 @@
 
 #ifdef WEB_BUILD
 #include <emscripten/emscripten.h>
+
+static void webStartupStage(const char* stage) {
+  EM_ASM({
+    if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') {
+      window.wroomStartupStage(UTF8ToString($0));
+    }
+  }, stage);
+  // Yield so the browser can actually paint the stage before the next
+  // potentially expensive synchronous initialization step.
+  emscripten_sleep(0);
+}
+#else
+static void webStartupStage(const char*) {}
 #endif
 
 // Raw input callback for key mapping screen
@@ -356,6 +369,7 @@ void appSetup(void) {
   quickHelpSelectAlone = 0;
   updateMotionRecordMode();
 
+  webStartupStage("STATE");
   // Clear screen
   gfxSetBgColor(appSettings.colorScheme.background);
   gfxClear();
@@ -367,9 +381,13 @@ void appSetup(void) {
   // Create ChipNomad state
   chipnomadState = chipnomadCreate();
   if (!chipnomadState) {
-    // Handle error - for now just exit
+#ifdef WEB_BUILD
+    webStartupStage("STATE FAILED");
+#endif
     return;
   }
+
+  webStartupStage("PROJECT");
 
   // Restore autosave; a bundled Grieg demo is the first-launch fallback.
   int projectLoaded = 0;
@@ -393,6 +411,8 @@ void appSetup(void) {
   }
   if (!projectLoaded) projectInitAY(&chipnomadState->project);
 
+  webStartupStage("SCREENS");
+
   // Initialize all screen states
   screensInitAll();
 
@@ -402,15 +422,20 @@ void appSetup(void) {
   chipnomadState->mixVolume = appSettings.mixVolume;
   chipnomadState->aySampleDithering = appSettings.aySampleDithering;
 
+  webStartupStage("DSP");
+
   // Initialize audio system
   chipnomadInitChips(chipnomadState, appSettings.audioSampleRate, NULL);
   chipnomadSetQuality(chipnomadState, (ChipNomadQuality)appSettings.quality);
   chipnomadSetBraidsSettings(chipnomadState, appSettings.braidsBits,
     appSettings.braidsDrift, appSettings.braidsSignature,
     appSettings.braidsSignatureSeed);
+
+  webStartupStage("AUDIO");
   audioManager.start(appSettings.audioSampleRate, appSettings.audioBufferSize);
   audioManager.resume();
 
+  webStartupStage("MIDI");
   int savedInputPort = findMidiPortByName(1, appSettings.midiInputDeviceName);
   if (savedInputPort >= 0 && midiRouterOpenInput(savedInputPort) == 0) appSettings.midiInputDevice = savedInputPort;
   int savedOutputPort = findMidiPortByName(0, appSettings.midiOutputDeviceName);
@@ -418,6 +443,7 @@ void appSetup(void) {
   midiRouterSetChannelInstrumentMap(chipnomadState->midiRouter, appSettings.midiChannelInstrument);
 
 #ifdef WEB_BUILD
+  webStartupStage("READY");
   // The browser shell owns startup UX and navigation. Enter the first musical
   // workspace directly and synchronously notify JavaScript only after the
   // complete app state exists. This avoids racing onRuntimeInitialized against

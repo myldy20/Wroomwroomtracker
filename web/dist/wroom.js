@@ -364,6 +364,12 @@
     };
 
     let startupFinished = false;
+    window.wroomStartupStage = (stage) => {
+      const label = String(stage || "STARTING");
+      startButton.textContent = label;
+      setStatus("Starting · " + label);
+    };
+
     window.wroomRuntimeReady = () => {
       if (startupFinished) return;
       startupFinished = true;
