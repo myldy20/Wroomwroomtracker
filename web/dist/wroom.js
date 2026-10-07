@@ -136,6 +136,7 @@
     const p = canvasPoint(event);
     pointer = { id: event.pointerId, startX: p.x, startY: p.y, lastX: p.x, moved: false };
     selectAt(p);
+    refreshScreenState();
     canvas.focus();
   });
 
