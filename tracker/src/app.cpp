@@ -417,7 +417,20 @@ void appSetup(void) {
   if (savedOutputPort >= 0 && midiRouterOpenOutput(savedOutputPort) == 0) appSettings.midiOutputDevice = savedOutputPort;
   midiRouterSetChannelInstrumentMap(chipnomadState->midiRouter, appSettings.midiChannelInstrument);
 
+#ifdef WEB_BUILD
+  // The browser shell owns startup UX and navigation. Enter the first musical
+  // workspace directly and synchronously notify JavaScript only after the
+  // complete app state exists. This avoids racing onRuntimeInitialized against
+  // main()/appSetup()/SDL's browser main loop.
+  screenSetup(&screenSong, 0);
+  EM_ASM({
+    if (typeof window !== 'undefined' && typeof window.wroomRuntimeReady === 'function') {
+      window.wroomRuntimeReady();
+    }
+  });
+#else
   screenSetup(&screenTitle, 0);
+#endif
 }
 
 #ifdef WEB_BUILD
