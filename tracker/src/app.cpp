@@ -425,6 +425,71 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webSaveProject(const char* path) {
   if (!chipnomadState || !path || !path[0]) return 1;
   return projectSave(&chipnomadState->project, path);
 }
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webCurrentScreen(void) {
+  if (currentScreen == &screenSong) return 0;
+  if (currentScreen == &screenChain) return 1;
+  if (currentScreen == &screenPhrase) return 2;
+  if (currentScreen == &screenInstrument) return 3;
+  if (currentScreen == &screenMixer) return 4;
+  if (currentScreen == &screenProject) return 5;
+  if (currentScreen == &screenSettings) return 6;
+  if (currentScreen == &screenTitle) return 7;
+  return -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void webOpenScreen(int screen) {
+  switch (screen) {
+    case 0: screenSetup(&screenSong, 0); break;
+    case 1: screenSetup(&screenChain, 0); break;
+    case 2: screenSetup(&screenPhrase, 0); break;
+    case 3: screenSetup(&screenInstrument, cInstrument); break;
+    case 4: screenSetup(&screenMixer, 0); break;
+    case 5: screenSetup(&screenProject, 0); break;
+    case 6: screenSetup(&screenSettings, 0); break;
+    default: return;
+  }
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPlaybackIsPlaying(void) {
+  if (!chipnomadState) return 0;
+  const PlaybackStatus* status = chipnomadGetPlaybackStatus(chipnomadState);
+  return status && status->isPlaying ? 1 : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void webStopPlayback(void) {
+  if (chipnomadState) chipnomadQueuePlaybackStop(chipnomadState);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
+  int keys = 0;
+  switch (action) {
+    case 0: keys = keyPlay; break;
+    case 1: keys = keyEdit; break;
+    case 2: keys = keyOpt; break;
+    case 3: keys = keyEdit | keyOpt; break;
+    default: return;
+  }
+  appInput(1, keys, 1);
+  appInput(0, 0, 0);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void webTouchTapAt(int physicalX, int physicalY) {
+  int col = 0, row = 0;
+  if (!gfxGetTouchGridPosition(physicalX, physicalY, &col, &row)) return;
+  screenTouchTap(col, row);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void webTouchAdjustAt(int physicalX, int physicalY, int delta) {
+  int col = 0, row = 0;
+  if (!gfxGetTouchGridPosition(physicalX, physicalY, &col, &row)) return;
+  TouchAdjustResult adjust = screenTouchAdjust(col, row);
+  if (!adjust || delta == 0) return;
+  int direction = delta > 0 ? keyUp : keyDown;
+  if (adjust == touchAdjustFine) direction = delta > 0 ? keyRight : keyLeft;
+  appInput(1, keyEdit | direction, 1);
+  appInput(0, 0, 0);
+}
 #endif
 
 /**
