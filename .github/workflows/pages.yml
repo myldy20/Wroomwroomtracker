@@ -27,7 +27,7 @@ jobs:
         run: |
           em++ --version
           make -C tracker -j2 -f Makefile.web web-deploy \
-            COMMON_CFLAGS='-std=c++17 -Wall -Oz -flto -DNDEBUG' \
+            COMMON_CFLAGS='-std=c++17 -Wall -Oz -flto -DNDEBUG -DTEST' \
             WEB_RUNTIME_FLAGS='-sASSERTIONS=0 -sGL_ASSERTIONS=0'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
