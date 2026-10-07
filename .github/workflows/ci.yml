@@ -32,8 +32,8 @@ jobs:
           node --check web/wroom.js
           grep -Fq '<canvas id="canvas"' web/index.html
           ! grep -Eq '^WEB_CFLAGS.*DESKTOP_BUILD' tracker/Makefile.web
-          ! grep -Fq '$("[data-file-action]").forEach' web/wroom.js
-          ! grep -Fq '$("[data-menu-screen]").forEach' web/wroom.js
+          ! grep -Eq '(^|[^$])\$\("\[data-file-action\]"\)\.forEach' web/wroom.js
+          ! grep -Eq '(^|[^$])\$\("\[data-menu-screen\]"\)\.forEach' web/wroom.js
 
   web-build:
     runs-on: ubuntu-24.04
