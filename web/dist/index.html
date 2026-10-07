@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#05080d">
   <meta name="description" content="WroomWroomTracker — web-first multi-engine music tracker">
   <title>WroomWroomTracker — Web</title>
-  <link rel="stylesheet" href="./wroom.css?v=__WROOM_BUILD__">
+  <link rel="stylesheet" href="./wroom.css">
 </head>
 <body>
   <div class="app-shell">
@@ -70,6 +70,17 @@
             <div id="songScroll" class="song-scroll">
               <div id="songGrid" class="song-grid" role="grid" aria-label="Song arrangement grid"></div>
             </div>
+          </section>
+
+          <section id="chainWorkspace" class="workspace-view chain-workspace" aria-label="Chain structure" hidden>
+            <div class="chain-toolbar">
+              <div>
+                <strong id="chainTitle">CHAIN --</strong>
+                <span id="chainContext">Select a non-empty Song cell to edit its 16-step chain.</span>
+              </div>
+              <button id="chainBackSong" type="button" data-needs-runtime disabled>← SONG</button>
+            </div>
+            <div id="chainRows" class="chain-rows" role="grid" aria-label="Chain steps"></div>
           </section>
         </div>
 
@@ -173,6 +184,17 @@
     </div>
   </dialog>
 
+  <dialog id="chainRowDialog" class="field-dialog chain-row-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">CHAIN STEP</span>
+        <h2 id="chainRowDialogTitle">Step</h2>
+      </div>
+      <button id="chainRowDialogClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div id="chainRowDialogBody" class="field-body"></div>
+  </dialog>
+
   <dialog id="songCellDialog" class="field-dialog song-cell-dialog">
     <header>
       <div>
@@ -236,44 +258,6 @@
   <input id="sampleInput" type="file" accept=".wav,audio/wav" multiple hidden>
   <input id="sampleFolderInput" type="file" accept=".wav,audio/wav" webkitdirectory multiple hidden>
 
-  <script id="wroom-bootstrap">
-    window.WROOM_BUILD = "__WROOM_BUILD__";
-    (() => {
-      const button = document.getElementById("startButton");
-      const status = document.getElementById("status");
-      if (!button) return;
-
-      window.__wroomStartRequested = false;
-
-      button.addEventListener("click", () => {
-        if (typeof window.wroomStartTracker === "function") {
-          window.wroomStartTracker();
-          return;
-        }
-
-        // This listener lives in index.html on purpose: START must visibly
-        // react even if the larger browser shell fails before it initializes.
-        window.__wroomStartRequested = true;
-        button.disabled = true;
-        button.textContent = "LOADING UI…";
-        if (status) status.textContent = "Loading browser UI";
-
-        setTimeout(() => {
-          if (typeof window.wroomStartTracker === "function" || !window.__wroomStartRequested) return;
-          button.disabled = false;
-          button.textContent = "RETRY";
-          if (status) status.textContent = "Browser UI did not initialize · retry or reload";
-        }, 4000);
-      });
-
-      window.addEventListener("error", () => {
-        if (!window.__wroomStartRequested || typeof window.wroomStartTracker === "function") return;
-        button.disabled = false;
-        button.textContent = "RETRY";
-        if (status) status.textContent = "Browser UI failed to initialize";
-      });
-    })();
-  </script>
-  <script src="./wroom.js?v=__WROOM_BUILD__"></script>
+  <script src="./wroom.js"></script>
 </body>
 </html>

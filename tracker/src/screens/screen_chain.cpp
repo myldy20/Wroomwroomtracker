@@ -7,6 +7,10 @@
 #include "copy_paste.h"
 #include <string.h>
 
+#ifdef WEB_BUILD
+#include <emscripten/emscripten.h>
+#endif
+
 static int chain = 0;
 static uint16_t lastPhraseValue = 0;
 static uint8_t lastTransposeValue = 0;
@@ -369,6 +373,93 @@ int chainKeyJazzHandleRawKey(InputCode input, int isDown) {
 }
 
 #endif // DESKTOP_BUILD
+
+#ifdef WEB_BUILD
+static int webChainIndex(void) {
+  if (!chipnomadState || !pSongRow || !pSongTrack ||
+      *pSongRow < 0 || *pSongRow >= PROJECT_MAX_LENGTH ||
+      *pSongTrack < 0 || *pSongTrack >= chipnomadState->project.tracksCount) return -1;
+  uint16_t value = chipnomadState->project.song[*pSongRow][*pSongTrack];
+  return value == EMPTY_VALUE_16 || value >= PROJECT_MAX_CHAINS ? -1 : (int)value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainCurrentIndex(void) {
+  return webChainIndex();
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainRowCount(void) {
+  return 16;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainMaxPhrase(void) {
+  return PROJECT_MAX_PHRASES - 1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainOctaveSize(void) {
+  return chipnomadState ? chipnomadState->project.pitchTable.octaveSize : 12;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainCursorRow(void) {
+  return screen.cursorRow;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainRowPhrase(int row) {
+  int idx = webChainIndex();
+  if (idx < 0 || row < 0 || row >= 16) return -2;
+  uint16_t value = chipnomadState->project.chains[idx].rows[row].phrase;
+  return value == EMPTY_VALUE_16 ? -1 : (int)value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainRowHasNotes(int row) {
+  int phrase = webChainRowPhrase(row);
+  return phrase >= 0 && phraseHasNotes(&chipnomadState->project, phrase) ? 1 : 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainRowTranspose(int row) {
+  int idx = webChainIndex();
+  if (idx < 0 || row < 0 || row >= 16) return 0;
+  return (int)(int8_t)chipnomadState->project.chains[idx].rows[row].transpose;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSelectRow(int row) {
+  if (webChainIndex() < 0 || row < 0 || row >= 16) return 1;
+  screen.cursorRow = row;
+  screen.cursorCol = 0;
+  if (currentScreen == &screenChain) fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSetPhrase(int row, int phrase) {
+  int idx = webChainIndex();
+  if (idx < 0 || row < 0 || row >= 16) return 1;
+  if (phrase < 0) {
+    chipnomadState->project.chains[idx].rows[row].phrase = EMPTY_VALUE_16;
+  } else {
+    if (phrase >= PROJECT_MAX_PHRASES) return 1;
+    chipnomadState->project.chains[idx].rows[row].phrase = (uint16_t)phrase;
+    lastPhraseValue = (uint16_t)phrase;
+  }
+  screen.cursorRow = row;
+  screen.cursorCol = 0;
+  projectModified = 1;
+  if (currentScreen == &screenChain) fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSetTranspose(int row, int semitones) {
+  int idx = webChainIndex();
+  if (idx < 0 || row < 0 || row >= 16) return 1;
+  if (semitones < -128) semitones = -128;
+  if (semitones > 127) semitones = 127;
+  chipnomadState->project.chains[idx].rows[row].transpose = (uint8_t)(int8_t)semitones;
+  lastTransposeValue = chipnomadState->project.chains[idx].rows[row].transpose;
+  screen.cursorRow = row;
+  screen.cursorCol = 1;
+  projectModified = 1;
+  if (currentScreen == &screenChain) fullRedraw();
+  return 0;
+}
+#endif
 
 static ScreenPlaybackLevel getPlaybackLevel(void) {
   return ScreenPlaybackLevel::chain;

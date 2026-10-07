@@ -5,16 +5,22 @@
   const status = $("#status");
   const startOverlay = $("#startOverlay");
   const startButton = $("#startButton");
-  const fileButtons = $$("[data-needs-runtime]");
+  const fileButtons = $("[data-needs-runtime]");
   const semanticWorkspace = $("#semanticWorkspace");
   const legacyWorkspace = $("#legacyWorkspace");
   const songGrid = $("#songGrid");
   const songScroll = $("#songScroll");
+  const songWorkspace = $("#songWorkspace");
+  const chainWorkspace = $("#chainWorkspace");
+  const chainRows = $("#chainRows");
   let trackerStarted = false;
   let activeUiScreen = 0;
   let songRendered = false;
+  let chainRendered = false;
   let songSelection = { row: 0, track: 0 };
+  let chainSelection = { row: 0 };
   let songLastTap = { row: -1, track: -1, time: 0 };
+  let chainLastTap = { row: -1, time: 0 };
   let storageSyncing = false;
   let storageMounted = false;
   let storageReady = false;
@@ -208,6 +214,7 @@
     songSelection = { row, track };
     publishProjectEdit();
     songRendered = false;
+    chainRendered = false;
     renderSongWorkspace();
     if (announce) setStatus(normalized < 0 ? "Song cell cleared" : "Chain " + hex2(normalized) + " assigned");
     return true;
@@ -424,6 +431,317 @@
     updateSongInspector();
   };
 
+  const signedSemitones = (value) => value > 0 ? "+" + value : String(value);
+
+  const chainRowState = (row) => ({
+    phrase: call("webChainRowPhrase", "number", ["number"], [row]),
+    hasNotes: !!call("webChainRowHasNotes", "number", ["number"], [row]),
+    transpose: call("webChainRowTranspose", "number", ["number"], [row]) || 0,
+  });
+
+  const setChainPhrase = (row, phrase, announce = true) => {
+    const max = call("webChainMaxPhrase", "number") ?? 1023;
+    const normalized = phrase < 0 ? -1 : Math.max(0, Math.min(max, phrase | 0));
+    if (call("webChainSetPhrase", "number", ["number", "number"], [row, normalized]) !== 0) {
+      setStatus("Could not change Chain phrase");
+      return false;
+    }
+    chainSelection = { row };
+    publishProjectEdit();
+    chainRendered = false;
+    renderChainWorkspace();
+    if (announce) setStatus(normalized < 0 ? "Phrase cleared" : "Phrase " + normalized.toString(16).toUpperCase().padStart(3, "0") + " assigned");
+    return true;
+  };
+
+  const setChainTranspose = (row, semitones, announce = true) => {
+    const normalized = Math.max(-128, Math.min(127, semitones | 0));
+    if (call("webChainSetTranspose", "number", ["number", "number"], [row, normalized]) !== 0) {
+      setStatus("Could not change transpose");
+      return false;
+    }
+    chainSelection = { row };
+    publishProjectEdit();
+    chainRendered = false;
+    renderChainWorkspace();
+    if (announce) setStatus("Transpose " + signedSemitones(normalized));
+    return true;
+  };
+
+  const selectChainRow = (row, scroll = false) => {
+    if (call("webChainSelectRow", "number", ["number"], [row]) !== 0) return false;
+    chainSelection = { row };
+    chainRows.querySelectorAll(".chain-row.selected").forEach((line) => line.classList.remove("selected"));
+    const line = chainRows.querySelector(`[data-chain-row="${row}"]`);
+    line?.classList.add("selected");
+    updateChainInspector();
+    if (scroll) line?.scrollIntoView({ block: "center", behavior: "smooth" });
+    return true;
+  };
+
+  const openSelectedPhrase = () => {
+    const state = chainRowState(chainSelection.row);
+    if (state.phrase < 0) {
+      setStatus("Assign a Phrase before opening it");
+      return false;
+    }
+    call("webChainSelectRow", "number", ["number"], [chainSelection.row]);
+    return navigateToScreen(2);
+  };
+
+  const buildChainEditorControls = (root, dialogMode = false) => {
+    const row = chainSelection.row;
+    const state = chainRowState(row);
+    const chainIndex = call("webChainCurrentIndex", "number");
+    const maxPhrase = call("webChainMaxPhrase", "number") ?? 1023;
+    const octave = Math.max(1, call("webChainOctaveSize", "number") || 12);
+    root.replaceChildren();
+
+    const editor = document.createElement("div");
+    editor.className = "chain-editor";
+
+    if (!dialogMode) {
+      const stats = document.createElement("div");
+      stats.className = "inspector-selection";
+      stats.innerHTML =
+        '<div class="inspector-stat"><span>CHAIN</span><strong>' + hex2(chainIndex) + '</strong></div>' +
+        '<div class="inspector-stat"><span>STEP</span><strong>' + row.toString(16).toUpperCase() + '</strong></div>';
+      editor.appendChild(stats);
+    }
+
+    const phraseSection = document.createElement("section");
+    phraseSection.className = "chain-editor-section";
+    const phraseLabel = document.createElement("span");
+    phraseLabel.className = "chain-editor-label";
+    phraseLabel.textContent = "PHRASE";
+    const phraseControl = document.createElement("div");
+    phraseControl.className = "chain-phrase-control";
+    const phraseMinus = document.createElement("button");
+    phraseMinus.type = "button";
+    phraseMinus.textContent = "−";
+    const phraseInput = document.createElement("input");
+    phraseInput.type = "number";
+    phraseInput.min = "0";
+    phraseInput.max = String(maxPhrase);
+    phraseInput.inputMode = "numeric";
+    phraseInput.placeholder = "---";
+    phraseInput.value = state.phrase < 0 ? "" : String(state.phrase);
+    const phrasePlus = document.createElement("button");
+    phrasePlus.type = "button";
+    phrasePlus.textContent = "+";
+    phraseControl.append(phraseMinus, phraseInput, phrasePlus);
+
+    const phraseActions = document.createElement("div");
+    phraseActions.className = "chain-editor-actions";
+    const empty = document.createElement("button");
+    empty.type = "button";
+    empty.textContent = "EMPTY";
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "primary";
+    open.textContent = "OPEN PHRASE";
+    phraseActions.append(empty, open);
+    phraseSection.append(phraseLabel, phraseControl, phraseActions);
+
+    const transposeSection = document.createElement("section");
+    transposeSection.className = "chain-editor-section";
+    const transposeLabel = document.createElement("span");
+    transposeLabel.className = "chain-editor-label";
+    transposeLabel.textContent = "TRANSPOSE · SEMITONES";
+    const transposeControl = document.createElement("div");
+    transposeControl.className = "chain-transpose-editor";
+    const buttons = [
+      [-octave, "−OCT"],
+      [-1, "−1"],
+      [null, signedSemitones(state.transpose)],
+      [1, "+1"],
+      [octave, "+OCT"],
+    ];
+    buttons.forEach(([delta, label], index) => {
+      if (delta == null) {
+        const output = document.createElement("output");
+        output.textContent = label;
+        transposeControl.appendChild(output);
+      } else {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", () => {
+          const current = chainRowState(row).transpose;
+          setChainTranspose(row, current + delta);
+          if (dialogMode) buildChainDialog();
+        });
+        transposeControl.appendChild(button);
+      }
+    });
+    transposeSection.append(transposeLabel, transposeControl);
+    editor.append(phraseSection, transposeSection);
+    root.appendChild(editor);
+
+    const applyPhrase = () => {
+      if (phraseInput.value.trim() === "") return setChainPhrase(row, -1);
+      const value = Number.parseInt(phraseInput.value, 10);
+      return Number.isFinite(value) ? setChainPhrase(row, value) : false;
+    };
+
+    phraseInput.addEventListener("change", applyPhrase);
+    phraseInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        applyPhrase();
+      }
+    });
+    phraseMinus.addEventListener("click", () => {
+      const current = chainRowState(row).phrase;
+      setChainPhrase(row, current < 0 ? 0 : Math.max(0, current - 1));
+      if (dialogMode) buildChainDialog();
+    });
+    phrasePlus.addEventListener("click", () => {
+      const current = chainRowState(row).phrase;
+      setChainPhrase(row, current < 0 ? 0 : Math.min(maxPhrase, current + 1));
+      if (dialogMode) buildChainDialog();
+    });
+    empty.addEventListener("click", () => {
+      setChainPhrase(row, -1);
+      if (dialogMode) buildChainDialog();
+    });
+    open.addEventListener("click", openSelectedPhrase);
+  };
+
+  const updateChainInspector = () => {
+    const chainIndex = call("webChainCurrentIndex", "number");
+    $("#inspectorTitle").textContent = "CHAIN STEP";
+    $("#inspectorLocation").textContent =
+      "chain " + hex2(chainIndex) + " · step " + chainSelection.row.toString(16).toUpperCase();
+    buildChainEditorControls($("#inspectorBody"), false);
+  };
+
+  const buildChainDialog = () => {
+    const chainIndex = call("webChainCurrentIndex", "number");
+    $("#chainRowDialogTitle").textContent =
+      "Chain " + hex2(chainIndex) + " · Step " + chainSelection.row.toString(16).toUpperCase();
+    buildChainEditorControls($("#chainRowDialogBody"), true);
+  };
+
+  const openChainDialog = () => {
+    buildChainDialog();
+    const dialog = $("#chainRowDialog");
+    if (!dialog.open) dialog.showModal();
+  };
+
+  const renderChainWorkspace = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 1) return;
+    const chainIndex = call("webChainCurrentIndex", "number");
+    if (chainIndex == null || chainIndex < 0) {
+      $("#chainTitle").textContent = "CHAIN —";
+      $("#chainContext").textContent = "Choose a non-empty Song cell first.";
+      chainRows.innerHTML = '<div class="empty-workspace">No chain is assigned to the selected Song cell.</div>';
+      return;
+    }
+
+    const count = Math.max(1, call("webChainRowCount", "number") || 16);
+    const cursor = Math.max(0, Math.min(count - 1, call("webChainCursorRow", "number") || 0));
+    const octave = Math.max(1, call("webChainOctaveSize", "number") || 12);
+    chainSelection = { row: cursor };
+    $("#chainTitle").textContent = "CHAIN " + hex2(chainIndex);
+    $("#chainContext").textContent =
+      "Song row " + hex2(songSelection.row) + " · Track " + (songSelection.track + 1) +
+      " · " + count + " steps";
+
+    const fragment = document.createDocumentFragment();
+    for (let row = 0; row < count; row++) {
+      const state = chainRowState(row);
+      const line = document.createElement("div");
+      line.className = "chain-row";
+      if (row === cursor) line.classList.add("selected");
+      line.dataset.chainRow = String(row);
+      line.setAttribute("role", "row");
+
+      const step = document.createElement("div");
+      step.className = "chain-step";
+      step.textContent = row.toString(16).toUpperCase();
+
+      const phrase = document.createElement("button");
+      phrase.type = "button";
+      phrase.className = "chain-phrase" + (state.phrase < 0 ? " empty" : "");
+      phrase.dataset.chainPhrase = String(row);
+      const code = document.createElement("span");
+      code.className = "chain-phrase-code";
+      code.textContent = state.phrase < 0 ? "—" : state.phrase.toString(16).toUpperCase().padStart(3, "0");
+      const title = document.createElement("strong");
+      title.textContent = state.phrase < 0 ? "EMPTY" : "PHRASE";
+      const meta = document.createElement("span");
+      meta.textContent = state.phrase < 0 ? "No phrase assigned" : state.hasNotes ? "Contains notes" : "Empty phrase";
+      phrase.append(code, title, meta);
+
+      const transpose = document.createElement("div");
+      transpose.className = "chain-transpose";
+      [
+        [-octave, "−O"],
+        [-1, "−1"],
+        [null, signedSemitones(state.transpose)],
+        [1, "+1"],
+        [octave, "+O"],
+      ].forEach(([delta, label]) => {
+        if (delta == null) {
+          const output = document.createElement("div");
+          output.className = "chain-transpose-output" + (state.transpose === 0 ? " zero" : "");
+          output.textContent = label;
+          transpose.appendChild(output);
+        } else {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.textContent = label;
+          button.dataset.chainTransposeRow = String(row);
+          button.dataset.chainTransposeDelta = String(delta);
+          transpose.appendChild(button);
+        }
+      });
+
+      line.append(step, phrase, transpose);
+      fragment.appendChild(line);
+    }
+
+    chainRows.replaceChildren(fragment);
+    chainRendered = true;
+    updateChainInspector();
+  };
+
+  chainRows.addEventListener("click", (event) => {
+    const deltaButton = event.target.closest("[data-chain-transpose-delta]");
+    if (deltaButton) {
+      const row = Number(deltaButton.dataset.chainTransposeRow);
+      const delta = Number(deltaButton.dataset.chainTransposeDelta);
+      selectChainRow(row);
+      setChainTranspose(row, chainRowState(row).transpose + delta);
+      return;
+    }
+
+    const line = event.target.closest(".chain-row");
+    if (!line) return;
+    const row = Number(line.dataset.chainRow);
+    const wasSelected = row === chainSelection.row;
+    selectChainRow(row);
+
+    const phraseButton = event.target.closest("[data-chain-phrase]");
+    if (!phraseButton) return;
+    const coarsePointer = matchMedia("(pointer: coarse)").matches;
+    const now = performance.now();
+    const repeatedTap = chainLastTap.row === row && now - chainLastTap.time < 520;
+    chainLastTap = { row, time: now };
+    if ((coarsePointer && wasSelected && repeatedTap) || event.detail >= 2) openChainDialog();
+  });
+
+  chainRows.addEventListener("dblclick", (event) => {
+    const line = event.target.closest(".chain-row");
+    if (!line) return;
+    selectChainRow(Number(line.dataset.chainRow));
+    openChainDialog();
+  });
+
+  $("#chainBackSong").addEventListener("click", () => navigateToScreen(0));
+  $("#chainRowDialogClose").addEventListener("click", () => $("#chainRowDialog").close());
+
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
     $$(".view-tabs [data-screen]").forEach((button) => {
@@ -432,15 +750,21 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0;
+    const semantic = screen === 0 || screen === 1;
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
-    $("#gestureHint").textContent = semantic
+    songWorkspace.hidden = screen !== 0;
+    chainWorkspace.hidden = screen !== 1;
+    $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
-      : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
+      : screen === 1
+        ? "SELECT A STEP · EDIT PHRASE + TRANSPOSE DIRECTLY"
+        : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
 
-    if (semantic) {
+    if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
+    } else if (screen === 1) {
+      if (!chainRendered) renderChainWorkspace();
     } else if (syncNative) {
       requestAnimationFrame(() => canvas.focus());
     }
@@ -459,6 +783,9 @@
     if (screen === 0) {
       songRendered = false;
       requestAnimationFrame(renderSongWorkspace);
+    } else if (screen === 1) {
+      chainRendered = false;
+      requestAnimationFrame(renderChainWorkspace);
     }
     setTimeout(refreshScreenState, 80);
     return true;
@@ -681,11 +1008,6 @@
 
     document.title = "WroomWroomTracker — Web";
     window.Module = window.Module || {};
-    const buildId = encodeURIComponent(String(window.WROOM_BUILD || "dev"));
-    window.Module.locateFile = (asset, prefix = "") => {
-      const url = prefix + asset;
-      return url + (url.includes("?") ? "&" : "?") + "v=" + buildId;
-    };
     window.Module.canvas = canvas;
     window.Module.setStatus = (message) => {
       if (!message) return;
@@ -767,7 +1089,7 @@
     };
 
     const script = document.createElement("script");
-    script.src = "./choochootracker.js?v=" + buildId;
+    script.src = "./choochootracker.js";
     script.onerror = () => {
       trackerStarted = false;
       setStatus("WebAssembly bundle could not be loaded");
@@ -777,13 +1099,6 @@
     document.body.appendChild(script);
   };
 
-  // index.html owns the tiny START bootstrap so a failure elsewhere in this
-  // shell cannot leave the primary button completely inert.
-  window.wroomStartTracker = loadTracker;
-  if (window.__wroomStartRequested) {
-    window.__wroomStartRequested = false;
-    loadTracker();
-  }
-
+  startButton.addEventListener("click", loadTracker);
   window.addEventListener("pagehide", () => syncUserStorage());
 })();
