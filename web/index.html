@@ -2,221 +2,167 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ChooChooTracker — Web</title>
-  <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-      background: #050c1f; color: #c9bfa5; font: 16px system-ui, sans-serif; }
-    main { width: min(100%, 980px); padding: 1rem; text-align: center; }
-    h1 { color: #e6b84f; font-size: 1.15rem; letter-spacing: .12em; }
-    p { color: #52799b; }
-    #canvas { display: block; width: min(100%, 640px); height: auto; aspect-ratio: 4 / 3;
-      margin: 0 auto; border: 1px solid #245072; background: #050c1f;
-      image-rendering: pixelated; }
-    #status { color: #ffd665; min-height: 1.5em; }
-    button { color: #050c1f; background: #ffd665; border: 0; padding: .55rem 1rem;
-      font-weight: 700; cursor: pointer; }
-    button:disabled { cursor: wait; opacity: .55; }
-    #file-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem;
-      width: min(100%, 640px); margin: 0 auto .75rem; }
-    #file-controls button { padding: .42rem .7rem; font-size: .8rem; }
-    #touch-controls { display: none; width: min(100%, 640px); margin: .75rem auto 0;
-      padding: .8rem 1rem .65rem; border: 1px solid #3b4350; border-radius: 1.2rem;
-      background: linear-gradient(#10284a, #050c1f); box-shadow: inset 0 1px #52799b;
-      grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "dpad . face" "system system system";
-      gap: .65rem; touch-action: none; }
-    #touch-controls button { border: 1px solid #050c1f; color: #ffd665; font: 700 .72rem system-ui;
-      touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: inset 0 1px #52799b, 0 2px 2px #050c1f; }
-    .dpad { grid-area: dpad; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); aspect-ratio: 1; max-width: 8rem; }
-    .dpad button { background: #245072; border-radius: .25rem; font-size: 1rem; }
-    .dpad .up { grid-column: 2; } .dpad .left { grid-row: 2; grid-column: 1; }
-    .dpad .right { grid-row: 2; grid-column: 3; } .dpad .down { grid-row: 3; grid-column: 2; }
-    .face { grid-area: face; display: flex; align-items: center; justify-content: center; gap: .55rem; }
-    .face button { width: 3.6rem; height: 3.6rem; border-radius: 50%; background: #ff6655; }
-    .face button:first-child { background: #65d8ff; }
-    .system { grid-area: system; display: flex; justify-content: center; gap: .75rem; }
-    .system button { min-width: 5.8rem; min-height: 2rem; border-radius: 1rem; background: #10284a; }
-    .links { margin: .8rem 0 0; }
-    .links a { color: #ffd665; margin: 0 .5rem; }
-    @media (pointer: coarse), (max-width: 700px) {
-      main { width: min(100%, 640px); padding: .5rem; }
-      #canvas { width: 100%; }
-      #touch-controls { display: grid; width: 100%; }
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05080d">
+  <meta name="description" content="WroomWroomTracker — web-first multi-engine music tracker">
+  <title>WroomWroomTracker — Web</title>
+  <link rel="stylesheet" href="./wroom.css">
 </head>
 <body>
-  <main>
-    <h1>CHOOCHOO TRACKER / WEB</h1>
-    <button id="start">Start tracker</button>
-    <div id="status"></div>
-    <div id="file-controls" aria-label="Project and sample files">
-      <button id="import-project" disabled>Import .cct</button>
-      <button id="import-samples" disabled>Import WAVs</button>
-      <button id="import-folder" disabled>Import sample folder</button>
-      <button id="export-project" disabled>Download .cct</button>
-      <input id="project-input" type="file" accept=".cct" hidden>
-      <input id="sample-input" type="file" accept=".wav,audio/wav" multiple hidden>
-      <input id="sample-folder-input" type="file" accept=".wav,audio/wav" webkitdirectory multiple hidden>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand">WROOMWROOM</span>
+        <span class="edition">WEB</span>
+        <span class="brand-note">multi-engine tracker</span>
+      </div>
+
+      <div class="transport" aria-label="Transport">
+        <button id="playToggle" type="button" aria-pressed="false" data-needs-runtime disabled>▶ PLAY</button>
+        <button id="stopButton" type="button" data-needs-runtime disabled>■ STOP</button>
+      </div>
+
+      <div class="utility-buttons" aria-label="Utilities">
+        <button type="button" data-screen="5" data-needs-runtime disabled title="Project">PROJ</button>
+        <button type="button" data-screen="6" data-needs-runtime disabled title="Settings">SET</button>
+        <button id="helpButton" type="button" title="Help">?</button>
+      </div>
+    </header>
+
+    <nav class="view-tabs" aria-label="Workspace">
+      <button type="button" data-screen="0" data-needs-runtime disabled>
+        SONG<small>arrangement</small>
+      </button>
+      <button type="button" data-screen="1" data-needs-runtime disabled>
+        CHAIN<small>structure</small>
+      </button>
+      <button type="button" data-screen="2" data-needs-runtime disabled>
+        PHRASE<small>notes + FX</small>
+      </button>
+      <button type="button" data-screen="3" data-needs-runtime disabled>
+        SOUND<small>instrument</small>
+      </button>
+      <button type="button" data-screen="4" data-needs-runtime disabled>
+        MIX<small>tracks</small>
+      </button>
+    </nav>
+
+    <main class="stage">
+      <section class="tracker-frame" aria-label="Tracker workspace">
+        <header class="frame-head">
+          <strong id="screenName">TRACKER</strong>
+          <span id="gestureHint">TAP SELECTS · DRAG CHANGES · DOUBLE TAP EDITS</span>
+        </header>
+
+        <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="WroomWroomTracker editor"></canvas>
+
+        <div class="context-actions" aria-label="Context actions">
+          <button id="editAction" class="primary" type="button" data-needs-runtime disabled>EDIT</button>
+          <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
+          <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
+          <span class="spacer"></span>
+          <span class="hint">Mouse/touch edits the tracker directly. Keyboard still works.</span>
+        </div>
+      </section>
+    </main>
+
+    <aside class="workbench" aria-label="Project tools">
+      <section class="tool-section">
+        <header><strong>PROJECT</strong><span>browser storage</span></header>
+        <div class="tool-body">
+          <button id="importProject" type="button" data-needs-runtime disabled><strong>OPEN PROJECT</strong><br>.cct from this device</button>
+          <button id="saveProject" type="button" data-needs-runtime disabled><strong>DOWNLOAD PROJECT</strong><br>save current .cct</button>
+        </div>
+      </section>
+
+      <section class="tool-section">
+        <header><strong>SAMPLES</strong><span>local only</span></header>
+        <div class="tool-body">
+          <button id="importSamples" type="button" data-needs-runtime disabled><strong>ADD WAV FILES</strong></button>
+          <button id="importFolder" type="button" data-needs-runtime disabled><strong>ADD SAMPLE FOLDER</strong></button>
+        </div>
+      </section>
+
+      <section class="tool-section">
+        <header><strong>TOUCH</strong><span>BRKTRK-style</span></header>
+        <div class="tool-body">
+          <p><strong>Tap</strong> a tracker cell to select it.</p>
+          <p><strong>Drag left/right</strong> on the selected value to change it.</p>
+          <p><strong>Double tap</strong> or use <kbd>EDIT</kbd> for the cell's action/editor.</p>
+          <p>Use the workspace tabs instead of a virtual gamepad.</p>
+        </div>
+      </section>
+
+      <section class="tool-section">
+        <header><strong>LINKS</strong><span>reference</span></header>
+        <div class="tool-body">
+          <button type="button" onclick="location.href='./manual.html'"><strong>USER MANUAL</strong></button>
+          <button type="button" onclick="location.href='https://github.com/myldy20/Wroomwroomtracker'"><strong>GITHUB</strong></button>
+        </div>
+      </section>
+    </aside>
+
+    <footer class="status-bar">
+      <span id="status">NOT STARTED</span>
+      <span class="spacer"></span>
+      <span class="status-pill">LOCAL-FIRST · NO CLOUD ACCOUNT</span>
+    </footer>
+  </div>
+
+  <section id="startOverlay" class="start-overlay" aria-label="Start WroomWroomTracker">
+    <div class="start-card">
+      <div class="road-scene" aria-hidden="true">
+        <div class="car">
+          <div class="car-body"></div>
+          <div class="car-window"></div>
+          <div class="wheel left"></div>
+          <div class="wheel right"></div>
+        </div>
+      </div>
+      <h1>WROOM<span>WROOM</span></h1>
+      <p>A browser-first multi-engine tracker. Tap the grid directly, drag values, and switch musical contexts instead of driving a virtual gamepad.</p>
+      <button id="startButton" type="button">START TRACKER</button>
     </div>
-    <div class="links"><a href="manual.html">Manual</a><a href="https://github.com/paiheulevrai/Choochootracker">GitHub</a></div>
-    <canvas id="canvas" width="640" height="480" tabindex="0" aria-label="ChooChooTracker"></canvas>
-    <div id="touch-controls" aria-label="Touch controls">
-      <div class="dpad" aria-label="Direction pad">
-        <button class="up" data-button="0" aria-label="Up">&uarr;</button>
-        <button class="left" data-button="2" aria-label="Left">&larr;</button>
-        <button class="right" data-button="3" aria-label="Right">&rarr;</button>
-        <button class="down" data-button="1" aria-label="Down">&darr;</button>
+  </section>
+
+  <dialog id="noteDialog" class="note-dialog">
+    <header>
+      <div>
+        <span class="sheet-eyebrow">PHRASE NOTE</span>
+        <h2 id="noteDialogTitle">Choose note</h2>
       </div>
-      <div class="face" aria-label="Action buttons">
-        <button data-button="5">B<br>OPT</button><button data-button="4">A<br>EDIT</button>
-      </div>
-      <div class="system">
-        <button data-button="7">SELECT<br>SHIFT</button><button data-button="6">START<br>PLAY</button>
-      </div>
+      <button id="noteClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="note-specials">
+      <button type="button" data-note-value="-1">EMPTY</button>
+      <button type="button" data-note-value="-2">NOTE OFF</button>
     </div>
-  </main>
-  <script>
-    const status = document.querySelector('#status');
-    const start = document.querySelector('#start');
-    const fileControls = document.querySelectorAll('#file-controls button');
-    let trackerStarted = false;
-    let storageSyncing = false;
-    const getFs = () => (typeof FS !== 'undefined' ? FS : (window.Module && window.Module.FS));
+    <div id="noteGrid" class="note-grid" role="listbox" aria-label="Pitch"></div>
+  </dialog>
 
-    const userPath = (name) => name.split('/').filter((part) => part && part !== '.' && part !== '..').join('/');
-    const ensureUserDirectories = (fs) => {
-      fs.mkdirTree('/user/projects');
-      fs.mkdirTree('/user/samples');
-      fs.mkdirTree('/user/exports');
-    };
-    const syncUserStorage = (done) => {
-      const fs = getFs();
-      if (!fs || storageSyncing) return;
-      storageSyncing = true;
-      fs.syncfs(false, (error) => {
-        storageSyncing = false;
-        if (error) status.textContent = 'Could not save browser storage.';
-        if (done) done(error);
-      });
-    };
-    window.choochooDownloadFile = (path) => {
-      const fs = getFs();
-      if (!fs) return;
-      try {
-        const bytes = fs.readFile(path);
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(new Blob([bytes]));
-        link.download = path.split('/').pop();
-        link.click();
-        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        syncUserStorage();
-      } catch (_) {
-        status.textContent = 'Could not download ' + path.split('/').pop() + '.';
-      }
-    };
-    const importFiles = async (files, root) => {
-      const fs = getFs();
-      if (!fs) return 0;
-      let count = 0;
-      for (const file of files) {
-        const relativePath = userPath(file.webkitRelativePath || file.name);
-        if (!relativePath) continue;
-        const path = root + '/' + relativePath;
-        fs.mkdirTree(path.slice(0, path.lastIndexOf('/')));
-        fs.writeFile(path, new Uint8Array(await file.arrayBuffer()));
-        count++;
-      }
-      syncUserStorage((error) => {
-        status.textContent = error ? 'Import kept in memory, but browser storage failed.' : count + ' file' + (count === 1 ? '' : 's') + ' saved in browser storage.';
-      });
-      return count;
-    };
-    const loadTracker = () => {
-      if (trackerStarted) return;
-      trackerStarted = true;
-      start.hidden = true;
-      document.querySelector('#canvas').focus();
-      status.textContent = 'Loading tracker…';
-      window.Module = window.Module || {};
-      window.Module.canvas = document.querySelector('#canvas');
-      window.Module.preRun = (window.Module.preRun || []).concat(() => {
-        try {
-          FS.mkdir('/user');
-        } catch (_) {}
-        FS.mount(IDBFS, {}, '/user');
-        addRunDependency('choochootracker-user-storage');
-        FS.syncfs(true, (error) => {
-          if (error) status.textContent = 'Browser storage could not be opened.';
-          ensureUserDirectories(FS);
-          FS.syncfs(false, (saveError) => {
-            if (saveError) status.textContent = 'Browser storage could not be initialized.';
-            removeRunDependency('choochootracker-user-storage');
-          });
-        });
-      });
-      window.Module.onAbort = () => { status.textContent = 'Tracker startup failed.'; };
-      window.Module.onRuntimeInitialized = () => {
-        status.textContent = '';
-        fileControls.forEach((button) => { button.disabled = false; });
-        setInterval(() => syncUserStorage(), 10000);
-      };
-      const script = document.createElement('script');
-      script.src = 'choochootracker.js';
-      script.onerror = () => { status.textContent = 'WebAssembly bundle not found.'; };
-      document.body.appendChild(script);
-    };
-    start.addEventListener('click', loadTracker);
-    window.addEventListener('load', loadTracker);
-    window.addEventListener('pagehide', () => syncUserStorage());
+  <dialog id="helpDialog" class="help-dialog">
+    <header>
+      <h2>WroomWroom Web controls</h2>
+      <button id="helpClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div class="content">
+      <ul>
+        <li><strong>Tap/click</strong> a tracker cell to move focus there.</li>
+        <li><strong>Drag horizontally</strong> to change the focused value. Phrase note pitch uses fine steps.</li>
+        <li><strong>Double tap/click</strong> the focused cell, or press <kbd>EDIT</kbd>, to invoke its editor/action.</li>
+        <li><strong>SONG / CHAIN / PHRASE / SOUND / MIX</strong> switch the actual tracker screen directly.</li>
+        <li><strong>PLAY</strong> starts or toggles playback for the active tracker context. <strong>STOP</strong> always stops.</li>
+        <li><strong>BACK</strong> uses the tracker's normal Opt/Back behavior. <strong>CLEAR</strong> performs the tracker's normal clear/reset action.</li>
+        <li>Desktop keyboard and gamepad input remain available; the web UI no longer requires them.</li>
+      </ul>
+      <p>Projects and imported samples stay in browser-local storage unless you explicitly download a project file.</p>
+    </div>
+  </dialog>
 
-    document.querySelector('#import-project').addEventListener('click', () => document.querySelector('#project-input').click());
-    document.querySelector('#import-samples').addEventListener('click', () => document.querySelector('#sample-input').click());
-    document.querySelector('#import-folder').addEventListener('click', () => document.querySelector('#sample-folder-input').click());
-    document.querySelector('#project-input').addEventListener('change', async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-      const path = '/user/projects/' + userPath(file.name);
-      await importFiles([file], '/user/projects');
-      const result = window.Module.ccall('webLoadProject', 'number', ['string'], [path]);
-      status.textContent = result === 0 ? 'Project loaded: ' + file.name : 'Could not load ' + file.name + '.';
-      event.target.value = '';
-    });
-    const importSamples = async (event) => {
-      if (event.target.files.length) await importFiles(event.target.files, '/user/samples');
-      event.target.value = '';
-    };
-    document.querySelector('#sample-input').addEventListener('change', importSamples);
-    document.querySelector('#sample-folder-input').addEventListener('change', importSamples);
-    document.querySelector('#export-project').addEventListener('click', () => {
-      const path = '/user/exports/choochootracker.cct';
-      if (window.Module.ccall('webSaveProject', 'number', ['string'], [path]) !== 0) {
-        status.textContent = 'Could not save the current project.';
-        return;
-      }
-      window.choochooDownloadFile(path);
-    });
+  <input id="projectInput" type="file" accept=".cct" hidden>
+  <input id="sampleInput" type="file" accept=".wav,audio/wav" multiple hidden>
+  <input id="sampleFolderInput" type="file" accept=".wav,audio/wav" webkitdirectory multiple hidden>
 
-    document.querySelectorAll('#touch-controls button').forEach((button) => {
-      const send = (down) => {
-        if (window.Module && window.Module.ccall) {
-          window.Module.ccall('webQueueButton', null, ['number', 'number'],
-            [Number(button.dataset.button), down ? 1 : 0]);
-        }
-      };
-      button.addEventListener('pointerdown', (event) => {
-        event.preventDefault();
-        button.setPointerCapture(event.pointerId);
-        send(true);
-      });
-      button.addEventListener('pointerup', (event) => {
-        event.preventDefault();
-        send(false);
-      });
-      button.addEventListener('pointercancel', () => send(false));
-    });
-  </script>
+  <script src="./wroom.js"></script>
 </body>
 </html>

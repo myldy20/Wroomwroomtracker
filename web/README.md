@@ -1,30 +1,31 @@
-# ChooChooTracker Web
+# WroomWroomTracker Web
 
-This is an additional WebAssembly build. It does not replace the Windows or
-PortMaster targets.
+The browser build is the primary product focus of this fork.
+
+It keeps the ChooChooTracker engine and project format, but the web shell is designed around direct interaction instead of an on-screen gamepad:
+
+- tap/click tracker cells directly;
+- drag horizontally to edit values;
+- double-tap/click or use **EDIT** for the selected cell's action;
+- switch directly between **SONG**, **CHAIN**, **PHRASE**, **SOUND**, and **MIX**;
+- use explicit **PLAY**, **STOP**, **OPEN**, and **DOWNLOAD** actions.
+
+Imported projects and samples live in browser-local IndexedDB storage. Nothing is uploaded automatically.
+
+## GitHub Pages
+
+Expected URL: `https://myldy20.github.io/Wroomwroomtracker/`
+
+The shell uses relative asset paths so it can run under the repository sub-path used by GitHub Pages.
 
 ## Local build
 
-Use the [central build instructions](../tracker/README.md#web--vercel) to
-generate `web/dist`. The checked-in Emscripten SDK lives in `.tmp/emsdk`; use
-MSYS2 Bash rather than native Windows `make`.
-
-To preview the generated bundle:
-
 ```bash
+make -C tracker -j2 -f Makefile.web web-deploy
 cd web/dist
 python3 -m http.server 8080
 ```
 
-Open `http://localhost:8080`. Click **Start tracker** once to unlock browser
-audio, then use the normal keyboard mapping.
+Then open `http://localhost:8080`.
 
-## Vercel
-
-Import the repository as a normal Vercel project (leave the **Root Directory**
-at the repository root). The root `vercel.json` publishes the checked-in
-`web/dist` bundle as a static site; Vercel does not need Emscripten installed.
-
-After changing the tracker, regenerate and commit `web/dist`. The build command
-and the other platform instructions are kept in
-[`tracker/README.md`](../tracker/README.md).
+The original desktop keyboard/gamepad input remains available, but it is no longer required to operate the web UI.

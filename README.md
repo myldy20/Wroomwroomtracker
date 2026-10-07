@@ -1,180 +1,61 @@
-> ** ALPHA VERSION. Software is not finished. CHOO CHOO.**
+# WroomWroomTracker
 
-```*        .         *               .            *
-   ______ __ __  ____   ____   ______ __ __  ____   ____
-  / ____// // / / __ \ / __ \ / ____// // / / __ \ / __ \
- / /___ /  __  // /_/ // /_/ // /___ /  __  // /_/ // /_/ /
- \____//_/ /_/ \____/ \____/ \____//_/ /_/ \____/ \____/
+**A web-first multi-engine music tracker with direct touch controls.**
 
-             ______  ___    ___    ______  __  __  ______  ____
-            /_  __/ / _ \  / _ |  / ____/ / /_/ / / ____/ / _  \
-             / /   / , _/ / __ | / /___  /  _  / / _/   / , _/
-            /_/   /_/|_| /_/ |_| \____/ /_/ |_| /____/ /_/|_|
+WroomWroomTracker is a fork of [ChooChooTracker](https://github.com/paiheulevrai/Choochootracker) focused on making the browser version feel like an actual music app rather than a handheld-console emulator.
 
-       -=[ MOBILE GROOVEBOX, MULTI-ENGINE TRACKER ]=-
-             _________________________________
-       _____/  ___                ___         \_____
-   ___/_____|_|___|______________|___|_____________\___
-  /  _   _   _   _   _   _   _   _   _   _   _         \
- |  |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |_| |RG353| |
- |______________________________________________________|
-    O==O       O==O             O==O       O==O
- _.-'--`-.___.-'--`-.___==___.-'--`-.___.-'--`-._
-==========================================================>
-     CAHORS                                       MONTAUBAN
-          >>>  8 TRACKS  / CHIPNOMAD-BASED  >>>
+**Web app:** https://myldy20.github.io/Wroomwroomtracker/
 
-.oO[ AY / BRAIDS / PLAITS / SAMPLES / SYNTHS / DRUMSYNTHS / 303 ]Oo.
-````
+## What is different in this fork
 
-## Screenshots
+- Browser-first UX inspired by BRKTRK.
+- Direct mouse/touch interaction with tracker cells.
+- No virtual D-pad or A/B/Start/Select pad in the web UI.
+- Explicit **SONG / CHAIN / PHRASE / SOUND / MIX** workspaces.
+- Explicit **PLAY / STOP / EDIT / CLEAR / BACK** actions.
+- Responsive desktop/phone shell.
+- Browser-local project/sample storage and explicit downloads.
+- GitHub Pages deployment.
+- WroomWroom car-themed web branding.
 
-<p align="center">
-  <img src="screenshots/song.png" alt="Song editor" width="31%">
-  <img src="screenshots/phrase.png" alt="Phrase editor" width="31%">
-  <img src="screenshots/mixer.png" alt="Mixer" width="31%">
-</p>
-<p align="center">
-  <img src="screenshots/enginemenu.png" alt="Instrument engine menu" width="31%">
-  <img src="screenshots/plaitsalt.png" alt="Plaits-Alt instrument" width="31%">
-  <img src="screenshots/braids.png" alt="Braids instrument" width="31%">
-</p>
-<p align="center">
-  <img src="screenshots/sample.png" alt="Sample instrument" width="31%">
-  <img src="screenshots/byowtbl.png" alt="Wavetable instrument" width="31%">
-  <img src="screenshots/cloud.png" alt="Cloud effect" width="31%">
-</p>
-<p align="center">
-  <img src="screenshots/modsources.png" alt="Modulation sources" width="31%">
-  <img src="screenshots/moddest.png" alt="Modulation destinations" width="31%">
-  <img src="screenshots/settings.png" alt="Settings" width="31%">
-</p>
+The underlying tracker engine, project format and synthesis capabilities come from ChooChooTracker. Native/handheld versions are intentionally not the focus of this fork right now.
 
-ChooChooTracker is a music tracker for handheld consoles, PC and Android.
+## Web controls
 
-Write a beat on the train, sequence, jam with joysticks, automate a synth line, send it through reverb, then keep going until you miss your stop.
+- **Tap/click** a cell to select it.
+- **Drag horizontally** to change the selected value.
+- **Double tap/click** or press **EDIT** to invoke the cell's editor/action.
+- Use the workspace tabs to move directly between Song, Chain, Phrase, Sound and Mix.
+- Keyboard and gamepad input still work on desktop, but they are optional.
 
-This is a fork of [ChipNomad](https://github.com/Megus/chipnomad-tracker), with A LOT of extra synth engines, high quality PCM samples / SCWF / Serum wavetables playback, global reverb/delay, and many other small changes. It keeps ChipNomad's supafast LSDJ-inspired tracker workflow but departs from the chiptune vision of Megus to offer a wide range of modern sound design options. The name comes from the first proof of concept, written on a train between Cahors and Montauban.
+## Engine highlights
 
-The main target is the Anbernic RG353V through PortMaster. It should work on any Portmaster system. So far tested and working on Arkos and TrimUI.
+- 8 tracker tracks.
+- AY, Braids, Plaits, Plaits-Alt, sample playback, wavetable/single-cycle engines, aChChid, Bogie, MME, Sintered and native chip/FM engines.
+- Per-track filters, sends, insert FX, mixer controls and modulation.
+- Probability, modulo conditions, per-track speed, tables, grooves, chains and songs.
+- MIDI in/out, sample editing, resampling and WAV/project export.
 
-A native Windows build is available for development and desktop testing. It works on Steamdeck if you feel adventurous.
+See [the upstream project](https://github.com/paiheulevrai/Choochootracker) and [the user manual](docs/USER_MANUAL.md) for the full tracker feature set and engine documentation.
 
-You can also test it in your browser on https://choochootracker.vercel.app/ (use the keyboard or gamepad on a computer, use the on-screen gamepad on a mobile device). 
+## Build the web version
 
-Android on Play Store is available in "closed beta", contact me on Discord https://discord.gg/Ut9vM6zgKU to get access.
+```bash
+make -C tracker -j2 -f Makefile.web web-deploy
+cd web/dist
+python3 -m http.server 8080
+```
 
-Other platforms: the app is SDL2 based, it should compile anywhere.
+## Status
 
-## What it can do
+This fork is alpha software. The current development priority is web usability, direct touch interaction, responsive layout and browser deployment. Other platform builds should remain compatible, but they are not being redesigned here.
 
-Synthesis
-- Eight fixed monophonic tracks (with independent instruments)
-- AY Classic, AY Plus, and crunchy AY Sample playback (from Chipnomad)
-- All 47 Braids engines, 24 stock Plaits engines, and 24 additional Plaits-Alt engines
-- Clean mono or stereo PCM8/PCM16 sample playback (one-shot samples with autoslice mode)
-- Stretch mode, autoslicing, chromatic sample playback
-- Dual single cycle waveform oscillator: with mix & detune
-- Dual wavetable oscillator: bring your own Serum wavetables !
-- Achchid: acid engine (open303 based) that can take Braids as VCO
-- Bogie: In-house drum synth with 12 VA/FM models (including cowbells).
-- MME: Multi Modulation Engine. An aggressive voice inspired by the Loquelic Iteritas, but with Mutable Warps algos
-- Sintered: experimental synthetic percussions. MME for drums. Very wild.
+## Credits
 
-Sound design
-- Multimode LP/HP/BP 12/24dB filters on each track (except special engines)
-- Several filter flavours inspired by analog synths
-- Per-track volume, mute, solo, tiltEQ, Reverb send, and Delay send
-- Send reverb: Mutable Instruments Clouds meme lush reverb
-- Send delay: Tick-synchronized filtered ping-pong delay
-- Insert effects: 2x effect slots per track (in-house & Airwindows effects)
-- Capable sample editor
-- Resampling support
-- Timesretch: in-house dirty mode or Signalsmith Stretch 
+WroomWroomTracker is based on ChooChooTracker, which is based on ChipNomad. The project includes open-source work from Mutable Instruments, Signalsmith, Airwindows, Open303 and other upstream components; their existing license and attribution files remain authoritative.
 
-Articulations
-- Three tracker FX columns per row
-- Added tracker FX inspired by Elektron and Nerdseq: Probability, modulo conditions, and per-track invididual playback speed
-- Synth engines parameters can be set by TrackFX, kinda like P-locks.
-- 4x mod sources per track: ADSR, AHD, LFO and joysticks. Modulations can target modulations.
-- 3 LFO types: normal, slow tempo sync'd (can be very slow) and fast LFO for audio rate modulations
-- AY Wavetables as LFO shapes
-- LFO can retrig on phrase & chains start (in addition to standard lfo trigs)
-- Joystick modulation , that can be live recorded as trackFX 
-- Tracker tables (4 FX slots per table row), grooves, chains, and songs
-- Decoupled tables: tracker tables can be free running, or reset on phrase/chain.
-- Jazz mode: play with your computer keyboard (PC only)
-- Chord mode on every engine
+Special thanks to the ChooChooTracker contributors for the engine, tracker workflow and ongoing upstream development.
 
-We have MIDI in/out: sequence or be sequenced. 
+## License
 
-## One tracker, many engines
-
-Instruments in Choochootracker work like "Machines" in the Elektron world.
-
-Each instrument has its sound engine, and can be mixed/matched at will: you can have an AY bass on one track, a Braids drum model on another, a Plaits chord engine or a Plaits-Alt texture on the next, and some repitched heehaa samples beside them.
-
-
-## Try the alpha
-
-Download the PortMaster/Android/Windows packages from the [GitHub Releases page](https://github.com/paiheulevrai/Choochootracker/releases).
-
-The current package targets ARM64 PortMaster devices and has been developed primarily for ArkOS on RG353V. Install `choochootracker.zip` through PortMaster, or extract it into the console's `ports` directory.
-
-This is an early build. Save often and don't get too attached to your projects.
-
-Find bugs or anything? Come discuss on Discord: https://discord.gg/Ut9vM6zgKU
-
-## Documentation
-
-- [User manual](docs/USER_MANUAL.md)
-- [User manual PDF](docs/ChooChooTracker-User-Manual.pdf)
-
-## Current limits
-
-- Everything is mostly working, you can make music. You can even make tracks.
-- there can still be some crashes and bugs
-- Visual identity is not final
-- Feature set isn't frozen
-- need to tweak the scaling of various controls (like linear vs expo, that kind of stuff)
-
-## Why the train name?
-
-I wanted a mobile groovebox to make techno... but none of the available option ticked all the boxes, so I decided to make one. The first proof of concept was written during an Intercité train ride between Cahors and Montauban, so the name stuck. Choo choo, don't miss your stop.
-
-## Credits and license
-
-ChooChooTracker is a fork of [ChipNomad](https://github.com/Megus/chipnomad-tracker). Its Braids, Plaits, Clouds, and stmlib code comes from Mutable Instruments' open-source releases. See the included license files for exact attribution.
-
-Thanks to [luginf](https://github.com/luginf) for project-loading, VT2 import,
-desktop MIDI, and AppImage fixes; to [aiaaaa](https://github.com/aiaaaa) for
-Stick live mode and track-display improvements; to [am0k161](https://github.com/am0k161)
-for the sample editor and sampler improvements; and to Ian (hifi) for the
-instrument-navigation improvements.
-
-The time-stretching processor is based on [Signalsmith Stretch](https://github.com/Signalsmith-Audio/stretch)
-by Signalsmith Audio. Several insert effects are adapted from
-[Airwindows](https://github.com/airwindows/airwindows); see the included
-license files for the individual attributions.
-
-The project is released under the [MIT License](LICENSE).
-
-Mad respects to the people I stole code from:
-- Megus, the insanely smart creator of Chipnomad.
-- Pichenettes, the genius behind Mutable Instruments
-- Lylepmills for the additional Plaits engines
-- RobinSchmidt for the Open303 engine
-
-Mad respects to the people I stole ideas from:
-- Thomas, the absolute beast behind Nedseq
-- The people at Elektron who boldly put user workflow and speed first, and also whoever invented P-locks and trig conditions.
-- Whoever invented the menu navigation style of vintage RPGs
-- the Noise Engineering team, who inspired the MME engine
-- All musicians who I saw playing live sets on gameboys and other constrained hardware rigs.
-
-## Native chip and FM instruments
-
-This contribution adds SID, OPLL/VRC7, AdLib/OPL2, OPL3, Sega PSG, Game Boy
-Pulse/Noise, Genesis/Arcade FM and DX7 instruments with preset browsing.
-See [the instrument notes](docs/native-chip-instruments.md) and
-[the user manual](docs/USER_MANUAL.md) for controls, banks and limitations.
+The project remains under the [MIT License](LICENSE), subject to the third-party notices already included in the repository.
