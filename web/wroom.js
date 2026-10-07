@@ -5,7 +5,7 @@
   const status = $("#status");
   const startOverlay = $("#startOverlay");
   const startButton = $("#startButton");
-  const fileButtons = $("[data-needs-runtime]");
+  const fileButtons = $$("[data-needs-runtime]");
   const semanticWorkspace = $("#semanticWorkspace");
   const legacyWorkspace = $("#legacyWorkspace");
   const songGrid = $("#songGrid");
