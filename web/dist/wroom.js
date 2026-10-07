@@ -371,10 +371,10 @@
     const stepper = document.createElement("div");
     stepper.className = "stepper-row";
     [
-      [-16, "−16"],
+      [-16, "− COARSE"],
       [-1, "−1"],
       [1, "+1"],
-      [16, "+16"],
+      [16, "+ COARSE"],
     ].forEach(([amount, label]) => {
       const button = document.createElement("button");
       button.type = "button";
