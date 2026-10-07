@@ -374,21 +374,38 @@
       if (startupFinished) return;
       startupFinished = true;
 
+      // This callback is invoked synchronously from C++ via EM_ASM while
+      // appSetup() is still on the WASM stack. Do not ccall back into WASM
+      // here: that re-entrant call can abort before the splash is hidden.
       fileButtons.forEach((button) => { button.disabled = false; });
-      refreshScreenState();
       startOverlay.hidden = true;
-      canvas.focus();
+      startOverlay.style.display = "none";
+      startOverlay.setAttribute("aria-hidden", "true");
       setStatus("READY · tap a cell · drag horizontally to change it");
 
-      setInterval(() => {
-        refreshScreenState();
-        syncUserStorage();
-      }, 1200);
+      requestAnimationFrame(() => {
+        try {
+          refreshScreenState();
+          canvas.focus();
+        } catch (error) {
+          console.error("Post-start UI refresh failed", error);
+          setStatus("READY · UI refresh warning");
+        }
 
-      if (!localStorage.getItem("wroomwroom-web-seen")) {
-        localStorage.setItem("wroomwroom-web-seen", "1");
-        setTimeout(() => $("#helpDialog").showModal(), 450);
-      }
+        setInterval(() => {
+          try {
+            refreshScreenState();
+            syncUserStorage();
+          } catch (error) {
+            console.error("Periodic UI refresh failed", error);
+          }
+        }, 1200);
+
+        if (!localStorage.getItem("wroomwroom-web-seen")) {
+          localStorage.setItem("wroomwroom-web-seen", "1");
+          setTimeout(() => $("#helpDialog").showModal(), 450);
+        }
+      });
     };
 
     window.Module.onRuntimeInitialized = () => {
