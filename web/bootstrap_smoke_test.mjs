@@ -142,6 +142,20 @@ function assertStarted(env, message) {
   );
 }
 
+function assertRuntimeReady(env, message) {
+  assert.equal(typeof env.context.window.wroomRuntimeReady, "function", message + ": runtime ready hook must exist");
+  env.context.window.wroomRuntimeReady();
+
+  const overlay = env.get("#startOverlay");
+  assert.equal(overlay.hidden, true, message + ": READY must hide the startup overlay");
+  assert.equal(overlay.style.display, "none", message + ": READY must remove the overlay from layout");
+  assert.equal(
+    overlay.getAttribute("aria-hidden"),
+    "true",
+    message + ": READY must hide the overlay from accessibility tree",
+  );
+}
+
 // Normal path: shell is initialized before the user clicks START.
 {
   const env = makeContext();
@@ -149,6 +163,7 @@ function assertStarted(env, message) {
   runShell(env);
   env.get("#startButton").dispatch("click");
   assertStarted(env, "normal click");
+  assertRuntimeReady(env, "normal READY");
 }
 
 // Race path: user clicks before wroom.js has initialized.
@@ -164,6 +179,7 @@ function assertStarted(env, message) {
   runShell(env);
   assert.equal(env.context.window.__wroomStartRequested, false, "shell must consume queued Start");
   assertStarted(env, "queued click");
+  assertRuntimeReady(env, "queued READY");
 }
 
 assert.match(html, /wroom\.css\?v=__WROOM_BUILD__/, "CSS must be cache-busted");
