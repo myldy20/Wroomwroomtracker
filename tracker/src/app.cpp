@@ -465,6 +465,15 @@ extern "C" EMSCRIPTEN_KEEPALIVE void webProjectChanged(void) {
   audioProjectDirty = 1;
 }
 
+extern "C" EMSCRIPTEN_KEEPALIVE void webAdjustCurrent(int direction, int coarse) {
+  if (!direction) return;
+  int arrow = direction > 0
+    ? (coarse ? keyUp : keyRight)
+    : (coarse ? keyDown : keyLeft);
+  appInput(1, keyEdit | arrow, 1);
+  appInput(0, 0, 0);
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
   switch (action) {
