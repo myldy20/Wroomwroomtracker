@@ -30,6 +30,7 @@ jobs:
           cmp web/wroom.css web/dist/wroom.css
           cmp web/wroom.js web/dist/wroom.js
           node --check web/wroom.js
+          node --check web/live_pages_smoke.mjs
           node web/bootstrap_smoke_test.mjs
           grep -Fq 'id="semanticWorkspace"' web/index.html
           grep -Fq 'id="songGrid"' web/index.html
