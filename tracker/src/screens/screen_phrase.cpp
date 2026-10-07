@@ -829,6 +829,144 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetNote(int note) {
   fullRedraw();
   return 0;
 }
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webInstrumentSlotCount(void) {
+  return PROJECT_MAX_INSTRUMENTS;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webInstrumentSlotUsed(int instrument) {
+  if (!chipnomadState || instrument < 0 || instrument >= PROJECT_MAX_INSTRUMENTS) return 0;
+  return instrumentIsEmpty(&chipnomadState->project, instrument) ? 0 : 1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webInstrumentSlotName(int instrument) {
+  if (!chipnomadState || instrument < 0 || instrument >= PROJECT_MAX_INSTRUMENTS) return "";
+  return instrumentName(&chipnomadState->project, (uint8_t)instrument);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webInstrumentSlotType(int instrument) {
+  if (!chipnomadState || instrument < 0 || instrument >= PROJECT_MAX_INSTRUMENTS) return "";
+  return instrumentTypeName(chipnomadState->project.instruments[instrument].type);
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentInstrument(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -2;
+  uint8_t value = phraseRows[screen.cursorRow].instrument;
+  return value == EMPTY_VALUE_8 ? -1 : value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseContextInstrument(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -2;
+  uint8_t value = lookupInstrument(&chipnomadState->project, *pSongRow, *pChainRow,
+                                   screen.cursorRow, *pSongTrack);
+  return value == EMPTY_VALUE_8 ? -1 : value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetInstrument(int instrument) {
+  if (currentScreen != &screenPhrase || !phraseRows || screen.cursorCol != 1) return 1;
+  PhraseRow* row = &phraseRows[screen.cursorRow];
+  if (instrument < 0) {
+    row->instrument = EMPTY_VALUE_8;
+  } else {
+    if (instrument >= PROJECT_MAX_INSTRUMENTS ||
+        instrumentIsEmpty(&chipnomadState->project, instrument)) return 1;
+    row->instrument = (uint8_t)instrument;
+    lastInstrument = row->instrument;
+  }
+  triggerRowPreview(screen.cursorRow);
+  projectModified = 1;
+  fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentVolume(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -2;
+  uint16_t value = phraseRows[screen.cursorRow].volume;
+  return value == EMPTY_VALUE_16 ? -1 : (int)value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseVolumeMax(void) {
+  return PHRASE_VOLUME_MAX;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetVolume(int volume) {
+  if (currentScreen != &screenPhrase || !phraseRows || screen.cursorCol != 2) return 1;
+  PhraseRow* row = &phraseRows[screen.cursorRow];
+  if (volume < 0) {
+    row->volume = EMPTY_VALUE_16;
+  } else {
+    if (volume > PHRASE_VOLUME_MAX) volume = PHRASE_VOLUME_MAX;
+    row->volume = (uint16_t)volume;
+    lastVolume = row->volume;
+  }
+  triggerRowPreview(screen.cursorRow);
+  projectModified = 1;
+  fullRedraw();
+  return 0;
+}
+
+static int webPhraseFXSlot(void) {
+  if (screen.cursorCol == 3 || screen.cursorCol == 4) return 0;
+  if (screen.cursorCol == 5 || screen.cursorCol == 6) return 1;
+  if (screen.cursorCol == 7 || screen.cursorCol == 8) return 2;
+  return -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentFX(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -2;
+  int slot = webPhraseFXSlot();
+  if (slot < 0) return -2;
+  uint8_t fx = phraseRows[screen.cursorRow].fx[slot][0];
+  return fx == EMPTY_VALUE_8 ? -1 : fx;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentFXValue(void) {
+  if (currentScreen != &screenPhrase || !phraseRows) return -1;
+  int slot = webPhraseFXSlot();
+  if (slot < 0) return -1;
+  return phraseRows[screen.cursorRow].fx[slot][1];
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetFX(int fx) {
+  if (currentScreen != &screenPhrase || !phraseRows ||
+      !(screen.cursorCol == 3 || screen.cursorCol == 5 || screen.cursorCol == 7)) return 1;
+  int slot = webPhraseFXSlot();
+  uint8_t* target = phraseRows[screen.cursorRow].fx[slot];
+  uint8_t instrument = lookupInstrument(&chipnomadState->project, *pSongRow, *pChainRow,
+                                        screen.cursorRow, *pSongTrack);
+
+  if (fx < 0) {
+    if (target[0] != EMPTY_VALUE_8) {
+      lastFX[0] = target[0];
+      lastFX[1] = target[1];
+    }
+    target[0] = EMPTY_VALUE_8;
+    target[1] = 0;
+  } else {
+    if (fx >= fxTotalCount || !fxIsAvailableForContext((enum FX)fx, instrument, 0)) return 1;
+    selectInstrumentFX(target, (uint8_t)fx, instrument);
+    lastFX[0] = target[0];
+    lastFX[1] = target[1];
+  }
+
+  triggerRowPreview(screen.cursorRow);
+  projectModified = 1;
+  fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseAdjustCurrent(int amount) {
+  if (currentScreen != &screenPhrase || !phraseRows || amount == 0) return 1;
+  CellEditAction action;
+  if (amount <= -16) action = CellEditAction::decreaseBig;
+  else if (amount < 0) action = CellEditAction::decrease;
+  else if (amount >= 16) action = CellEditAction::increaseBig;
+  else action = CellEditAction::increase;
+
+  int handled = onEdit(screen.cursorCol, screen.cursorRow, action);
+  if (handled) fullRedraw();
+  return handled ? 0 : 1;
+}
 #endif
 
 const AppScreen screenPhrase = {
