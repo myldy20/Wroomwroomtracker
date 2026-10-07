@@ -72,6 +72,10 @@ if (liveBuild !== expectedBuild) {
 
 console.log(`Live build verified: ${liveBuild}`);
 
+// The interaction regression tests the tracker itself, not the first-run help.
+// Suppress onboarding before START so its delayed modal cannot intercept PLAY/STOP.
+await page.evaluate(() => localStorage.setItem("wroomwroom-web-seen", "1"));
+
 const before = await page.locator("#startButton").innerText();
 if (!/START TRACKER|RETRY/.test(before)) {
   throw new Error(`Unexpected initial START label: ${before}`);
