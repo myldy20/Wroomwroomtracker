@@ -156,6 +156,17 @@
     </div>
   </dialog>
 
+  <dialog id="phraseFieldDialog" class="field-dialog">
+    <header>
+      <div>
+        <span id="fieldEyebrow" class="sheet-eyebrow">PHRASE</span>
+        <h2 id="fieldTitle">Edit field</h2>
+      </div>
+      <button id="fieldClose" type="button" aria-label="Close">×</button>
+    </header>
+    <div id="fieldBody" class="field-body"></div>
+  </dialog>
+
   <dialog id="noteDialog" class="note-dialog">
     <header>
       <div>
@@ -180,7 +191,7 @@
       <ul>
         <li><strong>Tap/click</strong> a tracker cell to move focus there.</li>
         <li><strong>Drag horizontally</strong> to change the focused value. Phrase note pitch uses fine steps.</li>
-        <li><strong>Double tap/click</strong> the focused cell, or press <kbd>EDIT</kbd>, to invoke its editor/action.</li>
+        <li><strong>Double tap/click</strong> the focused cell, or press <kbd>EDIT</kbd>, to open a contextual editor. Phrase Note, Instrument, Volume and FX fields use touch-friendly sheets.</li>
         <li><strong>SONG / CHAIN / PHRASE / SOUND / MIX</strong> switch the actual tracker screen directly.</li>
         <li><strong>PLAY</strong> starts or toggles playback for the active tracker context. <strong>STOP</strong> always stops.</li>
         <li><strong>BACK</strong> uses the tracker's normal Opt/Back behavior. <strong>CLEAR</strong> performs the tracker's normal clear/reset action.</li>
