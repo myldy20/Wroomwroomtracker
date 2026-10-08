@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpjdfusyss.js
+// include: /tmp/tmpeu31pnom.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -210,21 +210,21 @@ Module['FS_createPath']("/waveforms", "AKWF", true, true);
 
   })();
 
-// end include: /tmp/tmpjdfusyss.js
-// include: /tmp/tmpesrbdllx.js
+// end include: /tmp/tmpeu31pnom.js
+// include: /tmp/tmp3c9rv09b.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpesrbdllx.js
-// include: /tmp/tmp8wgn5wwe.js
+  // end include: /tmp/tmp3c9rv09b.js
+// include: /tmp/tmpv0vmejbo.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmp8wgn5wwe.js
+  // end include: /tmp/tmpv0vmejbo.js
 
 
 var programArgs = [];
@@ -10495,6 +10495,7 @@ var _free = makeInvalidEarlyAccess('_free');
 var _webSaveProject = Module['_webSaveProject'] = makeInvalidEarlyAccess('_webSaveProject');
 var _webCurrentScreen = Module['_webCurrentScreen'] = makeInvalidEarlyAccess('_webCurrentScreen');
 var _webOpenScreen = Module['_webOpenScreen'] = makeInvalidEarlyAccess('_webOpenScreen');
+var _webMonitorPianoNotes = Module['_webMonitorPianoNotes'] = makeInvalidEarlyAccess('_webMonitorPianoNotes');
 var _webTrackActivityPacked = Module['_webTrackActivityPacked'] = makeInvalidEarlyAccess('_webTrackActivityPacked');
 var _webTrackActivityNote = Module['_webTrackActivityNote'] = makeInvalidEarlyAccess('_webTrackActivityNote');
 var _webTrackActivityGlyph = Module['_webTrackActivityGlyph'] = makeInvalidEarlyAccess('_webTrackActivityGlyph');
@@ -10515,6 +10516,9 @@ var _webPitchOctaveSize = Module['_webPitchOctaveSize'] = makeInvalidEarlyAccess
 var _webPitchName = Module['_webPitchName'] = makeInvalidEarlyAccess('_webPitchName');
 var _webPhraseSetNote = Module['_webPhraseSetNote'] = makeInvalidEarlyAccess('_webPhraseSetNote');
 var _webLoadProject = Module['_webLoadProject'] = makeInvalidEarlyAccess('_webLoadProject');
+var _webSongToggleTrackMute = Module['_webSongToggleTrackMute'] = makeInvalidEarlyAccess('_webSongToggleTrackMute');
+var _webSongToggleTrackSolo = Module['_webSongToggleTrackSolo'] = makeInvalidEarlyAccess('_webSongToggleTrackSolo');
+var _webSongLiveQueuePacked = Module['_webSongLiveQueuePacked'] = makeInvalidEarlyAccess('_webSongLiveQueuePacked');
 var _webSongRowCount = Module['_webSongRowCount'] = makeInvalidEarlyAccess('_webSongRowCount');
 var _webSongTrackCount = Module['_webSongTrackCount'] = makeInvalidEarlyAccess('_webSongTrackCount');
 var _webSongMaxChain = Module['_webSongMaxChain'] = makeInvalidEarlyAccess('_webSongMaxChain');
@@ -10594,6 +10598,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webSaveProject'] != 'undefined', 'missing Wasm export: webSaveProject');
   assert(typeof wasmExports['webCurrentScreen'] != 'undefined', 'missing Wasm export: webCurrentScreen');
   assert(typeof wasmExports['webOpenScreen'] != 'undefined', 'missing Wasm export: webOpenScreen');
+  assert(typeof wasmExports['webMonitorPianoNotes'] != 'undefined', 'missing Wasm export: webMonitorPianoNotes');
   assert(typeof wasmExports['webTrackActivityPacked'] != 'undefined', 'missing Wasm export: webTrackActivityPacked');
   assert(typeof wasmExports['webTrackActivityNote'] != 'undefined', 'missing Wasm export: webTrackActivityNote');
   assert(typeof wasmExports['webTrackActivityGlyph'] != 'undefined', 'missing Wasm export: webTrackActivityGlyph');
@@ -10614,6 +10619,9 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webPitchName'] != 'undefined', 'missing Wasm export: webPitchName');
   assert(typeof wasmExports['webPhraseSetNote'] != 'undefined', 'missing Wasm export: webPhraseSetNote');
   assert(typeof wasmExports['webLoadProject'] != 'undefined', 'missing Wasm export: webLoadProject');
+  assert(typeof wasmExports['webSongToggleTrackMute'] != 'undefined', 'missing Wasm export: webSongToggleTrackMute');
+  assert(typeof wasmExports['webSongToggleTrackSolo'] != 'undefined', 'missing Wasm export: webSongToggleTrackSolo');
+  assert(typeof wasmExports['webSongLiveQueuePacked'] != 'undefined', 'missing Wasm export: webSongLiveQueuePacked');
   assert(typeof wasmExports['webSongRowCount'] != 'undefined', 'missing Wasm export: webSongRowCount');
   assert(typeof wasmExports['webSongTrackCount'] != 'undefined', 'missing Wasm export: webSongTrackCount');
   assert(typeof wasmExports['webSongMaxChain'] != 'undefined', 'missing Wasm export: webSongMaxChain');
@@ -10690,6 +10698,7 @@ function assignWasmExports(wasmExports) {
   _webSaveProject = Module['_webSaveProject'] = createExportWrapper('webSaveProject', wasmExports['webSaveProject'], 1);
   _webCurrentScreen = Module['_webCurrentScreen'] = createExportWrapper('webCurrentScreen', wasmExports['webCurrentScreen'], 0);
   _webOpenScreen = Module['_webOpenScreen'] = createExportWrapper('webOpenScreen', wasmExports['webOpenScreen'], 1);
+  _webMonitorPianoNotes = Module['_webMonitorPianoNotes'] = createExportWrapper('webMonitorPianoNotes', wasmExports['webMonitorPianoNotes'], 0);
   _webTrackActivityPacked = Module['_webTrackActivityPacked'] = createExportWrapper('webTrackActivityPacked', wasmExports['webTrackActivityPacked'], 1);
   _webTrackActivityNote = Module['_webTrackActivityNote'] = createExportWrapper('webTrackActivityNote', wasmExports['webTrackActivityNote'], 1);
   _webTrackActivityGlyph = Module['_webTrackActivityGlyph'] = createExportWrapper('webTrackActivityGlyph', wasmExports['webTrackActivityGlyph'], 1);
@@ -10710,6 +10719,9 @@ function assignWasmExports(wasmExports) {
   _webPitchName = Module['_webPitchName'] = createExportWrapper('webPitchName', wasmExports['webPitchName'], 1);
   _webPhraseSetNote = Module['_webPhraseSetNote'] = createExportWrapper('webPhraseSetNote', wasmExports['webPhraseSetNote'], 1);
   _webLoadProject = Module['_webLoadProject'] = createExportWrapper('webLoadProject', wasmExports['webLoadProject'], 1);
+  _webSongToggleTrackMute = Module['_webSongToggleTrackMute'] = createExportWrapper('webSongToggleTrackMute', wasmExports['webSongToggleTrackMute'], 1);
+  _webSongToggleTrackSolo = Module['_webSongToggleTrackSolo'] = createExportWrapper('webSongToggleTrackSolo', wasmExports['webSongToggleTrackSolo'], 1);
+  _webSongLiveQueuePacked = Module['_webSongLiveQueuePacked'] = createExportWrapper('webSongLiveQueuePacked', wasmExports['webSongLiveQueuePacked'], 1);
   _webSongRowCount = Module['_webSongRowCount'] = createExportWrapper('webSongRowCount', wasmExports['webSongRowCount'], 0);
   _webSongTrackCount = Module['_webSongTrackCount'] = createExportWrapper('webSongTrackCount', wasmExports['webSongTrackCount'], 0);
   _webSongMaxChain = Module['_webSongMaxChain'] = createExportWrapper('webSongMaxChain', wasmExports['webSongMaxChain'], 0);
