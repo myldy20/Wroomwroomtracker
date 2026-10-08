@@ -828,6 +828,36 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* webSongChainPreview(int chain) {
   return preview;
 }
 
+// Full searchable index of *all* explicit instrument names for a Chain.
+// Unlike the short visual preview, this does not truncate at two instruments.
+// JS owns Unicode-aware case folding while the engine owns the instrument list.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSongChainInstrumentSearch(int chain) {
+  static char names[4096];
+  names[0] = '\0';
+  if (!chipnomadState || chain < 0 || chain >= PROJECT_MAX_CHAINS) return names;
+
+  const Project& project = chipnomadState->project;
+  bool seen[PROJECT_MAX_INSTRUMENTS] = {};
+  size_t used = 0;
+  for (int step = 0; step < 16; ++step) {
+    const uint16_t phrase = project.chains[chain].rows[step].phrase;
+    if (phrase == EMPTY_VALUE_16 || phrase >= PROJECT_MAX_PHRASES) continue;
+    for (int row = 0; row < 16; ++row) {
+      const int instrument = project.phrases[phrase].rows[row].instrument;
+      if (instrument < 0 || instrument >= PROJECT_MAX_INSTRUMENTS ||
+          seen[instrument]) continue;
+      seen[instrument] = true;
+      const int added = snprintf(names + used, sizeof(names) - used,
+        "%s%s", used ? " | " : "",
+        instrumentName(&chipnomadState->project, (uint8_t)instrument));
+      if (added < 0) return names;
+      if ((size_t)added >= sizeof(names) - used) return names;
+      used += (size_t)added;
+    }
+  }
+  return names;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webSongFindFreeChain(void) {
   if (!chipnomadState) return -1;
   int chain = findEmptyChain(&chipnomadState->project, 0);

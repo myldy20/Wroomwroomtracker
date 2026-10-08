@@ -273,6 +273,9 @@
       entry.preview = (entry.steps || entry.usage)
         ? (call("webSongChainPreview", "string", ["number"], [chain]) || "")
         : "";
+      entry.instrumentSearch = entry.steps
+        ? (call("webSongChainInstrumentSearch", "string", ["number"], [chain]) || "")
+        : "";
       chainPickerEntries.push(entry);
     }
     chainPickerEntries.sort((a, b) =>
@@ -292,7 +295,8 @@
       const decimal = String(entry.chain);
       if (!query && !entry.usage && !entry.steps && entry.chain !== current) continue;
       if (query && !hex.includes(query) && !decimal.includes(query) &&
-          !entry.preview.toUpperCase().includes(query)) continue;
+          !entry.preview.toUpperCase().includes(query) &&
+          !entry.instrumentSearch.toUpperCase().includes(query)) continue;
 
       const button = document.createElement("button");
       button.type = "button";

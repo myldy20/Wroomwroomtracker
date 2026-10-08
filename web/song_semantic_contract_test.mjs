@@ -11,6 +11,9 @@ assert.match(app, /webPlaybackTrackPacked/, "Web must read a compact canonical p
 assert.match(app, /chipnomadGetPlaybackStatus/, "Playback bridge must come from canonical PlaybackStatus");
 assert.match(song, /webSongChainSummary/, "Song must expose semantic Chain summaries");
 assert.match(song, /webSongChainPreview/, "Song must provide canonical Chain/Phrase/Instrument preview");
+assert.match(song, /webSongChainInstrumentSearch/, "Search must include every explicit Chain instrument");
+assert.match(shell, /entry\.instrumentSearch\.toUpperCase\(\)\.includes\(query\)/,
+  "Search must not be limited to two preview instruments");
 assert.match(song, /project\.phrases\[phrase\]\.rows\[row\]/, "Preview must inspect real Phrase rows");
 assert.match(song, /instrumentName\(/, "Preview must show real instrument names");
 assert.match(song, /note\.instrument/, "Preview must read actual instrument references");
