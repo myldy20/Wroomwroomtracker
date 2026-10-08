@@ -111,7 +111,22 @@ try {
     assert.ok(metrics.songEdit?.height >= 44,
       viewport.name + ": direct Song EDIT action must remain a 44px touch target");
 
+    if (!viewport.desktop) {
+      const monitor = page.locator("#songActivityMobile");
+      assert.ok(await monitor.isVisible(), viewport.name + ": mobile native track monitor missing");
+      assert.ok(!(await monitor.evaluate(el => el.open)),
+        viewport.name + ": activity expander must start closed");
+      await monitor.locator("summary").click();
+      assert.ok(await monitor.evaluate(el => el.open),
+        viewport.name + ": native track monitor cannot be opened");
+      assert.ok(await page.locator("#songActivityMobileRows .track-activity-row").count() > 0,
+        viewport.name + ": expanded track activity has no tracks");
+      await monitor.locator("summary").click();
+    }
+
     if (viewport.desktop) {
+      assert.ok(await page.locator("#songActivityPanel").isVisible(),
+        viewport.name + ": native right-hand track status missing from Song");
       assert.ok(metrics.workbenchVisible, viewport.name + ": context inspector must be visible");
       assert.ok(metrics.selection, viewport.name + ": selection inspector missing");
       assert.ok(metrics.firstUtility, viewport.name + ": compact project drawer missing");

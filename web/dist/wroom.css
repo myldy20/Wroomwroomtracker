@@ -1582,3 +1582,51 @@ input {
   .utility-buttons { gap: 2px; }
   .utility-buttons button { min-width: 26px; padding-inline: 3px; font-size: 9px; }
 }
+
+/* Preserve the shared native track strip on the migrated Song workspace. */
+.track-activity-panel { display: none; }
+.track-activity-rows { display: grid; gap: 4px; padding: 8px; }
+.track-activity-row {
+  min-height: 30px; min-width: 0; display: grid; align-items: center;
+  grid-template-columns: 18px 16px minmax(35px, 1fr) 37px 29px;
+  gap: 4px; padding: 3px 5px; border: 1px solid #122230;
+  border-radius: 4px; background: #061019;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.track-activity-row.selected { border-color: rgba(94,215,255,.42); }
+.track-activity-index { color: var(--muted); font-weight: 900; }
+.track-activity-row.selected .track-activity-index { color: var(--cyan); }
+.track-activity-state { color: var(--amber); font-weight: 900; text-align: center; }
+.track-activity-row.muted .track-activity-state { color: var(--danger); }
+.track-activity-row.muted .track-activity-wave { opacity: .55; }
+.track-activity-wave { width: 100%; height: 20px; image-rendering: pixelated; }
+.track-activity-note { text-align: right; color: var(--ink); font-size: 9px; }
+.track-activity-row.note-warning .track-activity-note { color: var(--amber); }
+.track-activity-warning { color: var(--danger); font-size: 8px; font-weight: 900; }
+.track-activity-row.clipping { border-color: var(--danger); }
+.song-activity-mobile { display: none; }
+@media (min-width: 941px) {
+  .app-shell:has(#semanticWorkspace:not([hidden])) .track-activity-panel { display: block; }
+}
+@media (max-width: 940px) {
+  .song-activity-mobile {
+    flex: 0 0 auto; display: block; border-bottom: 1px solid var(--line);
+    background: #071019;
+  }
+  .song-activity-mobile summary {
+    min-height: 44px; padding: 9px 13px; display: flex; align-items: center;
+    gap: 8px; cursor: pointer; color: var(--cyan); font-size: 10px; font-weight: 850;
+  }
+  .song-activity-mobile summary span { color: var(--dim); font-size: 8px; font-weight: 400; }
+  .song-activity-mobile .track-activity-rows {
+    max-height: 190px; overflow-y: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .track-activity-row {
+    grid-template-columns: 14px 12px minmax(25px, 1fr) 34px 23px;
+    gap: 2px; padding-inline: 3px;
+  }
+}
+@media (max-width: 400px) {
+  .song-activity-mobile .track-activity-rows { grid-template-columns: 1fr; }
+}

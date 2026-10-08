@@ -10,6 +10,12 @@ const audio = fs.readFileSync("tracker/src/audio_manager.cpp", "utf8");
 
 assert.match(app, /webPlaybackTrackPacked/, "Web must read a compact canonical playback snapshot");
 assert.match(audio, /webOutputStereoPeaksPacked/, "Web must export real final-output stereo peaks");
+assert.match(app, /waveformDisplayGetBitmap\(track\)/, "Song must reuse original waveform glyph");
+assert.match(app, /webTrackActivityPacked/, "Song must read native track pitch/mute/clip status");
+assert.match(html, /id="songActivityRows"/, "Desktop track monitor missing");
+assert.match(html, /id="songActivityMobile"/, "Mobile track monitor expander missing");
+assert.match(shell, /updateTrackActivity/, "Track waveform refresh missing");
+assert.match(css, /\.track-activity-row/, "Track monitor styling missing");
 assert.match(audio, /webAccumulatePeak/, "Audio callback must collect peak data without allocation");
 assert.match(audio, /floatBuffer\[frame \* 2 \+ 1\]/, "Right channel must be measured separately");
 assert.match(html, /id="masterPeakL"/, "Global left output meter missing");

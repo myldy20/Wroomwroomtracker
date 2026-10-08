@@ -172,6 +172,13 @@
       "source": "screenSettings",
       "status": "legacy",
       "label": "Settings"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/app.cpp",
+      "source": "webTrackActivityGlyph(",
+      "status": "semantic",
+      "label": "Native cross-screen per-track pitch/waveform/clipping status in semantic Song"
     }
   ],
   "registeredScreens": [
