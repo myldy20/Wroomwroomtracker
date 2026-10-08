@@ -507,6 +507,42 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webOpenScreen(int screen) {
   return 0;
 }
 
+// Read-only representation of the native appDraw() per-track monitor.
+// The tiny waveform is the actual waveformDisplayGetBitmap() glyph, honoring
+// TrackVisualMode and chip-specific rendering, not a second synthetic scope.
+extern "C" EMSCRIPTEN_KEEPALIVE int webTrackActivityPacked(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return -1;
+  const PlaybackStatus* playback = chipnomadGetPlaybackStatus(chipnomadState);
+  if (!playback) return -1;
+  return (playback->tracks[track].note.pitchFinal & 255) |
+    ((audioManager.trackStates[track] & 3) << 8) |
+    ((chipnomadState->trackClipping[track] > 0 ? 1 : 0) << 10) |
+    ((appSettings.pitchConflictWarning && chipnomadState->trackWarnings[track] > 0 ? 1 : 0) << 11) |
+    ((pSongTrack && *pSongTrack == track ? 1 : 0) << 12);
+}
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackActivityNote(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return "---";
+  const PlaybackStatus* playback = chipnomadGetPlaybackStatus(chipnomadState);
+  return playback ? noteName(&chipnomadState->project, playback->tracks[track].note.pitchFinal) : "---";
+}
+// 2 hex digits width, 2 hex digits height, one grayscale nibble per pixel.
+// Max 32x32, no heap allocation. Called on UI thread only.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackActivityGlyph(int track) {
+  static char data[4 + 32 * 32 + 1];
+  data[0] = 0;
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return data;
+  const Bitmap* bmp = waveformDisplayGetBitmap(track);
+  if (!bmp || !bmp->data || bmp->widthPixels < 1 || bmp->widthPixels > 32 ||
+      bmp->heightPixels < 1 || bmp->heightPixels > 32) return data;
+  static const char digits[] = "0123456789ABCDEF";
+  const int w = bmp->widthPixels, h = bmp->heightPixels;
+  data[0] = digits[(w >> 4) & 15]; data[1] = digits[w & 15];
+  data[2] = digits[(h >> 4) & 15]; data[3] = digits[h & 15];
+  for (int i = 0; i < w * h; ++i) data[i + 4] = digits[bmp->data[i] >> 4];
+  data[4 + w * h] = 0;
+  return data;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webPlaybackIsPlaying(void) {
   if (!chipnomadState) return 0;
   const PlaybackStatus* status = chipnomadGetPlaybackStatus(chipnomadState);

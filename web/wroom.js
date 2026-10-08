@@ -562,6 +562,7 @@
     lastPlaybackVisualKey = "";
     updateSongInspector();
     updateSongPlaybackVisuals();
+    updateTrackActivity();
   };
 
   const setWorkspaceMode = (screen, syncNative = false) => {
@@ -756,6 +757,88 @@
       masterMeterFills[index].style.transform = "scaleX(" + masterDisplayed[index].toFixed(3) + ")";
       masterMeterChannels[index].setAttribute("aria-valuenow", String(Math.round(db)));
       masterMeterChannels[index].setAttribute("aria-valuetext", Math.round(db) + " dBFS peak");
+    }
+  };
+
+  const activityContainers = [$("#songActivityRows"), $("#songActivityMobileRows")];
+  let activityTrackCount = -1;
+  const ensureTrackActivity = () => {
+    if (!window.Module?.ccall) return;
+    const count = Math.max(0, call("webSongTrackCount", "number") || 0);
+    if (count === activityTrackCount) return;
+    activityTrackCount = count;
+    for (const container of activityContainers) {
+      const fragment = document.createDocumentFragment();
+      for (let track = 0; track < count; track++) {
+        const row = document.createElement("div");
+        row.className = "track-activity-row";
+        row.dataset.track = String(track);
+        row.innerHTML = '<span class="track-activity-index"></span>' +
+          '<span class="track-activity-state"></span>' +
+          '<canvas class="track-activity-wave" role="img"></canvas>' +
+          '<span class="track-activity-note"></span>' +
+          '<span class="track-activity-warning"></span>';
+        row.querySelector(".track-activity-index").textContent = String(track + 1);
+        const scope = row.querySelector("canvas");
+        scope.width = 8;
+        scope.height = 12;
+        scope.setAttribute("aria-label", "Waveform of track " + (track + 1));
+        fragment.appendChild(row);
+      }
+      container.replaceChildren(fragment);
+    }
+  };
+  const drawTrackGlyph = (canvas, glyph, muted) => {
+    if (!glyph || glyph.length < 5) return;
+    const width = Number.parseInt(glyph.slice(0, 2), 16);
+    const height = Number.parseInt(glyph.slice(2, 4), 16);
+    if (!(width >= 1 && width <= 32 && height >= 1 && height <= 32) ||
+        glyph.length !== 4 + width * height) return;
+    if (canvas.dataset.glyph === glyph && canvas.dataset.muted === String(muted)) return;
+    canvas.dataset.glyph = glyph;
+    canvas.dataset.muted = String(muted);
+    if (canvas.width !== width) canvas.width = width;
+    if (canvas.height !== height) canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const pixels = ctx.createImageData(width, height);
+    for (let i = 0; i < width * height; ++i) {
+      const offset = i * 4, brightness = Number.parseInt(glyph[4 + i], 16);
+      pixels.data[offset] = muted ? 110 : 94;
+      pixels.data[offset + 1] = muted ? 125 : 215;
+      pixels.data[offset + 2] = muted ? 139 : 255;
+      pixels.data[offset + 3] = brightness * 17;
+    }
+    ctx.putImageData(pixels, 0, 0);
+  };
+  const updateTrackActivity = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 0) return;
+    ensureTrackActivity();
+    for (let track = 0; track < activityTrackCount; ++track) {
+      const packed = call("webTrackActivityPacked", "number", ["number"], [track]);
+      if (packed < 0) continue;
+      const muted = ((packed >> 8) & 3) === 2;
+      const solo = ((packed >> 8) & 3) === 1;
+      const clipped = !!(packed & (1 << 10));
+      const warning = !!(packed & (1 << 11));
+      const note = call("webTrackActivityNote", "string", ["number"], [track]) || "---";
+      const glyph = call("webTrackActivityGlyph", "string", ["number"], [track]) || "";
+      for (const container of activityContainers) {
+        if (container === activityContainers[1] && !$("#songActivityMobile").open) continue;
+        const row = container.children[track];
+        if (!row) continue;
+        row.classList.toggle("muted", muted);
+        row.classList.toggle("clipping", clipped);
+        row.classList.toggle("selected", !!(packed & (1 << 12)));
+        row.classList.toggle("note-warning", warning);
+        row.querySelector(".track-activity-state").textContent = muted ? "M" : solo ? "S" : "";
+        row.querySelector(".track-activity-note").textContent = note;
+        row.querySelector(".track-activity-warning").textContent = clipped ? "CLIP" : warning ? "!" : "";
+        row.setAttribute("aria-label", "Track " + (track + 1) +
+          (muted ? ", muted" : solo ? ", solo" : "") +
+          ", note " + note + (clipped ? ", clipping" : warning ? ", pitch warning" : ""));
+        drawTrackGlyph(row.querySelector(".track-activity-wave"), glyph, muted);
+      }
     }
   };
 
@@ -998,6 +1081,13 @@
           try { updateMasterMeters(); }
           catch (error) { console.error("Master metering failed", error); }
         }, 100);
+
+        // Original cross-screen tracker strip is drawn by the legacy canvas.
+        // Semantic Song mirrors the exact native waveform/notes in its inspector.
+        setInterval(() => {
+          try { updateTrackActivity(); }
+          catch (error) { console.error("Track activity refresh failed", error); }
+        }, 120);
 
         // Playback visualization is intentionally bounded and reads one compact
         // snapshot per track. It only toggles DOM classes when engine state

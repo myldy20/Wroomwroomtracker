@@ -26,6 +26,7 @@ Current migration contract:
 | Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
 | Chain picker content preview | `webSongChainPreview` reads actual Chain steps, Phrase note events and explicit Instrument IDs/names; no invented inherited instruments | live Pages picker preview / semantic contract |
 | Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
+| Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote`, `webTrackActivityGlyph` read canonical status and exact engine waveform bitmap; right-side Song inspector and collapsed mobile expander, native canvas elsewhere | browser smoke verifies full track count / glyph pixels; responsive mobile/desktop checks |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 
 **Song is not yet native-feature-parity complete.** Native `screen_song.cpp` also implements rectangular selection, copy/cut/paste, multi-cell move, shallow/deep chain cloning, the clear-on-empty shift behavior, MUTE/SOLO status, and LIVE mode with queued/urgent/stop indicators. The DOM Song workspace currently lacks the following mappings:

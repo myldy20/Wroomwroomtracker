@@ -149,6 +149,18 @@ if (success) {
     throw new Error("Selected Song cell does not show actual Chain contents: " + selectedPreview);
   }
 
+  const monitorCount = await page.evaluate(() => window.Module.ccall("webSongTrackCount", "number"));
+  if ((await page.locator("#songActivityRows .track-activity-row").count()) !== monitorCount)
+    throw new Error("Semantic Song dropped native track activity for a track");
+  const glyph = await page.evaluate(() => window.Module.ccall(
+    "webTrackActivityGlyph", "string", ["number"], [0]));
+  const gw = Number.parseInt(glyph.slice(0, 2), 16);
+  const gh = Number.parseInt(glyph.slice(2, 4), 16);
+  if (!gw || !gh || glyph.length !== 4 + gw * gh)
+    throw new Error("Native track waveform pixel bitmap is missing/invalid");
+  if ((await page.locator("#songActivityRows .track-activity-wave").count()) !== monitorCount)
+    throw new Error("Track waveform canvas missing");
+
   const stereoMeters = page.locator("#masterMeter [role=meter]");
   if ((await stereoMeters.count()) !== 2) throw new Error("Two global master meters are required");
   await page.locator("#playToggle").click();
