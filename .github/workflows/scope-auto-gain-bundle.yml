@@ -1,0 +1,46 @@
+name: Temporary PR Scope Auto Gain Bundle
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tracker/src/app.cpp'
+      - 'web/wroom.js'
+      - 'web/wasm_bridge_contract_test.mjs'
+      - '.github/workflows/scope-auto-gain-bundle.yml'
+permissions:
+  contents: write
+concurrency:
+  group: scope-auto-gain-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+jobs:
+  compile-and-save:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 2
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '6.0.6'
+      - name: Rebuild 16-bit scope wasm for PR branch only
+        run: |
+          make -C tracker -j2 -f Makefile.web web-deploy \
+            COMMON_CFLAGS='-std=c++17 -Wall -g -Os -DTEST'
+          grep -Fq 'webTrackAudioScopeHex' web/dist/choochootracker.js
+          cmp web/wroom.js web/dist/wroom.js
+          cmp web/wroom.css web/dist/wroom.css
+          cmp web/index.html web/dist/index.html
+      - name: Commit built artifacts to PR branch, never main
+        run: |
+          if git diff --quiet -- web/dist; then
+            echo "Bundle already matches sources"
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+myldy20@users.noreply.github.com
+          git add web/dist
+          git commit -m "build(web): compile signed 16-bit scope bridge"
+          git push origin "HEAD:${{ github.head_ref }}"
