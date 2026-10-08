@@ -159,7 +159,38 @@ if (success) {
     { timeout: 5_000 },
   );
 
+  const rowsBefore = await page.locator(".song-grid-row").count();
+  let rowsAfter = rowsBefore;
+  if (await page.locator("#songMoreRows").isVisible()) {
+    await page.locator("#songMoreRows").click();
+    rowsAfter = await page.locator(".song-grid-row").count();
+    if (rowsAfter <= rowsBefore) throw new Error("Show more Song rows did not extend the arrangement");
+
+    const extendedCell = page.locator('.song-cell[data-song-row="' + rowsBefore + '"][data-song-track="0"]');
+    await extendedCell.click();
+    if (!(await extendedCell.evaluate((cell) => cell.classList.contains("selected")))) {
+      throw new Error("Extended Song rows are not directly selectable");
+    }
+
+    await page.locator("#songEditSelected").click();
+    await page.waitForSelector("#songCellDialog[open]", { timeout: 5_000 });
+    await page.locator("#songCellDialogClose").click();
+
+    const lastVisibleRow = rowsAfter - 1;
+    const bottomCell = page.locator('.song-cell[data-song-row="' + lastVisibleRow + '"][data-song-track="0"]');
+    await bottomCell.focus();
+    if (rowsAfter < 256) {
+      await bottomCell.press("ArrowDown");
+      const nextRow = page.locator('.song-cell[data-song-row="' + rowsAfter + '"][data-song-track="0"]');
+      if (!(await nextRow.count()) || !(await nextRow.evaluate((cell) => cell.classList.contains("selected")))) {
+        throw new Error("Keyboard navigation failed to reveal the next Song row");
+      }
+    }
+  }
+
   interaction = {
+    rowsBefore,
+    rowsAfter,
     exactSelected,
     pickerCount,
     assignedValue,

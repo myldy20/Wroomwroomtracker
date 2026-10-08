@@ -23,8 +23,8 @@ The underlying tracker engine, project format and synthesis capabilities come fr
 ## Web controls
 
 - **Tap/click** a cell to select it.
-- **Drag horizontally** to change the selected value.
-- **Double tap/click** or press **EDIT** to invoke the cell's editor/action.
+- In **SONG**, choose cells directly and use **EDIT CELL** (also available on phones) or the inspector to assign a Chain. Use **SHOW 16 MORE SONG ROWS** to extend the visible arrangement.
+- **Double tap/click** a Song cell for its editor; the legacy screens still support drag-based value adjustment and their EDIT action.
 - Use the workspace tabs to move directly between Song, Chain, Phrase, Sound and Mix.
 - Keyboard and gamepad input still work on desktop, but they are optional.
 

@@ -21,6 +21,7 @@ Current migration contract:
 | Native behavior | Semantic Web equivalent | Regression coverage |
 | --- | --- | --- |
 | Song cursor / selected cell | `webSongSelect` + DOM `.selected` | live Pages exact-cell selection |
+| Long Song editing up to native row limit | Incremental 16-row reveal, auto-expand on keyboard navigation, explicit touch EDIT | live Pages row expansion / edit dialog / ArrowDown |
 | Song playback markers from `PlaybackStatus.tracks[].songRow` | compact `webPlaybackTrackPacked` + `.playing-row` / `.playing` classes | live Pages PLAY / selection independence / STOP |
 | Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
 | Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
