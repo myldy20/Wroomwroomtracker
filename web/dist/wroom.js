@@ -10,6 +10,9 @@
   const legacyWorkspace = $("#legacyWorkspace");
   const songGrid = $("#songGrid");
   const songScroll = $("#songScroll");
+  const masterMeterChannels = [...document.querySelectorAll("#masterMeter .master-meter-channel")];
+  const masterMeterFills = [$("#masterPeakL"), $("#masterPeakR")];
+  const masterDisplayed = [0, 0];
   const chainPickerDialog = $("#chainPickerDialog");
   const chainPickerSearch = $("#chainPickerSearch");
   const chainPickerList = $("#chainPickerList");
@@ -707,6 +710,23 @@
   });
   canvas.addEventListener("pointercancel", () => { pointer = null; });
 
+  const updateMasterMeters = () => {
+    if (!window.Module?.ccall) return;
+    const packed = call("webOutputStereoPeaksPacked", "number");
+    if (packed == null) return;
+    const levels = [(packed & 4095) / 4095, ((packed >> 12) & 4095) / 4095];
+    for (let index = 0; index < 2; ++index) {
+      const level = levels[index];
+      // UI-only visual decay, never an alternative source of audio state.
+      const db = level > 0 ? Math.max(-60, Math.min(0, 20 * Math.log10(level))) : -60;
+      const normalized = Math.max(0, (db + 60) / 60);
+      masterDisplayed[index] = Math.max(normalized, masterDisplayed[index] * 0.72);
+      masterMeterFills[index].style.transform = "scaleX(" + masterDisplayed[index].toFixed(3) + ")";
+      masterMeterChannels[index].setAttribute("aria-valuenow", String(Math.round(db)));
+      masterMeterChannels[index].setAttribute("aria-valuetext", Math.round(db) + " dBFS peak");
+    }
+  };
+
   const decodePlaybackTrack = (packed) => ({
     songRow: (packed & 0x1ff) ? (packed & 0x1ff) - 1 : -1,
     chainRow: ((packed >> 9) & 0x1f) ? ((packed >> 9) & 0x1f) - 1 : -1,
@@ -939,6 +959,13 @@
             console.error("Periodic UI refresh failed", error);
           }
         }, 1200);
+
+        // Master output peak data is read once per bounded UI tick, regardless
+        // of which tracker workspace is open.
+        setInterval(() => {
+          try { updateMasterMeters(); }
+          catch (error) { console.error("Master metering failed", error); }
+        }, 100);
 
         // Playback visualization is intentionally bounded and reads one compact
         // snapshot per track. It only toggles DOM classes when engine state

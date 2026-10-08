@@ -77,6 +77,7 @@ try {
         documentOverflow: document.documentElement.scrollWidth - innerWidth,
         workbenchVisible: visible(".workbench"),
         selection: rect("#selectionInspector"),
+        masterMeter: rect("#masterMeter"),
         firstUtility: rect(".utility-drawer"),
         songScroll: rect("#songScroll"),
         songEdit: rect("#songEditSelected"),
@@ -93,6 +94,8 @@ try {
 
     assert.ok(metrics.documentOverflow <= 1, viewport.name + ": page itself must not horizontally overflow");
     assert.ok(metrics.navVisible, viewport.name + ": workspace navigation must stay visible");
+    assert.ok(metrics.masterMeter?.width >= 48 && metrics.masterMeter.right <= viewport.width,
+      viewport.name + ": global stereo meter must remain visible in the top bar");
     assert.ok(metrics.songEdit?.height >= 44,
       viewport.name + ": direct Song EDIT action must remain a 44px touch target");
 

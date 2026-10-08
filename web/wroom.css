@@ -81,7 +81,54 @@ button:disabled { opacity: .4; cursor: wait; }
 .edition { color: var(--cyan); font-weight: 800; font-size: 8px; letter-spacing: .16em; }
 .brand-note { color: var(--muted); font-size: 9px; white-space: nowrap; }
 
-.transport { display: flex; gap: 6px; margin-left: auto; }
+.master-meter {
+  min-width: 80px;
+  width: 92px;
+  display: grid;
+  gap: 3px;
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.master-meter-title {
+  color: var(--dim);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .12em;
+}
+
+.master-meter-channel {
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+}
+
+.master-meter-letter {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.master-meter-rail {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #1c2a35;
+}
+
+.master-meter-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  transform: scaleX(0);
+  background: linear-gradient(90deg, var(--green) 0%, var(--green) 70%, var(--amber) 86%, var(--danger) 100%);
+  will-change: transform;
+}
+
+.transport { display: flex; gap: 6px; margin-left: 0; }
 .transport button { font-weight: 900; letter-spacing: .06em; }
 #playToggle { border-color: rgba(88,230,169,.4); color: var(--green); }
 #playToggle[aria-pressed="true"] { background: rgba(88,230,169,.14); box-shadow: inset 0 -2px 0 var(--green); }
@@ -488,6 +535,7 @@ button:disabled { opacity: .4; cursor: wait; }
   }
   .workbench { display: none; }
   .brand-note { display: none; }
+  .master-meter { width: 72px; min-width: 64px; }
   .topbar { padding-inline: 8px; gap: 7px; }
   .edition { display: none; }
   .utility-buttons button[data-screen="5"],
@@ -529,6 +577,9 @@ button:disabled { opacity: .4; cursor: wait; }
 
 @media (max-width: 560px) {
   .brand { font-size: 12px; }
+  .master-meter { width: 53px; min-width: 48px; gap: 4px; }
+  .master-meter-title { display: none; }
+  .master-meter-channel { gap: 3px; }
   .transport button { min-height: 31px; padding-inline: 8px; font-size: 9px; }
   .utility-buttons button { min-height:31px; min-width:32px; padding:0 7px; }
   .frame-head strong { font-size:8px; }
