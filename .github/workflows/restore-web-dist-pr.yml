@@ -20,15 +20,20 @@ jobs:
           name: choochootracker-web
           run-id: 37735354293
           github-token: ${{ github.token }}
-          path: web/dist
+          path: artifacts/generated-dist
       - name: Verify and commit compiled runtime to feature branch
         shell: bash
         run: |
           set -euo pipefail
-          cmp web/wroom.js web/dist/wroom.js
-          cmp web/wroom.css web/dist/wroom.css
-          cmp web/index.html web/dist/index.html
-          git add web/dist/
+          # Only compiled runtime assets are copied. The hand-maintained Web
+          # UI source/dist parity is already maintained in this PR and its
+          # JS/CSS/HTML must never be overwritten from a different artifact.
+          for asset in choochootracker.wasm choochootracker.js choochootracker.data choochootracker.html; do
+            test -s "artifacts/generated-dist/$asset"
+            cp "artifacts/generated-dist/$asset" "web/dist/$asset"
+          done
+          git add web/dist/choochootracker.wasm web/dist/choochootracker.js \
+            web/dist/choochootracker.data web/dist/choochootracker.html
           if git diff --cached --quiet; then
             echo "Expected a rebuilt WebAssembly bundle, but web/dist has no changes" >&2
             exit 1
