@@ -1,5 +1,10 @@
 #include <stdio.h>
 #include <atomic>
+#ifdef WEB_BUILD
+#include <cmath>
+#include <stdint.h>
+#include <emscripten/emscripten.h>
+#endif
 #include <chrono>
 #include <limits.h>
 #include <string.h>
@@ -20,6 +25,33 @@
 static int aSampleRate;
 static int aBufferSize;
 static std::atomic<int> cpuLoadPercent{0};
+
+#ifdef WEB_BUILD
+// Web-only final stereo output telemetry. The callback accumulates peaks
+// lock-free; UI atomically takes and resets them every 100 ms. No allocation,
+// mutex or filesystem work occurs on the real-time audio thread.
+static std::atomic<uint32_t> webOutputPeakLeft{0};
+static std::atomic<uint32_t> webOutputPeakRight{0};
+
+static uint32_t webPeakTo12Bits(float sample) {
+  if (!(sample > 0.0f)) return 0; // includes NaN, zero and negative
+  if (sample >= 1.0f) return 4095;
+  return (uint32_t)(sample * 4095.0f + 0.5f);
+}
+
+static void webAccumulatePeak(std::atomic<uint32_t>& peak, uint32_t value) {
+  uint32_t old = peak.load(std::memory_order_relaxed);
+  while (old < value && !peak.compare_exchange_weak(
+    old, value, std::memory_order_release, std::memory_order_relaxed)) {}
+}
+
+// Positive 24-bit pair: low 12 bits L, high 12 bits R.
+extern "C" EMSCRIPTEN_KEEPALIVE int webOutputStereoPeaksPacked(void) {
+  const uint32_t left = webOutputPeakLeft.exchange(0, std::memory_order_acq_rel);
+  const uint32_t right = webOutputPeakRight.exchange(0, std::memory_order_acq_rel);
+  return (int)((left & 4095) | ((right & 4095) << 12));
+}
+#endif
 static SampleVoice samplePreviewVoice;
 static InstrumentSample samplePreview;
 static SCWFVoice scwfPreviewVoice;
@@ -126,6 +158,18 @@ static void audioCallback(int16_t* buffer, int stereoSamples) {
   }
   renderPreview(samplePreviewBuffer, stereoSamples);
   for (int i = 0; i < stereoSamples * 2; ++i) floatBuffer[i] += samplePreviewBuffer[i];
+
+#ifdef WEB_BUILD
+  float peakLeft = 0.0f, peakRight = 0.0f;
+  for (int frame = 0; frame < stereoSamples; ++frame) {
+    const float left = fabsf(floatBuffer[frame * 2]);
+    const float right = fabsf(floatBuffer[frame * 2 + 1]);
+    if (left > peakLeft) peakLeft = left;
+    if (right > peakRight) peakRight = right;
+  }
+  webAccumulatePeak(webOutputPeakLeft, webPeakTo12Bits(peakLeft));
+  webAccumulatePeak(webOutputPeakRight, webPeakTo12Bits(peakRight));
+#endif
 
   // Convert float to int16_t
   for (int i = 0; i < stereoSamples * 2; i++) {

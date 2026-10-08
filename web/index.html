@@ -17,6 +17,18 @@
         <span class="brand-note">multi-engine tracker</span>
       </div>
 
+      <div id="masterMeter" class="master-meter" role="group" aria-label="Master stereo output peaks">
+        <span class="master-meter-title">MASTER</span>
+        <div class="master-meter-channel" role="meter" aria-label="Left output peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
+          <span class="master-meter-letter">L</span>
+          <span class="master-meter-rail"><span id="masterPeakL" class="master-meter-fill"></span></span>
+        </div>
+        <div class="master-meter-channel" role="meter" aria-label="Right output peak" aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-60">
+          <span class="master-meter-letter">R</span>
+          <span class="master-meter-rail"><span id="masterPeakR" class="master-meter-fill"></span></span>
+        </div>
+      </div>
+
       <div class="transport" aria-label="Transport">
         <button id="playToggle" type="button" aria-pressed="false" data-needs-runtime disabled>▶ PLAY</button>
         <button id="stopButton" type="button" data-needs-runtime disabled>■ STOP</button>

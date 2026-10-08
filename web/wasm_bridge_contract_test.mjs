@@ -12,5 +12,8 @@ for (const symbol of required) {
   assert.ok(generated.includes(symbol),
     "Emscripten bundle omits " + symbol + "; rebuild and commit web/dist before merging");
 }
+const audio = fs.readFileSync("tracker/src/audio_manager.cpp", "utf8");
+assert.ok(audio.includes('extern "C" EMSCRIPTEN_KEEPALIVE int webOutputStereoPeaksPacked('), "Stereo export removed from C++");
+assert.ok(generated.includes("webOutputStereoPeaksPacked"), "Committed WASM loader must include stereo export");
 assert.ok(wasm.length > 100000, "Compiled WebAssembly binary missing/truncated");
 console.log("Checked-in Emscripten bridge contract passed");

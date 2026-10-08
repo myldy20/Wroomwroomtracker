@@ -149,6 +149,8 @@ if (success) {
     throw new Error("Selected Song cell does not show actual Chain contents: " + selectedPreview);
   }
 
+  const stereoMeters = page.locator("#masterMeter [role=meter]");
+  if ((await stereoMeters.count()) !== 2) throw new Error("Two global master meters are required");
   await page.locator("#playToggle").click();
   await page.waitForFunction(
     () => document.querySelectorAll(".song-cell.playing").length > 0,
@@ -167,6 +169,14 @@ if (success) {
   }, null, { timeout: 5_000 });
 
   const playingBeforeStop = await page.locator(".song-cell.playing").count();
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll("#masterMeter [role=meter]")].every(
+      element => element.hasAttribute("aria-valuetext") &&
+        /dBFS peak/.test(element.getAttribute("aria-valuetext"))
+    ), null, { timeout: 5_000 });
+  const levels = await page.evaluate(() => window.Module.ccall("webOutputStereoPeaksPacked", "number"));
+  if (!Number.isInteger(levels) || levels < 0 || levels > 0xffffff)
+    throw new Error("Stereo telemetry bridge returned invalid packed peaks");
   await page.locator("#stopButton").click();
   await page.waitForFunction(
     () => document.querySelectorAll(".song-cell.playing").length === 0,
