@@ -853,41 +853,64 @@
       container.replaceChildren(fragment);
     }
   };
-  // Unlike the old native 8-pixel glyph, the Web scope displays the real
-  // 256-sample post-level track output already captured by AudioMonitor.
+  // The scope shows SHAPE, not loudness. Signed 16-bit native PCM retains
+  // quiet samples that 8-bit transport previously collapsed into a flat line.
   const TRACK_SCOPE_SAMPLES = 256;
-  const drawTrackScope = (canvas, hex, muted) => {
-    if (!hex || hex.length !== TRACK_SCOPE_SAMPLES * 2) return;
-    const widthCss = canvas.getBoundingClientRect().width;
-    const heightCss = canvas.getBoundingClientRect().height;
-    if (widthCss < 1 || heightCss < 1) return;
+  const trackScopeStates = [];
+  const readTrackScope = (track, hex) => {
+    if (!hex || hex.length !== TRACK_SCOPE_SAMPLES * 4) return null;
+    const scope = trackScopeStates[track] || (trackScopeStates[track] = {
+      samples: new Float32Array(TRACK_SCOPE_SAMPLES), gain: 0
+    });
+    let peak = 0, energy = 0;
+    for (let i = 0; i < TRACK_SCOPE_SAMPLES; ++i) {
+      const encoded = Number.parseInt(hex.slice(i * 4, i * 4 + 4), 16);
+      if (!Number.isFinite(encoded)) return null;
+      const sample = (encoded >= 32768 ? encoded - 65536 : encoded) / 32768;
+      scope.samples[i] = sample;
+      peak = Math.max(peak, Math.abs(sample));
+      energy += sample * sample;
+    }
+    const rms = Math.sqrt(energy / TRACK_SCOPE_SAMPLES);
+    // Gate quantization residue (~-78 dBFS peak / -84 dBFS RMS).
+    // No input means a flat reference line, never manufactured waves.
+    if (peak < 4 / 32768 || rms < 2 / 32768) {
+      scope.gain = 0;
+      return scope;
+    }
+    const targetGain = 0.86 / peak;
+    // Quick attenuation at attacks, slower recovery as a note gets quieter.
+    scope.gain = scope.gain === 0 || targetGain < scope.gain ?
+      targetGain : scope.gain + (targetGain - scope.gain) * 0.4;
+    return scope;
+  };
+  const drawTrackScope = (canvas, scope, muted) => {
+    if (!scope) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const width = Math.max(1, Math.round(widthCss * dpr));
-    const height = Math.max(1, Math.round(heightCss * dpr));
-    const resized = canvas.width !== width || canvas.height !== height;
+    const width = Math.max(1, Math.round(rect.width * dpr));
+    const height = Math.max(1, Math.round(rect.height * dpr));
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
-    const key = hex + String(muted);
-    if (!resized && canvas.dataset.scopeFrame === key) return;
-    canvas.dataset.scopeFrame = key;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.clearRect(0, 0, width, height);
-    ctx.lineWidth = 1;
     ctx.strokeStyle = "rgba(94, 215, 255, .17)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height / 2);
     ctx.lineTo(width, height / 2);
     ctx.stroke();
+    if (!scope.gain) return;
     ctx.strokeStyle = muted ? "#6e7d8b" : "#5ed7ff";
     ctx.lineWidth = Math.max(1, dpr);
     ctx.lineJoin = "round";
     ctx.beginPath();
     for (let i = 0; i < TRACK_SCOPE_SAMPLES; ++i) {
-      const sample = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-      if (!Number.isFinite(sample)) return;
       const x = i * (width - 1) / (TRACK_SCOPE_SAMPLES - 1);
-      const y = (1 - sample / 255) * (height - 1);
+      const normalized = Math.max(-0.94, Math.min(0.94, scope.samples[i] * scope.gain));
+      const y = (1 - normalized) * (height - 1) / 2;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -897,11 +920,12 @@
     if (!window.Module?.ccall || document.hidden || activityTrackCount < 1) return;
     for (let track = 0; track < activityTrackCount; ++track) {
       const hex = call("webTrackAudioScopeHex", "string", ["number"], [track]);
-      if (!hex || hex.length !== TRACK_SCOPE_SAMPLES * 2) continue;
+      const scope = readTrackScope(track, hex);
+      if (!scope) continue;
       for (const container of activityContainers) {
         if (container === activityContainers[1] && !$("#songActivityMobile").open) continue;
         const row = container.children[track];
-        if (row) drawTrackScope(row.querySelector(".track-activity-wave"), hex,
+        if (row) drawTrackScope(row.querySelector(".track-activity-wave"), scope,
           row.classList.contains("muted"));
       }
     }

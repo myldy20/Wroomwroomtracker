@@ -551,13 +551,13 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackActivityGlyph(int track) {
 }
 
 // Web visual telemetry from the existing post-level per-track PCM monitor.
-// 256 real samples, signed to unsigned 8-bit hex. UI thread only; no audio
-// callback work, allocations or locks, and no replacement DSP engine.
+// Preserve small genuine signals as signed 16-bit samples. Browser auto-gain
+// changes only the picture, never the engine, track level, or audio callback.
 extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackAudioScopeHex(int track) {
   if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return "";
   const float* samples = monitorDisplayTrackSamples(track);
   if (!samples) return "";
-  static char data[AUDIO_MONITOR_SAMPLES * 2 + 1];
+  static char data[AUDIO_MONITOR_SAMPLES * 4 + 1];
   static const char digits[] = "0123456789ABCDEF";
   for (int i = 0; i < AUDIO_MONITOR_SAMPLES; ++i) {
     float v = samples[i];
@@ -566,11 +566,15 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackAudioScopeHex(int track) {
       else if (v > 1.0f) v = 1.0f;
       else v = 0.0f; // NaN
     }
-    const unsigned level = (unsigned)((v + 1.0f) * 127.5f + 0.5f);
-    data[i * 2] = digits[level >> 4];
-    data[i * 2 + 1] = digits[level & 15];
+    const int amplitude = (int)(v * (v < 0.0f ? 32768.0f : 32767.0f) +
+                               (v < 0.0f ? -0.5f : 0.5f));
+    const unsigned bits = (unsigned)(uint16_t)(int16_t)amplitude;
+    data[i * 4] = digits[(bits >> 12) & 15];
+    data[i * 4 + 1] = digits[(bits >> 8) & 15];
+    data[i * 4 + 2] = digits[(bits >> 4) & 15];
+    data[i * 4 + 3] = digits[bits & 15];
   }
-  data[AUDIO_MONITOR_SAMPLES * 2] = 0;
+  data[AUDIO_MONITOR_SAMPLES * 4] = 0;
   return data;
 }
 
