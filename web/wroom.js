@@ -845,36 +845,78 @@
         }
         row.querySelector(".track-activity-index").textContent = String(track + 1);
         const scope = row.querySelector("canvas");
-        scope.width = 8;
-        scope.height = 12;
+        scope.width = 256;
+        scope.height = 48;
         scope.setAttribute("aria-label", "Waveform of track " + (track + 1));
         fragment.appendChild(row);
       }
       container.replaceChildren(fragment);
     }
   };
-  const drawTrackGlyph = (canvas, glyph, muted) => {
-    if (!glyph || glyph.length < 5) return;
-    const width = Number.parseInt(glyph.slice(0, 2), 16);
-    const height = Number.parseInt(glyph.slice(2, 4), 16);
-    if (!(width >= 1 && width <= 32 && height >= 1 && height <= 32) ||
-        glyph.length !== 4 + width * height) return;
-    if (canvas.dataset.glyph === glyph && canvas.dataset.muted === String(muted)) return;
-    canvas.dataset.glyph = glyph;
-    canvas.dataset.muted = String(muted);
+  // Unlike the old native 8-pixel glyph, the Web scope displays the real
+  // 256-sample post-level track output already captured by AudioMonitor.
+  const TRACK_SCOPE_SAMPLES = 256;
+  const drawTrackScope = (canvas, hex, muted) => {
+    if (!hex || hex.length !== TRACK_SCOPE_SAMPLES * 2) return;
+    const widthCss = canvas.getBoundingClientRect().width;
+    const heightCss = canvas.getBoundingClientRect().height;
+    if (widthCss < 1 || heightCss < 1) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.max(1, Math.round(widthCss * dpr));
+    const height = Math.max(1, Math.round(heightCss * dpr));
+    const resized = canvas.width !== width || canvas.height !== height;
     if (canvas.width !== width) canvas.width = width;
     if (canvas.height !== height) canvas.height = height;
+    const key = hex + String(muted);
+    if (!resized && canvas.dataset.scopeFrame === key) return;
+    canvas.dataset.scopeFrame = key;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const pixels = ctx.createImageData(width, height);
-    for (let i = 0; i < width * height; ++i) {
-      const offset = i * 4, brightness = Number.parseInt(glyph[4 + i], 16);
-      pixels.data[offset] = muted ? 110 : 94;
-      pixels.data[offset + 1] = muted ? 125 : 215;
-      pixels.data[offset + 2] = muted ? 139 : 255;
-      pixels.data[offset + 3] = brightness * 17;
+    ctx.clearRect(0, 0, width, height);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(94, 215, 255, .17)";
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+    ctx.strokeStyle = muted ? "#6e7d8b" : "#5ed7ff";
+    ctx.lineWidth = Math.max(1, dpr);
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    for (let i = 0; i < TRACK_SCOPE_SAMPLES; ++i) {
+      const sample = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+      if (!Number.isFinite(sample)) return;
+      const x = i * (width - 1) / (TRACK_SCOPE_SAMPLES - 1);
+      const y = (1 - sample / 255) * (height - 1);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
-    ctx.putImageData(pixels, 0, 0);
+    ctx.stroke();
+  };
+  const updateTrackScopes = () => {
+    if (!window.Module?.ccall || document.hidden || activityTrackCount < 1) return;
+    for (let track = 0; track < activityTrackCount; ++track) {
+      const hex = call("webTrackAudioScopeHex", "string", ["number"], [track]);
+      if (!hex || hex.length !== TRACK_SCOPE_SAMPLES * 2) continue;
+      for (const container of activityContainers) {
+        if (container === activityContainers[1] && !$("#songActivityMobile").open) continue;
+        const row = container.children[track];
+        if (row) drawTrackScope(row.querySelector(".track-activity-wave"), hex,
+          row.classList.contains("muted"));
+      }
+    }
+  };
+  // Bound native telemetry reads to 30Hz, painting on the next display
+  // frame. No recursive rAF loop (also safe for synchronous test shims).
+  let scopeFramePending = false;
+  const scheduleTrackScope = () => {
+    if (scopeFramePending || document.hidden) return;
+    scopeFramePending = true;
+    requestAnimationFrame(() => {
+      scopeFramePending = false;
+      try { updateTrackScopes(); }
+      catch (error) { console.error("Track scope refresh failed", error); }
+    });
   };
   const updateTrackActivity = () => {
     if (!window.Module?.ccall) return;
@@ -899,7 +941,6 @@
       const clipped = !!(packed & (1 << 10));
       const warning = !!(packed & (1 << 11));
       const note = call("webTrackActivityNote", "string", ["number"], [track]) || "---";
-      const glyph = call("webTrackActivityGlyph", "string", ["number"], [track]) || "";
       for (const container of activityContainers) {
         if (container === activityContainers[1] && !$("#songActivityMobile").open) continue;
         const row = container.children[track];
@@ -915,7 +956,6 @@
         row.setAttribute("aria-label", "Track " + (track + 1) +
           (muted ? ", muted" : solo ? ", solo" : "") +
           ", note " + note + (clipped ? ", clipping" : warning ? ", pitch warning" : ""));
-        drawTrackGlyph(row.querySelector(".track-activity-wave"), glyph, muted);
       }
     }
   };
@@ -1192,7 +1232,8 @@
         setInterval(() => {
           try { updateTrackActivity(); }
           catch (error) { console.error("Track activity refresh failed", error); }
-        }, 120);
+        }, 80);
+        setInterval(scheduleTrackScope, 33);
 
         // Playback visualization is intentionally bounded and reads one compact
         // snapshot per track. It only toggles DOM classes when engine state

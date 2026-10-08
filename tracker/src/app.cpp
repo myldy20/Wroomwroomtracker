@@ -24,6 +24,7 @@
 
 #ifdef WEB_BUILD
 #include <emscripten/emscripten.h>
+#include "audio_monitor.h"
 
 static void webStartupStage(const char* stage) {
   EM_ASM({
@@ -546,6 +547,30 @@ extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackActivityGlyph(int track) {
   data[2] = digits[(h >> 4) & 15]; data[3] = digits[h & 15];
   for (int i = 0; i < w * h; ++i) data[i + 4] = digits[bmp->data[i] >> 4];
   data[4 + w * h] = 0;
+  return data;
+}
+
+// Web visual telemetry from the existing post-level per-track PCM monitor.
+// 256 real samples, signed to unsigned 8-bit hex. UI thread only; no audio
+// callback work, allocations or locks, and no replacement DSP engine.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webTrackAudioScopeHex(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return "";
+  const float* samples = monitorDisplayTrackSamples(track);
+  if (!samples) return "";
+  static char data[AUDIO_MONITOR_SAMPLES * 2 + 1];
+  static const char digits[] = "0123456789ABCDEF";
+  for (int i = 0; i < AUDIO_MONITOR_SAMPLES; ++i) {
+    float v = samples[i];
+    if (!(v >= -1.0f && v <= 1.0f)) {
+      if (v < -1.0f) v = -1.0f;
+      else if (v > 1.0f) v = 1.0f;
+      else v = 0.0f; // NaN
+    }
+    const unsigned level = (unsigned)((v + 1.0f) * 127.5f + 0.5f);
+    data[i * 2] = digits[level >> 4];
+    data[i * 2 + 1] = digits[level & 15];
+  }
+  data[AUDIO_MONITOR_SAMPLES * 2] = 0;
   return data;
 }
 

@@ -1588,7 +1588,7 @@ input {
 .track-activity-panel { display: block; }
 .track-activity-rows { display: grid; gap: 4px; padding: 8px; }
 .track-activity-row {
-  min-height: 30px; min-width: 0; display: grid; align-items: center;
+  min-height: 34px; min-width: 0; display: grid; align-items: center;
   grid-template-columns: 18px 48px minmax(24px, 1fr) 37px 29px;
   gap: 4px; padding: 3px 5px; border: 1px solid #122230;
   border-radius: 4px; background: #061019;
@@ -1610,7 +1610,7 @@ input {
   color: var(--amber); border-color: var(--amber); background: rgba(255,184,47,.12);
 }
 .track-activity-row.muted .track-activity-wave { opacity: .55; }
-.track-activity-wave { width: 100%; height: 20px; image-rendering: pixelated; }
+.track-activity-wave { display: block; width: 100%; min-width: 0; height: 24px; image-rendering: auto; }
 .track-activity-note { text-align: right; color: var(--ink); font-size: 9px; }
 .track-activity-row.note-warning .track-activity-note { color: var(--amber); }
 .track-activity-warning { color: var(--danger); font-size: 8px; font-weight: 900; }

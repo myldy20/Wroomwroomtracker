@@ -160,6 +160,18 @@ if (success) {
     throw new Error("Native track waveform pixel bitmap is missing/invalid");
   if ((await page.locator("#songActivityRows .track-activity-wave").count()) !== monitorCount)
     throw new Error("Track waveform canvas missing");
+  const scopeHex = await page.evaluate(() => window.Module.ccall(
+    "webTrackAudioScopeHex", "string", ["number"], [0]));
+  if (!/^[0-9A-F]{512}$/.test(scopeHex))
+    throw new Error("Native 256-sample audio scope bridge missing or invalid");
+  await page.waitForFunction(() =>
+    document.querySelector("#songActivityRows .track-activity-wave")?.width > 8,
+    null, {timeout: 5_000});
+  const scopeSize = await page.locator("#songActivityRows .track-activity-wave").first()
+    .evaluate(node => ({width: node.width, height: node.height}));
+  if (scopeSize.width < 24 || scopeSize.height < 12)
+    throw new Error("Track monitor is still rendering the tiny native glyph: " +
+      JSON.stringify(scopeSize));
 
   const piano = page.locator("#songActivityPiano");
   if ((await piano.locator(".monitor-key").count()) !== 12) {

@@ -14,7 +14,9 @@ assert.match(app, /waveformDisplayGetBitmap\(track\)/, "Song must reuse original
 assert.match(app, /webTrackActivityPacked/, "Song must read native track pitch/mute/clip status");
 assert.match(html, /id="songActivityRows"/, "Desktop track monitor missing");
 assert.match(html, /id="songActivityMobile"/, "Mobile track monitor expander missing");
-assert.match(shell, /updateTrackActivity/, "Track waveform refresh missing");
+assert.match(shell, /updateTrackActivity/, "Track status refresh missing");
+assert.match(app, /webTrackAudioScopeHex/, "High-resolution scope must read existing native PCM");
+assert.match(shell, /updateTrackScopes/, "Smooth rAF scope refresh missing");
 assert.match(css, /\.track-activity-row/, "Track monitor styling missing");
 assert.match(audio, /webAccumulatePeak/, "Audio callback must collect peak data without allocation");
 assert.match(audio, /floatBuffer\[frame \* 2 \+ 1\]/, "Right channel must be measured separately");

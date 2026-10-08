@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpeu31pnom.js
+// include: /tmp/tmpjys8toa3.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -210,21 +210,21 @@ Module['FS_createPath']("/waveforms", "AKWF", true, true);
 
   })();
 
-// end include: /tmp/tmpeu31pnom.js
-// include: /tmp/tmp3c9rv09b.js
+// end include: /tmp/tmpjys8toa3.js
+// include: /tmp/tmp467gjypx.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmp3c9rv09b.js
-// include: /tmp/tmpv0vmejbo.js
+  // end include: /tmp/tmp467gjypx.js
+// include: /tmp/tmphora73g5.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpv0vmejbo.js
+  // end include: /tmp/tmphora73g5.js
 
 
 var programArgs = [];
@@ -10499,6 +10499,7 @@ var _webMonitorPianoNotes = Module['_webMonitorPianoNotes'] = makeInvalidEarlyAc
 var _webTrackActivityPacked = Module['_webTrackActivityPacked'] = makeInvalidEarlyAccess('_webTrackActivityPacked');
 var _webTrackActivityNote = Module['_webTrackActivityNote'] = makeInvalidEarlyAccess('_webTrackActivityNote');
 var _webTrackActivityGlyph = Module['_webTrackActivityGlyph'] = makeInvalidEarlyAccess('_webTrackActivityGlyph');
+var _webTrackAudioScopeHex = Module['_webTrackAudioScopeHex'] = makeInvalidEarlyAccess('_webTrackAudioScopeHex');
 var _webPlaybackIsPlaying = Module['_webPlaybackIsPlaying'] = makeInvalidEarlyAccess('_webPlaybackIsPlaying');
 var _webPlaybackTrackPacked = Module['_webPlaybackTrackPacked'] = makeInvalidEarlyAccess('_webPlaybackTrackPacked');
 var _webStopPlayback = Module['_webStopPlayback'] = makeInvalidEarlyAccess('_webStopPlayback');
@@ -10602,6 +10603,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webTrackActivityPacked'] != 'undefined', 'missing Wasm export: webTrackActivityPacked');
   assert(typeof wasmExports['webTrackActivityNote'] != 'undefined', 'missing Wasm export: webTrackActivityNote');
   assert(typeof wasmExports['webTrackActivityGlyph'] != 'undefined', 'missing Wasm export: webTrackActivityGlyph');
+  assert(typeof wasmExports['webTrackAudioScopeHex'] != 'undefined', 'missing Wasm export: webTrackAudioScopeHex');
   assert(typeof wasmExports['webPlaybackIsPlaying'] != 'undefined', 'missing Wasm export: webPlaybackIsPlaying');
   assert(typeof wasmExports['webPlaybackTrackPacked'] != 'undefined', 'missing Wasm export: webPlaybackTrackPacked');
   assert(typeof wasmExports['webStopPlayback'] != 'undefined', 'missing Wasm export: webStopPlayback');
@@ -10702,6 +10704,7 @@ function assignWasmExports(wasmExports) {
   _webTrackActivityPacked = Module['_webTrackActivityPacked'] = createExportWrapper('webTrackActivityPacked', wasmExports['webTrackActivityPacked'], 1);
   _webTrackActivityNote = Module['_webTrackActivityNote'] = createExportWrapper('webTrackActivityNote', wasmExports['webTrackActivityNote'], 1);
   _webTrackActivityGlyph = Module['_webTrackActivityGlyph'] = createExportWrapper('webTrackActivityGlyph', wasmExports['webTrackActivityGlyph'], 1);
+  _webTrackAudioScopeHex = Module['_webTrackAudioScopeHex'] = createExportWrapper('webTrackAudioScopeHex', wasmExports['webTrackAudioScopeHex'], 1);
   _webPlaybackIsPlaying = Module['_webPlaybackIsPlaying'] = createExportWrapper('webPlaybackIsPlaying', wasmExports['webPlaybackIsPlaying'], 0);
   _webPlaybackTrackPacked = Module['_webPlaybackTrackPacked'] = createExportWrapper('webPlaybackTrackPacked', wasmExports['webPlaybackTrackPacked'], 1);
   _webStopPlayback = Module['_webStopPlayback'] = createExportWrapper('webStopPlayback', wasmExports['webStopPlayback'], 0);
