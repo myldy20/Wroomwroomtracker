@@ -1,3 +1,4 @@
+#include "native_chip_gain.h"
 #include "dx7_voice.h"
 #include "../dx7_patch.h"
 #include "../external/msfa/sin.h"
@@ -96,7 +97,7 @@ void DX7Part::native(float& left,float& right) {
 void DX7Part::render(float* output,size_t frames) {
   // Advance the shared clock even through empty slots; arbitrary caller blocks
   // cannot reset LFO phase or cause extra envelope steps.
-  for(size_t i=0;i<frames;++i){float l,r;resampler_.next([&](float& a,float& b){native(a,b);},l,r);output[i]=l;}
+  for(size_t i=0;i<frames;++i){float l,r;resampler_.next([&](float& a,float& b){native(a,b);},l,r);output[i]=l*nativeChipGain(InstrumentType::DX7);}
 }
 
 unsigned limitDX7Voices(DX7Part* const* parts, size_t count, unsigned limit) {

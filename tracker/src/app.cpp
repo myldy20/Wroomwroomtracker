@@ -298,13 +298,36 @@ static int inputPlayback(int keys, int tapCount) {
 * @param keys Pressed buttons
 * @param tapCount number of taps
 */
+static bool inputBranchNavigation(int keys) {
+  if (keys != (keyShift | keyLeft) && keys != (keyShift | keyRight)) return false;
+  int column = -1;
+  if (currentScreen == &screenProject || currentScreen == &screenSettings ||
+      currentScreen == &screenSynthSettings || currentScreen == &screenMixerSettings ||
+      currentScreen == &screenGraphicsSettings || currentScreen == &screenTrackVisuals ||
+      currentScreen == &screenMidi || currentScreen == &screenMidiChannelMap ||
+      currentScreen == &screenMidiCC) column = 1;
+  else if (currentScreen == &screenGroove) column = 3;
+  else if (currentScreen == &screenModulation || currentScreen == &screenInsertFX) column = 4;
+  else if (currentScreen == &screenAYWavetable) column = 5;
+  if (column < 0) return false;
+  const AppScreen* spine[] = {&screenMixer, &screenSong, &screenChain,
+                             &screenPhrase, &screenInstrument, &screenTable};
+  column += keys & keyRight ? 1 : -1;
+  if (column > 5) column = 5;
+  chipnomadQueuePlaybackStopPreview(chipnomadState, *pSongTrack);
+  screenMessage(0, "");
+  screenSetup(spine[column], column >= 4 ? cInstrument : -1);
+  return true;
+}
+
 static void appInput(int isKeyDown, int keys, int tapCount) {
   // Stop phrase row and preview
   if (chipnomadGetPlaybackStatus(chipnomadState)->tracks[*pSongTrack].mode == PlaybackMode::phraseRow && keys == 0) {
     chipnomadQueuePlaybackStop(chipnomadState);
   }
   // Let screen handle input first, then try global playback if not handled
-  if (!currentScreen->onInput(isKeyDown, keys, tapCount)) {
+  if (!(isKeyDown && inputBranchNavigation(keys)) &&
+      !currentScreen->onInput(isKeyDown, keys, tapCount)) {
     if (isKeyDown) {
       inputPlayback(keys, tapCount);
     }

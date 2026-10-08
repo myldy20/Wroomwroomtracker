@@ -1,3 +1,4 @@
+#include "native_chip_gain.h"
 #include "opll_voice.h"
 #include <algorithm>
 #include <cmath>
@@ -94,7 +95,7 @@ void OPLLVoice::render(float* output, size_t frames) {
     const int phase = std::min(63, int(phase_ * 64));
     float sample = 0;
     for (int tap = 0; tap < 24; ++tap) sample += history_[(historyPosition_ - tap) & 31] * filter_[phase][tap];
-    output[i] = amp_.process(sample);
+    output[i] = amp_.process(sample * nativeChipGain(InstrumentType::OPLL));
     level_ = std::max(std::abs(output[i]), level_ * .999f);
     if (silence_ > chip_.sample_rate(3579545)) kill();
   }

@@ -1,3 +1,4 @@
+#include "chip_program.h"
 #include "project.h"
 #include "sid_patch.h"
 #include "fm_amp.h"
@@ -499,7 +500,7 @@ static int loadInstrumentOPLL(FILE* file, Instrument* instrument) {
 }
 
 static int loadSimpleChip(FILE* file, Instrument* instrument) {
-  InstrumentSimpleChip p{};bool seen=false,bassSeen=false;
+  InstrumentSimpleChip p{};bool seen=false,bassSeen=false,programSeen=false;
   p.segaBassExtension=instrument->type==InstrumentType::SegaPSG;
   while(char* line=peekLine(file)) {
     if(line[0]=='#')break;
@@ -513,7 +514,8 @@ static int loadSimpleChip(FILE* file, Instrument* instrument) {
       int v;char tail;
       if(bassSeen||instrument->type!=InstrumentType::SegaPSG||sscanf(line+13,"%d %c",&v,&tail)!=1||v<0||v>1)return 1;
       p.segaBassExtension=v;bassSeen=true;
-    }else if(!loadVoicePostSetting(line,&p))return 1;
+    }else if(!strncmp(line,"- Source ",9)){if(loadChipProgramLine(line,p.program,programSeen)!=1)return 1;}
+    else if(!loadVoicePostSetting(line,&p))return 1;
     consumeLine(file);
   }
   if(!seen||!validSimpleChip(instrument->type,p))return 1;instrument->chip.simpleChip=p;return 0;
@@ -522,6 +524,7 @@ static void saveSimpleChip(FILE* file,const Instrument* instrument) {
   const auto& p=instrument->chip.simpleChip;
   fprintf(file,"- Simple chip: %u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%d\n",p.schema,p.preset,p.mode,p.noiseRate,p.noiseDivisor,p.noiseShift,p.envelopeInitial,p.envelopePeriod,p.envelopeIncrease,p.sweepPeriod,p.sweepShift,p.sweepNegate,p.fineTune);
   saveVoicePostSettings(file,&p);
+  saveChipProgram(file,p.program);
   if(instrument->type==InstrumentType::SegaPSG)fprintf(file,"- Sega bass: %u\n",p.segaBassExtension);
 }
 
@@ -546,6 +549,8 @@ int instrumentLoadData(FILE* file, Instrument* instrument, Project* p) {
       sscanf(line, "- Table speed: %hhu", &instrument->tableSpeed);
     } else if (strncmp(line, "- Volume: ", 10) == 0) {
       sscanf(line, "- Volume: %hhu", &instrument->volume);
+    } else if (strncmp(line, "- Pan: ", 7) == 0) {
+      sscanf(line, "- Pan: %hhu", &instrument->pan);
     } else if (strncmp(line, "- Transpose: ", 13) == 0) {
       sscanf(line, "- Transpose: %hhu", &instrument->transposeEnabled);
       consumeLine(file);
@@ -902,6 +907,7 @@ int instrumentSaveData(FILE* file, int idx, Instrument* instrument) {
   fprintf(file, "- Type: %hhd\n", static_cast<uint8_t>(instrument->type));
   fprintf(file, "- Table speed: %hhu\n", instrument->tableSpeed);
   fprintf(file, "- Volume: %hhu\n", instrument->volume);
+  fprintf(file, "- Pan: %hhu\n", instrument->pan);
   fprintf(file, "- Transpose: %hhu\n", instrument->transposeEnabled);
 
   // Save modulation data

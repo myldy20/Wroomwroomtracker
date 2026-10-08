@@ -38,11 +38,14 @@ void AudioMonitor::finishChunk(const float* stereo, int frames, int sampleRate) 
     for (int track = 0; track < PROJECT_MAX_TRACKS; ++track) {
       const float* p = frame < chunkFrames_ ? scratch_ + track * chunkFrames_ * 2 + frame * 2 : nullptr;
       float left = p ? p[0] : 0, right = p ? p[1] : 0;
-      peaks_[track] = std::max(peaks_[track], std::max(fabsf(left), fabsf(right)));
+      peaks_[track][0] = std::max(peaks_[track][0], fabsf(left));
+      peaks_[track][1] = std::max(peaks_[track][1], fabsf(right));
       if (capture) tracks_[track][cursor_] = (left + right) * 0.5f;
     }
     if (capture) {
-      mix_[cursor_] = (stereo[frame * 2] + stereo[frame * 2 + 1]) * 0.5f;
+      mixStereo_[cursor_][0] = stereo[frame * 2];
+      mixStereo_[cursor_][1] = stereo[frame * 2 + 1];
+      mix_[cursor_] = (mixStereo_[cursor_][0] + mixStereo_[cursor_][1]) * 0.5f;
       cursor_ = (cursor_ + 1) % AUDIO_MONITOR_SAMPLES;
     }
     decimation_ = (decimation_ + 1) % stride;
@@ -62,6 +65,8 @@ void AudioMonitor::publish() {
     for (int i = 0; i < AUDIO_MONITOR_SAMPLES; ++i) {
       int source = (cursor_ + i) % AUDIO_MONITOR_SAMPLES;
       data.mix[i] = mix_[source];
+      data.mixStereo[i][0] = mixStereo_[source][0];
+      data.mixStereo[i][1] = mixStereo_[source][1];
       for (int t = 0; t < PROJECT_MAX_TRACKS; ++t) data.tracks[t][i] = tracks_[t][source];
     }
     memcpy(data.peaks, peaks_, sizeof(peaks_));

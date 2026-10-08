@@ -4,6 +4,7 @@
 #include "../external/gb_apu/gb_apu.h"
 #include "native_resampler.h"
 #include "voice_post_processor.h"
+#include "../chip_program.h"
 class SimpleChipVoice {
  public:
   SimpleChipVoice()=default;
@@ -19,6 +20,10 @@ class SimpleChipVoice {
   InstrumentType type_=InstrumentType::none;InstrumentSimpleChip patch_{};
   float rate_=48000,cents_=6000,dc_=0,previous_=0,dcPole_=.997f;
   unsigned sequencerRemaining_=8192;
-  int lastFrequency_=-1,lastMode_=-1,lastNoise_=-1;
+  int lastFrequency_=-1,lastMode_=-1,lastNoise_=-1,lastEnvelope_=-1;
   bool active_=false;
+  ChipMacroPlayer macros_;
+  double macroPhase_=0;
+  bool macroRelease_=false;
+  float macroGain_=1;
 };

@@ -70,3 +70,9 @@ void fileBrowserSetup(const char* title, const char* extension, const char*,
   mockBrowserTitle = title;
   mockBrowserExtension = extension;
 }
+
+int instrumentCommonColumnCount(int) { return 1; }
+void instrumentCommonDrawStatic() {}
+void instrumentCommonDrawCursor(int, int) {}
+void instrumentCommonDrawField(int, int, CellState) {}
+int instrumentCommonOnEdit(int, int, CellEditAction) { return 0; }

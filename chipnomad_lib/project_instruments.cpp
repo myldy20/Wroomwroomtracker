@@ -16,6 +16,7 @@ static void initCommon(Instrument* instrument) {
   instrument->tableSpeed = 1;
   instrument->transposeEnabled = 1;
   instrument->volume = 255;
+  instrument->pan = 128;
   instrument->modulation[0].type = ModulationType::ADSR;
   instrument->modulation[1].type = ModulationType::AHD;
   instrument->modulation[2].type = ModulationType::LFO;
@@ -472,6 +473,8 @@ int instrumentModDestinationAvailable(const Instrument* instrument, int destinat
   int fx,op;
   if(nativeFMModTarget(generic,&fx,&op)) { NativeFXInfo info{};return instrument && instrumentNativeFXInfo(instrument,fx,&info,op); }
   if(generic==genericModFMBrightness||(generic>=genericModFMTime&&generic<=genericModFMLFODepth))return 0;
+  if (generic == genericModInstrumentPan || generic == genericModTrackPan)
+    return instrument && instrument->type != InstrumentType::Midi;
   if (generic >= genericModFMBrightness) return instrumentNativeModDestination(type,generic)!=nullptr;
   if (generic >= genericModFirstInsert) return 1;
   if (generic >= 0) {
@@ -515,10 +518,17 @@ InstrumentVoicePostSettings* instrumentVoicePostSettings(Instrument* instrument)
 
 int instrumentMotionDestination(const Instrument* instrument, int destination, uint8_t* fx, int* base, int* range, InstrumentMotionValue* value) {
   if(!instrument || !instrumentModDestinationAvailable(instrument,destination))return 0;
+  int generic = instrumentGenericModDestination(instrument->type, destination);
+  if (generic == genericModInstrumentPan || generic == genericModTrackPan) {
+    *fx = generic == genericModInstrumentPan ? fxPAN : fxTPN;
+    *base = generic == genericModInstrumentPan ? instrument->pan : 128;
+    *range = 255; *value = InstrumentMotionValue::raw;
+    return 1;
+  }
   const InstrumentModDestination* definition = instrumentModDestination(instrument->type, destination);
   if (!definition || definition->fx == instrumentNoFX) return 0;
   *fx = definition->fx; *range = definition->range; *value = definition->value;
-  int generic=instrumentGenericModDestination(instrument->type,destination);
+  generic=instrumentGenericModDestination(instrument->type,destination);
   if(generic>=genericModFMBrightness){*base=instrumentNativeControlValue(instrument,generic);return 1;}
   switch (instrument->type) {
     case InstrumentType::Braids:
@@ -695,6 +705,8 @@ int instrumentSetCCDestination(Instrument* instrument, int destination, uint8_t 
 }
 
 static const char* genericModName(int index) {
+  if (index == genericModInstrumentPan) return "PAN";
+  if (index == genericModTrackPan) return "Track Pan";
   static const char* names[] = {
     "RevSend", "DlySend",
     "M1 P1", "M1 P2", "M1 P3", "M1 P4",

@@ -21,15 +21,15 @@
 #define ROW_TOTAL 16
 #define ROWS_PER_MOD 8
 
-static SelectionItem destinationCategories[7];
+static SelectionItem destinationCategories[8];
 static SelectionItem sourceCategories[3];
 static SelectionItem insertDestinations[16];
 static char insertHelpers[16][64];
 static const SelectionItem envelopeSources[] = {{"ADSR", (int)ModulationType::ADSR, NULL, 0}, {"AHD", (int)ModulationType::AHD, NULL, 0}};
 static const SelectionItem lfoSources[] = {{"LFO", (int)ModulationType::LFO, NULL, 0}, {"SYNC LFO", (int)ModulationType::SLFO, NULL, 0}, {"FAST LFO", (int)ModulationType::FLFO, NULL, 0}};
 static const SelectionItem stickSources[] = {{"LINEAR", (int)ModulationType::StickLinear, NULL, 0}, {"RATE", (int)ModulationType::StickRate, NULL, 0}};
-static SelectionItem engineDestinations[32];
-static SelectionItem sendDestinations[2];
+static SelectionItem engineDestinations[96];
+static SelectionItem sendDestinations[3];
 static SelectionItem parameterDestinations[16];
 static SelectionItem wavetableDestinations[4];
 static SelectionItem envelopeDestinations[5];
@@ -123,8 +123,11 @@ static void openDestinationPopup(int modIndex) {
   for(int g=genericModFMBrightness;g<genericModTotalCount;++g)
     if(const auto* d=instrumentNativeModDestination(instrument->type,g))
       if(instrumentModDestinationAvailable(instrument,firstGeneric+g))engineDestinations[engineDestinationCount++]={d->name,firstGeneric+g,NULL,0};
+  if (instrument->type != InstrumentType::Midi)
+    engineDestinations[engineDestinationCount++] = {"PAN", firstGeneric + genericModInstrumentPan, NULL, 0};
   sendDestinations[0] = {"REVERB SEND", firstGeneric + genericModReverbSend, NULL, 0};
   sendDestinations[1] = {"DELAY SEND", firstGeneric + genericModDelaySend, NULL, 0};
+  sendDestinations[2] = {"TRACK PAN", firstGeneric + genericModTrackPan, NULL, 0};
   for (int i = 0; i < 16; ++i) {
     int destination = firstGeneric + genericModFirstParameter + i;
     int mod = i / 4;
@@ -148,7 +151,7 @@ static void openDestinationPopup(int modIndex) {
 
   int categoryCount = 0;
   destinationCategories[categoryCount++] = {"ENGINE", -1, engineDestinations, engineDestinationCount};
-  destinationCategories[categoryCount++] = {"FX SENDS", -1, sendDestinations, 2};
+  destinationCategories[categoryCount++] = {"MIXER TRACK", -1, sendDestinations, 3};
   destinationCategories[categoryCount++] = {"MODULATORS", -1, parameterDestinations, 16};
   destinationCategories[categoryCount++] = {"LFO TABLES", -1, wavetableDestinations, 4};
   if (functions.supportsVoicePost) {

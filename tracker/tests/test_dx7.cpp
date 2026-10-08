@@ -1,3 +1,5 @@
+#include "synth/native_chip_gain.h"
+#include "packaged_presets.h"
 #include "doctest.h"
 #include "project.h"
 #include "dx7_patch.h"
@@ -136,9 +138,9 @@ TEST_CASE("DX7 audition owns its patch and never mutates project") {
 #include <filesystem>
 TEST_CASE("DX7 all bundled patches are finite audible and portable") {
   auto p=std::make_unique<Project>();projectInit(p.get());fillFXNames();int count=0;
-  for(const auto& file:std::filesystem::directory_iterator("packaging/common/instruments/chips")) {
-    if(file.path().extension()!=".cni"||file.path().filename().string().find("dx7-")!=0)continue;
-    CAPTURE(file.path().filename().string());REQUIRE(instrumentLoad(p.get(),file.path().string().c_str(),0)==0);
+  for(const auto& file:packagedPresets()) {
+    if(file.path.find("dx7-")!=0)continue;
+    CAPTURE(file.path);REQUIRE((loadFMPreset("packaging/common/instruments/FACTORY",file,p.get(),0)?0:1)==0);
     REQUIRE(p->instruments[0].type==InstrumentType::DX7);REQUIRE(validDX7(p->instruments[0].chip.dx7));
     DX7Part part;part.init(48000);part.voices[0].configure(&p->instruments[0].chip.dx7,6000,1);part.voices[0].noteOn();std::vector<float> audio(48000);part.render(audio.data(),audio.size());double e=energy(audio);
     for(float x:audio)REQUIRE(std::abs(x)<2);CHECK(e>1e-6);++count;
@@ -160,7 +162,7 @@ TEST_CASE("DX7 ratio fixed mode velocity and reference quantum semantics") {
   DX7Part adapter;adapter.init(48000);adapter.voices[0].configure(&p,6000,1);adapter.voices[0].noteOn();
   choochoo_msfa::Note reference;reference.start(p.voice,60,p.velocity);choochoo_msfa::Lfo lfo{};lfo.reset(p.voice+137);lfo.keydown();NativeResampler fir;fir.init(44100,48000);int32_t block[64]{};int cursor=64;
   a.resize(4800);b.resize(4800);adapter.render(a.data(),a.size());
-  for(float& sample:b){float r;fir.next([&](float& x,float& y){if(cursor==64){memset(block,0,sizeof(block));reference.compute(block,lfo.getsample(),lfo.getdelay(),0);cursor=0;}x=y=block[cursor++]/16777216.f*.18f;},sample,r);}
+  for(float& sample:b){float r;fir.next([&](float& x,float& y){if(cursor==64){memset(block,0,sizeof(block));reference.compute(block,lfo.getsample(),lfo.getdelay(),0);cursor=0;}x=y=block[cursor++]/16777216.f*.18f;},sample,r);sample*=nativeChipGain(InstrumentType::DX7);}
   // The native reference excludes the new 3 ms wrapper transition; after
   // its FIR history clears, the pinned core must still match sample-for-sample.
   for(size_t i=192;i<a.size();++i)CHECK(a[i]==b[i]);

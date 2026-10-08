@@ -1,4 +1,5 @@
 #include "simple_chip_presets.h"
+#include "chip_program.h"
 #include <cstring>
 #include <iterator>
 // Original tracker recipes (MIT), no game extractions. Software ADSR values
@@ -93,4 +94,5 @@ const char* simpleChipPresetName(InstrumentType t,int n){auto* r=recipe(t,n);ret
 bool simpleChipApplyPreset(Instrument* i,int n){auto* r=recipe(i->type,n);if(!r)return false;
  auto& p=i->chip.simpleChip;p={};p.schema=1;p.preset=n;p.mode=r->mode;p.noiseRate=r->rate;p.noiseDivisor=r->divisor;p.noiseShift=r->shift;p.envelopeInitial=r->initial;p.envelopePeriod=r->period;p.envelopeIncrease=r->increase;p.sweepPeriod=r->sweep;p.sweepShift=r->steps;p.sweepNegate=r->negate;p.attack=r->attack;p.decay=r->decay;p.sustain=r->sustain;p.release=r->release;p.filterCutoffHz=20000;p.segaBassExtension=i->type==InstrumentType::SegaPSG;
  strncpy(i->name,r->name,PROJECT_INSTRUMENT_NAME_LENGTH);i->name[PROJECT_INSTRUMENT_NAME_LENGTH]=0;return true;}
-bool validSimpleChip(InstrumentType t,const InstrumentSimpleChip& p){return isSimpleChip(t)&&p.schema==1&&p.mode<=(t==InstrumentType::SegaPSG?2:t==InstrumentType::GBPulse?3:1)&&p.noiseRate<=3&&p.noiseDivisor<=7&&p.noiseShift<=13&&p.envelopeInitial<=15&&p.envelopePeriod<=7&&p.envelopeIncrease<=1&&p.sweepPeriod<=7&&p.sweepShift<=7&&p.sweepNegate<=1&&p.segaBassExtension<=1&&p.fineTune>=-100&&p.fineTune<=100;}
+bool validSimpleChip(InstrumentType t,const InstrumentSimpleChip& p){
+ if(!validChipProgram(p.program)||p.program.format>1)return false;return isSimpleChip(t)&&p.schema==1&&p.mode<=(t==InstrumentType::SegaPSG?2:t==InstrumentType::GBPulse?3:1)&&p.noiseRate<=3&&p.noiseDivisor<=7&&p.noiseShift<=13&&p.envelopeInitial<=15&&p.envelopePeriod<=7&&p.envelopeIncrease<=1&&p.sweepPeriod<=7&&p.sweepShift<=7&&p.sweepNegate<=1&&p.segaBassExtension<=1&&p.fineTune>=-100&&p.fineTune<=100;}

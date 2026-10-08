@@ -23,6 +23,7 @@ INCLUDES = -I. -Isrc -Isrc/corelib -Isrc/screens -Isrc/import -Itests/mocks -Iex
 
 # Test executable
 TEST_EXECUTABLE = $(BUILD_DIR)/run_tests$(if $(filter Windows_NT,$(OS)),.exe,)
+STRETCH_LIFETIME_EXECUTABLE = $(BUILD_DIR)/stretch_lifetime$(if $(filter Windows_NT,$(OS)),.exe,)
 MEASURE_EXECUTABLE = $(BUILD_DIR)/render_engine_measurements$(if $(filter Windows_NT,$(OS)),.exe,)
 BENCHMARK_EXECUTABLE = $(BUILD_DIR)/benchmark_song$(if $(filter Windows_NT,$(OS)),.exe,)
 
@@ -64,9 +65,10 @@ CHIPNOMAD_LIB_SOURCES = $(wildcard ../chipnomad_lib/external/msfa/*.cc) ../chipn
                         $(wildcard ../chipnomad_lib/external/mutable/plaits_alt/dsp/physical_modelling/*.cc) \
                         $(wildcard ../chipnomad_lib/external/mutable/plaits_alt/dsp/speech/*.cc)
 
-TRACKER_SRC_SOURCES = src/fm_catalog.cpp src/app.cpp src/support_report.cpp src/version.cpp \
-                      src/screens/instrument_fm_controls.cpp \
+TRACKER_SRC_SOURCES = src/screens/user_preset_browser.cpp src/user_presets.cpp src/fm_catalog.cpp src/app.cpp src/support_report.cpp src/version.cpp \
+                      src/screens/instrument_fm_controls.cpp src/screens/instrument_opl.cpp src/screens/instrument_simple_chip.cpp \
                       src/screens/screen_insert_fx.cpp \
+                      src/screens/edit_fx.cpp src/screens/help.cpp src/misc.cpp \
                       src/screens/selection_popup.cpp \
                       src/corelib/corelib_gfx_layout.cpp \
                       src/screens/screen_layout.cpp \
@@ -131,11 +133,17 @@ $(foreach source,$(ALL_COMPILE_SOURCES),$(eval $(call compile_source,$(source)))
 
 # Default target: build and run all tests
 all: build
+	@$(STRETCH_LIFETIME_EXECUTABLE)
 	@$(TEST_EXECUTABLE)
 
 # Build the test executable incrementally
 .PHONY: build
-build: $(TEST_EXECUTABLE)
+build: $(TEST_EXECUTABLE) $(STRETCH_LIFETIME_EXECUTABLE)
+
+# Keep the allocation hooks in their own process, away from the main suite.
+$(STRETCH_LIFETIME_EXECUTABLE): tests/stretch_lifetime.cpp ../chipnomad_lib/synth/stretch_processor.cpp ../chipnomad_lib/synth/stretch_processor.h Makefile.test
+	@mkdir -p $(BUILD_DIR)
+	@$(CXX) $(CFLAGS) -I../chipnomad_lib/external/signalsmith tests/stretch_lifetime.cpp ../chipnomad_lib/synth/stretch_processor.cpp $(LDFLAGS) -o $@
 
 $(TEST_EXECUTABLE): $(OBJECTS)
 	@mkdir -p $(BUILD_DIR)

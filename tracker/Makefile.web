@@ -7,7 +7,7 @@ LIBS = $(COMMON_LIBS) platforms/sdl2
 OUTPUT_EXT = .html
 WEB_BUILD = build/web
 EMXX ?= em++
-WEB_CFLAGS = $(COMMON_CFLAGS) $(INCLUDES) -DWEB_BUILD -DGAMEPAD_SUPPORT
+WEB_CFLAGS = $(COMMON_CFLAGS) $(INCLUDES) -DWEB_BUILD -DGAMEPAD_SUPPORT -fexceptions
 # Keep initial browser payload lean. Large factory libraries (samples,
 # SR wavetables, instrument banks, external fonts and native title art) are
 # useful content, but they are not required to open the tracker and must not

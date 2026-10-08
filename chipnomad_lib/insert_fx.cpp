@@ -74,7 +74,7 @@ static const InsertDescriptor descriptors[] = {
       {"Stages", "Stages", "", 0, 4, 0, M::discrete}}},
     {"Rotary",
      4,
-     {{"Speed", "Speed", "", 0, 3, 0, M::discrete},
+     {{"Speed", "Speed", "Hz", 0.01f, 25, 143, M::exponential},
       {"Depth", "Depth", "%", 0, 1, 128, M::linear},
       {"Drive", "Drive", "dB", 0, 12, 0, M::linear},
       {"Mix", "Mix", "%", 0, 1, 128, M::linear}}},
@@ -144,8 +144,8 @@ void insertDescribe(char* text, size_t size, int m, int p, int value) {
     static const char* n[] = {"Density", "Drive", "Spiral", "Mojo", "Dyno"};
     snprintf(text, size, "%s", n[(int)v]);
   } else if (m == insertRotary && p == 0) {
-    static const char* n[] = {"Slow", "Fast", "Hyper", "Chaos"};
-    snprintf(text, size, "%s", n[(int)v]);
+    // Keep neighboring very slow rates distinguishable in the edit hint.
+    snprintf(text, size, "%.4g Hz", v);
   } else if (m == insertBitcrusher && p == 0) {
     snprintf(text, size, "%d bit", (int)v + 4);
   } else if (m == insertBitcrusher && p == 1) {
@@ -186,7 +186,9 @@ struct InsertChain::Impl {
     float delay[2][delaySize]{};
     float filter[2]{};
     float allpassX[2][8]{}, allpassY[2][8]{}, phaserFeedback[2]{};
-    float phase = 0, feedback[2]{}, held[2]{};
+    // Long LFO cycles need enough precision to accumulate sub-microradian steps.
+    double phase = 0;
+    float feedback[2]{}, held[2]{};
     int delayWrite = 0, holdCounter = 0;
     float toneCoefficient = 1;
   } slots[2];
@@ -343,8 +345,7 @@ struct InsertChain::Impl {
         case insertChorus:
         case insertFlanger:
         case insertRotary: {
-          const float rotaryRates[] = {0.8f, 5.0f, 12.0f, 25.0f};
-          const float rateHz = s.module == insertRotary ? rotaryRates[(int)p[0]] : p[0];
+          const float rateHz = p[0];
           const float depthMs = s.module == insertChorus ? p[1] :
                                 s.module == insertFlanger ? p[1] : 1.5f + p[1] * 8.0f;
           const float feedback = s.module == insertFlanger ? p[2] :

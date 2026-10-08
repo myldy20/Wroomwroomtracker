@@ -1,3 +1,5 @@
+#include "synth/native_chip_gain.h"
+#include "packaged_presets.h"
 #include "doctest.h"
 #include "project.h"
 #include "four_op_patch.h"
@@ -31,8 +33,8 @@ TEST_CASE("FourOp patch file ownership and malformed load are transactional"){
 }
 TEST_CASE("FourOp all original factory patches load and render"){
  auto p=std::make_unique<Project>();projectInit(p.get());int count=0;std::vector<float> audio(96000);
- for(const auto& f:std::filesystem::directory_iterator("packaging/common/instruments/chips")){
-  if(f.path().extension()!=".cni"||f.path().filename().string().find("four-op-")!=0)continue;CAPTURE(f.path().filename().string());REQUIRE(!instrumentLoad(p.get(),f.path().string().c_str(),0));auto& i=p->instruments[0];REQUIRE(validFourOp(i.type,i.chip.fourOp));FourOpVoice voice;voice.init(48000);voice.configure(i.type,&i.chip.fourOp,6000,1);voice.noteOn();voice.render(audio.data(),48000);double energy=0;
+ for(const auto& f:packagedPresets()){
+  if(f.path.find("four-op-")!=0)continue;CAPTURE(f.path);REQUIRE(!(loadFMPreset("packaging/common/instruments/FACTORY",f,p.get(),0)?0:1));auto& i=p->instruments[0];REQUIRE(validFourOp(i.type,i.chip.fourOp));FourOpVoice voice;voice.init(48000);voice.configure(i.type,&i.chip.fourOp,6000,1);voice.noteOn();voice.render(audio.data(),48000);double energy=0;
   for(float x:audio){REQUIRE(std::isfinite(x));REQUIRE(std::abs(x)<1);energy+=x*x;}CHECK(energy>1e-6);++count;
  }
  CHECK(count==48);projectFree(p.get());
@@ -64,6 +66,6 @@ TEST_CASE("FourOp default patch matches directly clocked ymfm register reference
   if(genesis)for(const auto& r:opnRegs)write(r[0],r[1]);else for(const auto& r:opmRegs)write(r[0],r[1]);
   InstrumentFourOp patch{};initFourOpPatch(&patch);FourOpVoice voice;voice.init(48000);voice.configure(type,&patch,6900,1);voice.noteOn();std::vector<float>actual(96000);voice.render(actual.data(),48000);
   NativeResampler resampler;resampler.init(genesis?opn.sample_rate(7670454):opm.sample_rate(3579545),48000);bool first=true;float previous[2]{},filtered[2]{};float dc=std::exp(-2*3.14159265358979323846*20/48000);
-  for(int frame=0;frame<48000;++frame){float l,r;resampler.next([&](float& left,float& right){if(genesis){ymfm::ym2612::output_data out;opn.generate(&out);left=(out.data[0]-504)/32768.f;right=(out.data[1]-504)/32768.f;}else{ymfm::ym2151::output_data out;opm.generate(&out);left=out.data[0]/32768.f;right=out.data[1]/32768.f;}if(first){first=false;write(genesis?0x28:0x08,genesis?0xf0:0x78);}},l,r);float v[]={l,r};for(int ch=0;ch<2;++ch){float output=v[ch]-previous[ch]+dc*filtered[ch];previous[ch]=v[ch];filtered[ch]=output;if(frame>=144)CHECK(actual[frame*2+ch]==output*.25f);}}
+  for(int frame=0;frame<48000;++frame){float l,r;resampler.next([&](float& left,float& right){if(genesis){ymfm::ym2612::output_data out;opn.generate(&out);left=(out.data[0]-504)/32768.f;right=(out.data[1]-504)/32768.f;}else{ymfm::ym2151::output_data out;opm.generate(&out);left=out.data[0]/32768.f;right=out.data[1]/32768.f;}if(first){first=false;write(genesis?0x28:0x08,genesis?0xf0:0x78);}},l,r);float v[]={l,r};for(int ch=0;ch<2;++ch){float output=v[ch]-previous[ch]+dc*filtered[ch];previous[ch]=v[ch];filtered[ch]=output;if(frame>=144)CHECK(actual[frame*2+ch]==output*(.25f*nativeChipGain(type)));}}
  }
 }

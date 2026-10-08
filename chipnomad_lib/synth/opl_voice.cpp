@@ -1,3 +1,4 @@
+#include "native_chip_gain.h"
 #include "opl_voice.h"
 #include <cstring>
 #include "../native_fm_values.h"
@@ -69,7 +70,7 @@ void OPLVoice::native(float& l,float& r){
 void OPLVoice::render(float* stereo,size_t frames){
   for(size_t i=0;i<frames;++i){float l=0,r=0;if(active_)resampler_.next([&](float& a,float& b){native(a,b);},l,r);
     // Native OPL full scale, conservative instrument gain; normal track mixer follows.
-    float outL=l*.25f,outR=r*.25f;amp_.process(outL,outR);stereo[2*i]=outL;stereo[2*i+1]=outR;
+    float outL=l*(.25f*nativeChipGain(type_)),outR=r*(.25f*nativeChipGain(type_));amp_.process(outL,outR);stereo[2*i]=outL;stereo[2*i+1]=outR;
     level_=std::max(std::max(std::abs(l),std::abs(r)),level_*.999f);
     if(silent_>49715)kill();
   }

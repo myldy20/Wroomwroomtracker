@@ -40,6 +40,10 @@ struct StretchOut {
 };
 }  // namespace
 
+StretchProcessor::~StretchProcessor() {
+  delete static_cast<signalsmith::stretch::SignalsmithStretch<float>*>(stretch_);
+}
+
 void StretchProcessor::configure(const InstrumentSample* sample, uint8_t stretchMode,
                                  float tickRateHz, float pitchSemitones,
                                  uint8_t startMarker, uint8_t endMarker) {

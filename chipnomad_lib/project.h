@@ -221,6 +221,9 @@ enum FX {
   // Leave the removed selector ID unassigned; keep saved command IDs stable.
   fxOAR = fxFBK + 2, fxODR, fxOSR, fxORR, fxOSL, fxODT, fxOMU, fxOFI, fxOFM, fxOE1, fxOE2, fxOE4,
   fxLFR, fxLAD, fxLPD, fxLAS, fxLPS, fxLEN,
+  // Absolute panorama controls. Appended to preserve project FX IDs.
+  fxPAN, // Instrument pan
+  fxTPN, // Track pan
   // Total count - must be last
   fxTotalCount
 };
@@ -389,6 +392,7 @@ struct Project {
 
   int tracksCount;
   uint8_t trackVolume[PROJECT_MAX_TRACKS];
+  uint8_t trackPan[PROJECT_MAX_TRACKS];
   uint8_t trackReverbSend[PROJECT_MAX_TRACKS];
   uint8_t trackDelaySend[PROJECT_MAX_TRACKS];
   uint8_t trackTilt[PROJECT_MAX_TRACKS];
@@ -437,6 +441,7 @@ int projectSave(Project* p, const char* path);
 int instrumentSave(Project* p, const char* path, int instrumentIdx);
 // Load instrument from a file
 int instrumentLoad(Project* p, const char* path, int instrumentIdx);
+int instrumentLoadMemory(Project* p, const uint8_t* bytes, size_t size, int instrumentIdx);
 
 // Is chain empty?
 int8_t chainIsEmpty(Project* p, int chain);

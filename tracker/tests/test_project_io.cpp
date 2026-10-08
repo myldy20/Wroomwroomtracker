@@ -128,6 +128,15 @@ TEST_CASE_FIXTURE(TestFixture, "projectSave_uses_version_6_0") {
   fclose(file);
 }
 
+TEST_CASE("new panorama defaults are centred") {
+  Project p;
+  projectInit(&p);
+  for (int track = 0; track < PROJECT_MAX_TRACKS; ++track)
+    CHECK(p.trackPan[track] == 128);
+  for (int instrument = 0; instrument < PROJECT_MAX_INSTRUMENTS; ++instrument)
+    CHECK(p.instruments[instrument].pan == 128);
+}
+
 TEST_CASE_FIXTURE(TestFixture, "projectLoad_real_file_skytrain_funk") {
   // This test loads an actual project file to catch real-world issues
   Project p;

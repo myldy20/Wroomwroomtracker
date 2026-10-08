@@ -1,3 +1,4 @@
+#include "packaged_presets.h"
 #include "doctest.h"
 #include "chipnomad_lib.h"
 #include "sid_patch.h"
@@ -10,9 +11,9 @@
 
 TEST_CASE("SID factory programs load render multiple sample rates and release") {
  auto p=std::make_unique<Project>();projectInit(p.get());fillFXNames();int count=0;
- for(const auto& file:std::filesystem::directory_iterator("packaging/common/instruments/chips")) {
-  if(file.path().filename().string().find("sid-")!=0)continue;
-  CAPTURE(file.path().filename().string());int result=instrumentLoad(p.get(),file.path().string().c_str(),0);INFO(projectFileError);REQUIRE(result==0);
+ for(const auto& file:packagedPresets()) {
+  if(file.path.find("sid-")!=0)continue;
+  CAPTURE(file.path);int result=(loadFMPreset("packaging/common/instruments/FACTORY",file,p.get(),0)?0:1);INFO(projectFileError);REQUIRE(result==0);
   REQUIRE(p->instruments[0].type==InstrumentType::SID);auto patch=p->instruments[0].chip.sid;REQUIRE(validSID(patch));
   for(int rate:{44100,48000}){SIDVoice voice;voice.init(rate);voice.configure(&patch,6000,.25f);voice.noteOn();
    std::vector<float> audio(rate);voice.render(audio.data(),audio.size());double sum=0,squares=0;
