@@ -9,6 +9,7 @@
 
 #include "copy_paste.h"
 #include <string.h>
+#include <stdio.h>
 
 #ifdef WEB_BUILD
 #include <emscripten/emscripten.h>
@@ -765,6 +766,96 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webSongChainSummary(int chain) {
   packed |= (steps & 0x1f) << 12;
   if (chainHasNotes(&chipnomadState->project, chain)) packed |= 1 << 17;
   return packed;
+}
+
+// Compact, factual picker preview, built from project-owned Chain/Phrase data.
+// An explicit instrument reference is NOT necessarily the instrument sounding
+// on an inherited note: playback can carry an instrument across phrase steps.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSongChainPreview(int chain) {
+  static char preview[224];
+  preview[0] = '\0';
+  if (!chipnomadState || chain < 0 || chain >= PROJECT_MAX_CHAINS) return preview;
+
+  const Project& project = chipnomadState->project;
+  int firstPhrase = -1, secondPhrase = -1, phraseSteps = 0;
+  int noteEvents = 0, firstInstrument = -1, secondInstrument = -1;
+  int distinctInstrumentCount = 0;
+  bool seenInstruments[PROJECT_MAX_INSTRUMENTS] = {};
+
+  for (int step = 0; step < 16; ++step) {
+    const uint16_t phrase = project.chains[chain].rows[step].phrase;
+    if (phrase == EMPTY_VALUE_16 || phrase >= PROJECT_MAX_PHRASES) continue;
+    ++phraseSteps;
+    if (firstPhrase < 0) firstPhrase = phrase;
+    else if (secondPhrase < 0 && phrase != firstPhrase) secondPhrase = phrase;
+
+    for (int row = 0; row < 16; ++row) {
+      const PhraseRow& note = project.phrases[phrase].rows[row];
+      if (note.note < PROJECT_MAX_PITCHES) ++noteEvents;
+      const int id = note.instrument;
+      if (id < PROJECT_MAX_INSTRUMENTS && !seenInstruments[id]) {
+        seenInstruments[id] = true;
+        ++distinctInstrumentCount;
+        if (firstInstrument < 0) firstInstrument = id;
+        else if (secondInstrument < 0) secondInstrument = id;
+      }
+    }
+  }
+
+  if (!phraseSteps) return preview;
+  char phrases[48];
+  if (secondPhrase >= 0)
+    snprintf(phrases, sizeof(phrases), "P%03X, P%03X%s", firstPhrase, secondPhrase,
+      phraseSteps > 2 ? "…" : "");
+  else
+    snprintf(phrases, sizeof(phrases), "P%03X", firstPhrase);
+
+  char instruments[115];
+  if (firstInstrument < 0) {
+    snprintf(instruments, sizeof(instruments), "instrument inherited / unset");
+  } else if (secondInstrument < 0) {
+    snprintf(instruments, sizeof(instruments), "I%02X %s", firstInstrument,
+      instrumentName(&chipnomadState->project, (uint8_t)firstInstrument));
+  } else {
+    snprintf(instruments, sizeof(instruments), "I%02X %s, I%02X %s%s",
+      firstInstrument, instrumentName(&chipnomadState->project, (uint8_t)firstInstrument),
+      secondInstrument, instrumentName(&chipnomadState->project, (uint8_t)secondInstrument),
+      distinctInstrumentCount > 2 ? " +more" : "");
+  }
+
+  snprintf(preview, sizeof(preview), "%s · %d note%s · %s",
+    phrases, noteEvents, noteEvents == 1 ? "" : "s", instruments);
+  return preview;
+}
+
+// Full searchable index of *all* explicit instrument names for a Chain.
+// Unlike the short visual preview, this does not truncate at two instruments.
+// JS owns Unicode-aware case folding while the engine owns the instrument list.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSongChainInstrumentSearch(int chain) {
+  static char names[4096];
+  names[0] = '\0';
+  if (!chipnomadState || chain < 0 || chain >= PROJECT_MAX_CHAINS) return names;
+
+  const Project& project = chipnomadState->project;
+  bool seen[PROJECT_MAX_INSTRUMENTS] = {};
+  size_t used = 0;
+  for (int step = 0; step < 16; ++step) {
+    const uint16_t phrase = project.chains[chain].rows[step].phrase;
+    if (phrase == EMPTY_VALUE_16 || phrase >= PROJECT_MAX_PHRASES) continue;
+    for (int row = 0; row < 16; ++row) {
+      const int instrument = project.phrases[phrase].rows[row].instrument;
+      if (instrument < 0 || instrument >= PROJECT_MAX_INSTRUMENTS ||
+          seen[instrument]) continue;
+      seen[instrument] = true;
+      const int added = snprintf(names + used, sizeof(names) - used,
+        "%s%s", used ? " | " : "",
+        instrumentName(&chipnomadState->project, (uint8_t)instrument));
+      if (added < 0) return names;
+      if ((size_t)added >= sizeof(names) - used) return names;
+      used += (size_t)added;
+    }
+  }
+  return names;
 }
 
 extern "C" EMSCRIPTEN_KEEPALIVE int webSongFindFreeChain(void) {

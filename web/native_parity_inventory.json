@@ -1,0 +1,433 @@
+{
+  "purpose": "Native feature preservation guard. 'fallback-missing' means native behavior still needs a semantic SONG control, so SONG IS NOT feature-complete. 'legacy' means existing legacy canvas is intentionally preserved. Inventory is a growing contract, not proof every upstream feature is mapped.",
+  "screens": {
+    "song": "semantic-incomplete",
+    "chain": "legacy",
+    "phrase": "legacy",
+    "sound": "legacy",
+    "mix": "legacy",
+    "table": "legacy",
+    "groove": "legacy",
+    "project": "legacy",
+    "settings": "legacy"
+  },
+  "features": [
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "webSongSelect",
+      "status": "semantic",
+      "label": "Song cell selection"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "webSongChainPreview",
+      "status": "semantic",
+      "label": "Phrase/instrument Chain preview"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "webSongToggleHighlight",
+      "status": "semantic",
+      "label": "Song highlight"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "copySong(",
+      "status": "fallback-missing",
+      "label": "Song copy/cut"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "pasteSong(",
+      "status": "fallback-missing",
+      "label": "Song paste"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "cloneChainToNext(",
+      "status": "fallback-missing",
+      "label": "Song Chain clone"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "toggleSelectedMute(",
+      "status": "fallback-missing",
+      "label": "Track mute"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "toggleSelectedSolo(",
+      "status": "fallback-missing",
+      "label": "Track solo"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "livePlay(",
+      "status": "fallback-missing",
+      "label": "Live Chain launch/queue"
+    },
+    {
+      "screen": "chain",
+      "native": "tracker/src/screens/screen_chain.cpp",
+      "source": "copyChain(",
+      "status": "legacy",
+      "label": "Chain copy"
+    },
+    {
+      "screen": "chain",
+      "native": "tracker/src/screens/screen_chain.cpp",
+      "source": "pasteChain(",
+      "status": "legacy",
+      "label": "Chain paste"
+    },
+    {
+      "screen": "chain",
+      "native": "tracker/src/screens/screen_chain.cpp",
+      "source": "phraseHasNotes(",
+      "status": "legacy",
+      "label": "Chain Phrase rows"
+    },
+    {
+      "screen": "phrase",
+      "native": "tracker/src/screens/screen_phrase.cpp",
+      "source": "noteName(",
+      "status": "legacy",
+      "label": "Note editing"
+    },
+    {
+      "screen": "phrase",
+      "native": "tracker/src/screens/screen_phrase.cpp",
+      "source": "fxNames[",
+      "status": "legacy",
+      "label": "Phrase FX editing"
+    },
+    {
+      "screen": "phrase",
+      "native": "tracker/src/screens/screen_phrase.cpp",
+      "source": "volumeToHexOrEmpty(",
+      "status": "legacy",
+      "label": "Phrase volume"
+    },
+    {
+      "screen": "sound",
+      "native": "tracker/src/screens/screen_instrument.cpp",
+      "source": "instrument",
+      "status": "legacy",
+      "label": "Instrument editor"
+    },
+    {
+      "screen": "mix",
+      "native": "tracker/src/screens/screen_mixer.cpp",
+      "source": "trackVolume",
+      "status": "legacy",
+      "label": "Mixer level"
+    },
+    {
+      "screen": "mix",
+      "native": "tracker/src/screens/screen_mixer.cpp",
+      "source": "trackReverbSend",
+      "status": "legacy",
+      "label": "Mixer reverb send"
+    },
+    {
+      "screen": "mix",
+      "native": "tracker/src/screens/screen_mixer.cpp",
+      "source": "trackDelaySend",
+      "status": "legacy",
+      "label": "Mixer delay send"
+    },
+    {
+      "screen": "table",
+      "native": "tracker/src/screens/screen_table.cpp",
+      "source": "editCell(",
+      "status": "legacy",
+      "label": "Modulation table"
+    },
+    {
+      "screen": "groove",
+      "native": "tracker/src/screens/screen_groove.cpp",
+      "source": "groove",
+      "status": "legacy",
+      "label": "Groove"
+    },
+    {
+      "screen": "project",
+      "native": "tracker/src/screens/screen_project.cpp",
+      "source": "screenProject",
+      "status": "legacy",
+      "label": "Project management"
+    },
+    {
+      "screen": "settings",
+      "native": "tracker/src/screens/screen_settings.cpp",
+      "source": "screenSettings",
+      "status": "legacy",
+      "label": "Settings"
+    }
+  ],
+  "registeredScreens": [
+    {
+      "symbol": "screenProject",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenProjectLoad",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenProjectSave",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenConfirm",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenPitchTable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenScale",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenFileBrowser",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenCreateFolder",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenEnterName",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSong",
+      "webStatus": "semantic-partial"
+    },
+    {
+      "symbol": "screenChain",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenPhrase",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenGroove",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInstrument",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSampleSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInstrumentPool",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenModulation",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInsertFX",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenAYWavetable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenExport",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenBounce",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenManage",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTrackVisuals",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSynthSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMixerSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenGraphicsSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMixer",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSelectionPopup",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenColorTheme",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenKeyMapping",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidi",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidiChannelMap",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidiCC",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenQuickHelp",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTitle",
+      "webStatus": "native-legacy"
+    }
+  ],
+  "registeredInstrumentTypes": [
+    {
+      "symbol": "none",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AY1",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AY2",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AYSample",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Braids",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Sample",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Plaits",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "PlaitsAlt",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SCWF",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "BYOWTBL",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AChChid",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "DrumSynth",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "MME",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Sintered",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Midi",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPLL",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "VRC7",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPL2",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPL3",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SegaPSG",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GBPulse",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GBNoise",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "DX7",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GenesisFM",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "ArcadeFM",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SID",
+      "webStatus": "native-legacy"
+    }
+  ]
+}

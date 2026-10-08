@@ -24,6 +24,7 @@ Current migration contract:
 | Long Song editing up to native row limit | Incremental 16-row reveal, auto-expand on keyboard navigation, explicit touch EDIT | live Pages row expansion / edit dialog / ArrowDown |
 | Song playback markers from `PlaybackStatus.tracks[].songRow` | compact `webPlaybackTrackPacked` + `.playing-row` / `.playing` classes | live Pages PLAY / selection independence / STOP |
 | Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
+| Chain picker content preview | `webSongChainPreview` reads actual Chain steps, Phrase note events and explicit Instrument IDs/names; no invented inherited instruments | live Pages picker preview / semantic contract |
 | Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 
@@ -36,6 +37,8 @@ Current migration contract:
 | Rectangular selection, copy/cut/paste, move | Direct range selection and contextual clipboard/structural tools | Range/bounds/clipboard E2E + native compatibility |
 | Shallow/deep Chain clone, clear-on-empty column shift | Named editing actions with confirmation when destructive | Clone/shift semantics, persistence and undo expectations |
 | LIVE mode per-track Chain queue and urgent transitions | Intentional live-performance UX backed by existing engine queue | Queue/play/stop ordering, status and track targeting |
+
+The machine-readable inventory `web/native_parity_inventory.json` and CI guard `web/native_parity_contract_test.mjs` now track known native controls across Song, Chain, Phrase, Sound, Mix and secondary screens (including all 37 registered native screens and all 26 InstrumentType entries), preserving fallbacks until feature parity is implemented. This prevents silent deletion of listed native behavior, but is **not** a claim of exhaustive feature parity; expand coverage as each screen is audited. CI must be extended with real browser interaction tests before marking any entry semantic. The `web/wasm_bridge_contract_test.mjs` also verifies the checked-in compiled runtime actually exports Chain preview and search before Pages serves it.
 
 Implement and test in dependency order: read-only state first, then track actions, then structural editing, then LIVE workflow. No second JS-owned sequencer state; no reliance on hidden modifier keys.
 

@@ -267,7 +267,16 @@
     chainPickerEntries = [];
     for (let chain = 0; chain <= maxChain; chain++) {
       const entry = chainSummary(chain);
-      if (entry) chainPickerEntries.push(entry);
+      if (!entry) continue;
+      // Read a preview once while opening the palette; no extra WASM work
+      // during search, playback ticks or normal Song grid rendering.
+      entry.preview = (entry.steps || entry.usage)
+        ? (call("webSongChainPreview", "string", ["number"], [chain]) || "")
+        : "";
+      entry.instrumentSearch = entry.steps
+        ? (call("webSongChainInstrumentSearch", "string", ["number"], [chain]) || "")
+        : "";
+      chainPickerEntries.push(entry);
     }
     chainPickerEntries.sort((a, b) =>
       Number(b.usage > 0) - Number(a.usage > 0) ||
@@ -284,7 +293,10 @@
     for (const entry of chainPickerEntries) {
       const hex = hex2(entry.chain);
       const decimal = String(entry.chain);
-      if (query && !hex.includes(query) && !decimal.includes(query)) continue;
+      if (!query && !entry.usage && !entry.steps && entry.chain !== current) continue;
+      if (query && !hex.includes(query) && !decimal.includes(query) &&
+          !entry.preview.toUpperCase().includes(query) &&
+          !entry.instrumentSearch.toUpperCase().includes(query)) continue;
 
       const button = document.createElement("button");
       button.type = "button";
@@ -297,17 +309,29 @@
 
       const code = document.createElement("strong");
       code.textContent = hex;
+      const details = document.createElement("div");
+      details.className = "chain-picker-details";
       const meta = document.createElement("span");
-      const usage = entry.usage ? "USED " + entry.usage + "×" : "UNUSED";
-      const content = entry.steps ? entry.steps + " STEP" + (entry.steps === 1 ? "" : "S") : "EMPTY";
-      meta.textContent = usage + " · " + content;
+      const usage = entry.usage > 1 ? " · used " + entry.usage + "×" : "";
+      meta.textContent = entry.steps
+        ? entry.steps + " phrase step" + (entry.steps === 1 ? "" : "s") + usage
+        : entry.usage ? "No Phrase assigned" : "Empty slot";
+      details.appendChild(meta);
+      if (entry.preview) {
+        const contents = document.createElement("span");
+        contents.className = "chain-picker-preview";
+        contents.textContent = entry.preview;
+        details.appendChild(contents);
+      }
       const dot = document.createElement("i");
       dot.setAttribute("aria-hidden", "true");
-      button.append(code, meta, dot);
+      button.append(code, details, dot);
       fragment.appendChild(button);
     }
 
+    const hasResults = fragment.childNodes.length > 0;
     chainPickerList.replaceChildren(fragment);
+    $("#chainPickerEmpty").hidden = hasResults;
   };
 
   const openChainPicker = () => {
@@ -337,6 +361,14 @@
         '<div class="inspector-stat"><span>ROW</span><strong>' + hex2(row) + '</strong></div>' +
         '<div class="inspector-stat"><span>TRACK</span><strong>' + (track + 1) + '</strong></div>';
       root.appendChild(stats);
+    }
+
+    if (state.value >= 0) {
+      const preview = call("webSongChainPreview", "string", ["number"], [state.value]) || "";
+      const information = document.createElement("div");
+      information.className = "song-chain-preview";
+      information.textContent = preview || "This Chain has no Phrase steps yet";
+      root.appendChild(information);
     }
 
     const choose = document.createElement("button");

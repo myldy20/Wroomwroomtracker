@@ -127,12 +127,27 @@ if (success) {
   const pickerItems = page.locator("#chainPickerList .chain-picker-item");
   const pickerCount = await pickerItems.count();
   if (!pickerCount) throw new Error("Chain picker rendered no choices");
+  const previews = page.locator("#chainPickerList .chain-picker-preview");
+  if (!(await previews.count())) throw new Error("Chain picker shows no canonical Phrase previews");
+  const firstPreview = await previews.first().innerText();
+  if (!/P[0-9A-F]{3}/.test(firstPreview) || !/\d+ notes?/.test(firstPreview)) {
+    throw new Error("Chain picker preview is missing actual Phrase IDs or note-event count: " + firstPreview);
+  }
+  const emptySlot = page.locator('#chainPickerList .chain-picker-item[data-chain-value="254"]');
+  if (await emptySlot.count()) {
+    const isBlank = await emptySlot.locator(".chain-picker-details").innerText();
+    if (/empty slot/i.test(isBlank)) throw new Error("Default picker is cluttered by empty unused slots");
+  }
   const preferred = page.locator("#chainPickerList .chain-picker-item.has-notes").first();
   if (await preferred.count()) await preferred.click();
   else await pickerItems.first().click();
 
   const assignedValue = await firstCell.locator(".song-cell-value").innerText();
   if (assignedValue === "—") throw new Error("Chain picker did not assign the selected Song cell");
+  const selectedPreview = await page.locator("#inspectorBody .song-chain-preview").innerText();
+  if (!/P[0-9A-F]{3}/.test(selectedPreview)) {
+    throw new Error("Selected Song cell does not show actual Chain contents: " + selectedPreview);
+  }
 
   await page.locator("#playToggle").click();
   await page.waitForFunction(
