@@ -34,9 +34,11 @@ jobs:
           node --check web/live_pages_layout_smoke.mjs
           node --check web/song_semantic_contract_test.mjs
           node --check web/native_parity_contract_test.mjs
+          node --check web/wasm_bridge_contract_test.mjs
           node web/bootstrap_smoke_test.mjs
           node web/song_semantic_contract_test.mjs
           node web/native_parity_contract_test.mjs
+          node web/wasm_bridge_contract_test.mjs
           grep -Fq 'id="semanticWorkspace"' web/index.html
           grep -Fq 'id="songGrid"' web/index.html
           grep -Fq '<canvas id="canvas"' web/index.html

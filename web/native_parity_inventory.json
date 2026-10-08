@@ -173,5 +173,261 @@
       "status": "legacy",
       "label": "Settings"
     }
+  ],
+  "registeredScreens": [
+    {
+      "symbol": "screenProject",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenProjectLoad",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenProjectSave",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenConfirm",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenPitchTable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenScale",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenFileBrowser",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenCreateFolder",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenEnterName",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSong",
+      "webStatus": "semantic-partial"
+    },
+    {
+      "symbol": "screenChain",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenPhrase",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenGroove",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInstrument",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSampleSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInstrumentPool",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenModulation",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenInsertFX",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenAYWavetable",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenExport",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenBounce",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenManage",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTrackVisuals",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSynthSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMixerSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenGraphicsSettings",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMixer",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenSelectionPopup",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenColorTheme",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenKeyMapping",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidi",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidiChannelMap",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenMidiCC",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenQuickHelp",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "screenTitle",
+      "webStatus": "native-legacy"
+    }
+  ],
+  "registeredInstrumentTypes": [
+    {
+      "symbol": "none",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AY1",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AY2",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AYSample",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Braids",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Sample",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Plaits",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "PlaitsAlt",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SCWF",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "BYOWTBL",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "AChChid",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "DrumSynth",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "MME",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Sintered",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "Midi",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPLL",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "VRC7",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPL2",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "OPL3",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SegaPSG",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GBPulse",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GBNoise",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "DX7",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "GenesisFM",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "ArcadeFM",
+      "webStatus": "native-legacy"
+    },
+    {
+      "symbol": "SID",
+      "webStatus": "native-legacy"
+    }
   ]
 }

@@ -24,4 +24,25 @@ for (const entry of inventory.features) {
 }
 assert.ok(counts["fallback-missing"] >= 5, "The Song migration is not yet native-complete");
 assert.ok(counts.legacy >= 10, "Native fallback inventory unexpectedly shrank");
+
+// Full registry snapshots: a new, renamed or removed native screen/engine
+// requires a conscious UX/parity review rather than being silently forgotten.
+const nativeScreens = fs.readFileSync("tracker/src/screens/screens.h", "utf8");
+  .matchAll(/extern const AppScreen (screen\\w+);/g);
+const screenNames = [...nativeScreens].map(match => match[1]).sort();
+assert.deepEqual(inventory.registeredScreens.map(item => item.symbol).sort(), screenNames,
+  "Native AppScreen inventory changed: revisit migration coverage and update registry");
+
+const instrumentHeader = fs.readFileSync("chipnomad_lib/project_instruments.h", "utf8");
+const instrumentEnum = instrumentHeader.match(/enum class InstrumentType\\s*:\\s*uint8_t\\s*\\{([\\s\\S]*?)\\};/);
+assert.ok(instrumentEnum, "Native InstrumentType enum missing");
+const instrumentNames = [...instrumentEnum[1].matchAll(/^\\s*(\\w+)\\s*=\\s*\\d+/gm)]
+  .map(match => match[1]).sort();
+assert.deepEqual(inventory.registeredInstrumentTypes.map(item => item.symbol).sort(), instrumentNames,
+  "Native instrument catalogue changed: revisit Web support and update registry");
+assert.equal(inventory.registeredScreens.find(item => item.symbol === "screenSong").webStatus,
+  "semantic-partial", "Song parity status cannot be silently promoted");
+assert.ok(inventory.registeredScreens.every(item =>
+  ["semantic-partial", "native-legacy"].includes(item.webStatus)));
+
 console.log("Native feature guard passed", counts);
