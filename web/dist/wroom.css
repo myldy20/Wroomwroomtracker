@@ -1610,7 +1610,7 @@ input {
   color: var(--amber); border-color: var(--amber); background: rgba(255,184,47,.12);
 }
 .track-activity-row.muted .track-activity-wave { opacity: .55; }
-.track-activity-wave { display: block; width: 100%; min-width: 0; height: 24px; image-rendering: auto; }
+.track-activity-wave { display: block; width: 100%; min-width: 0; height: 32px; image-rendering: auto; }
 .track-activity-note { text-align: right; color: var(--ink); font-size: 9px; }
 .track-activity-row.note-warning .track-activity-note { color: var(--amber); }
 .track-activity-warning { color: var(--danger); font-size: 8px; font-weight: 900; }
