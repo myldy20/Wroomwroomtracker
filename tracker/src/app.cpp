@@ -510,6 +510,12 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webOpenScreen(int screen) {
 // Read-only representation of the native appDraw() per-track monitor.
 // The tiny waveform is the actual waveformDisplayGetBitmap() glyph, honoring
 // TrackVisualMode and chip-specific rendering, not a second synthetic scope.
+// Preserve the native all-screen keyboard: engine-resolved pitches and
+// chord voices, respecting the actual enabled track mask.
+extern "C" EMSCRIPTEN_KEEPALIVE int webMonitorPianoNotes(void) {
+  return (int)monitorPianoNotes();
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webTrackActivityPacked(int track) {
   if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return -1;
   const PlaybackStatus* playback = chipnomadGetPlaybackStatus(chipnomadState);

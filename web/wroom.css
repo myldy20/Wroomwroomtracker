@@ -1584,11 +1584,12 @@ input {
 }
 
 /* Preserve the shared native track strip on the migrated Song workspace. */
-.track-activity-panel { display: none; }
+/* The native monitor was globally present; retain it across every Web screen. */
+.track-activity-panel { display: block; }
 .track-activity-rows { display: grid; gap: 4px; padding: 8px; }
 .track-activity-row {
   min-height: 30px; min-width: 0; display: grid; align-items: center;
-  grid-template-columns: 18px 16px minmax(35px, 1fr) 37px 29px;
+  grid-template-columns: 18px 48px minmax(24px, 1fr) 37px 29px;
   gap: 4px; padding: 3px 5px; border: 1px solid #122230;
   border-radius: 4px; background: #061019;
   font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -1596,8 +1597,18 @@ input {
 .track-activity-row.selected { border-color: rgba(94,215,255,.42); }
 .track-activity-index { color: var(--muted); font-weight: 900; }
 .track-activity-row.selected .track-activity-index { color: var(--cyan); }
-.track-activity-state { color: var(--amber); font-weight: 900; text-align: center; }
-.track-activity-row.muted .track-activity-state { color: var(--danger); }
+ .track-activity-actions { display: flex; gap: 2px; align-items: center; }
+.track-activity-actions button {
+  flex: 1 1 0; width: 23px; min-width: 0; min-height: 28px;
+  padding: 0; border-color: #203244; border-radius: 4px;
+  color: var(--dim); background: #06111a; font-size: 10px; font-weight: 900;
+}
+.track-activity-actions .track-mute[aria-pressed="true"] {
+  color: var(--danger); border-color: var(--danger); background: rgba(255,80,107,.13);
+}
+.track-activity-actions .track-solo[aria-pressed="true"] {
+  color: var(--amber); border-color: var(--amber); background: rgba(255,184,47,.12);
+}
 .track-activity-row.muted .track-activity-wave { opacity: .55; }
 .track-activity-wave { width: 100%; height: 20px; image-rendering: pixelated; }
 .track-activity-note { text-align: right; color: var(--ink); font-size: 9px; }
@@ -1606,7 +1617,7 @@ input {
 .track-activity-row.clipping { border-color: var(--danger); }
 .song-activity-mobile { display: none; }
 @media (min-width: 941px) {
-  .app-shell:has(#semanticWorkspace:not([hidden])) .track-activity-panel { display: block; }
+  .app-shell .track-activity-panel { display: block; }
 }
 @media (max-width: 940px) {
   .song-activity-mobile {
@@ -1623,10 +1634,64 @@ input {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .track-activity-row {
-    grid-template-columns: 14px 12px minmax(25px, 1fr) 34px 23px;
+    grid-template-columns: 14px 72px minmax(22px, 1fr) 34px 23px;
     gap: 2px; padding-inline: 3px;
   }
+  .track-activity-actions button { min-height: 44px; width: 35px; }
 }
 @media (max-width: 400px) {
   .song-activity-mobile .track-activity-rows { grid-template-columns: 1fr; }
+}
+
+/* One octave, canonical piano pitch-class mask (includes active chord voices). */
+.monitor-piano {
+  position: relative;
+  height: 45px;
+  margin: 4px 10px 12px;
+  border: 1px solid #273643;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #03070b;
+}
+.monitor-key {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  transition: background-color .09s linear, box-shadow .09s linear;
+}
+.monitor-key.white {
+  width: calc(100% / 7);
+  height: 100%;
+  background: #8b9baa;
+  border-right: 1px solid #1a2730;
+  border-radius: 0 0 3px 3px;
+}
+.monitor-key.white.active {
+  background: var(--cyan);
+  box-shadow: inset 0 -7px rgba(5, 15, 25, .22);
+}
+.monitor-key.black {
+  z-index: 1;
+  width: 9%;
+  height: 63%;
+  background: #06111b;
+  border: 1px solid #344b5d;
+  border-radius: 0 0 3px 3px;
+}
+.monitor-key.black.active {
+  background: var(--amber);
+  border-color: #d59b28;
+  box-shadow: 0 0 9px rgba(255,184,47,.32);
+}
+.song-track-mode { font-size: 8px; min-height: 9px; letter-spacing: .06em; }
+.song-track-mode.muted { color: var(--danger); }
+.song-track-mode.solo { color: var(--amber); }
+.song-cell-queue {
+  color: var(--cyan); font-size: 17px; font-weight: 900;
+  min-width: 11px; text-align: right;
+}
+.song-cell.queued-stop .song-cell-queue { color: var(--danger); }
+.song-cell.queued-urgent .song-cell-queue { color: var(--amber); }
+@media (max-width: 940px) {
+  .monitor-piano { height: 46px; }
 }

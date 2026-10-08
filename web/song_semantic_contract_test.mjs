@@ -53,4 +53,18 @@ assert.match(css, /\.song-grid-row\.playing-row/, "Playing row must have a disti
 assert.match(css, /\.song-cell\.selected/, "Selection styling must remain independent");
 assert.match(css, /\.chain-picker-item/, "Chain picker must have touch-sized semantic choices");
 
+assert.match(app, /webMonitorPianoNotes/, "Native piano monitor must be exposed by Web");
+assert.match(app, /monitorPianoNotes\(\)/, "Web piano must use exact native chord pitch mask");
+assert.match(html, /id="songActivityPiano"/, "Desktop piano monitor missing");
+assert.match(html, /id="songActivityMobilePiano"/, "Mobile piano monitor missing");
+assert.match(shell, /updateMonitorPiano/, "Piano keys must reflect native audio state");
+assert.match(shell, /webSongToggleTrackMute/, "Native mute control missing from Web");
+assert.match(shell, /webSongToggleTrackSolo/, "Native solo control missing from Web");
+assert.match(song, /webSongLiveQueuePacked/, "Web must read native queued live actions");
+assert.match(shell, /queued-stop/, "Live stop marker missing");
+assert.match(shell, /queued-urgent/, "Urgent live launch marker missing");
+assert.match(shell, /dataset\.baseAriaLabel/, "Queue accessibility label must preserve original cell reference");
+assert.match(shell, /urgent stop queued/, "Queued urgent stop must have an accessible name");
+assert.match(shell, /chain launch queued/, "Queued Chain launch must have an accessible name");
+assert.match(css, /\.monitor-key\.black\.active/, "Active black piano keys must be visible");
 console.log("Song semantic Web contract passed");

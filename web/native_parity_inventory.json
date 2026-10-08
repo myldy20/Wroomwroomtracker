@@ -57,16 +57,16 @@
     {
       "screen": "song",
       "native": "tracker/src/screens/screen_song.cpp",
-      "source": "toggleSelectedMute(",
-      "status": "fallback-missing",
-      "label": "Track mute"
+      "source": "webSongToggleTrackMute",
+      "status": "semantic",
+      "label": "Single-track mute toggle"
     },
     {
       "screen": "song",
       "native": "tracker/src/screens/screen_song.cpp",
-      "source": "toggleSelectedSolo(",
-      "status": "fallback-missing",
-      "label": "Track solo"
+      "source": "webSongToggleTrackSolo",
+      "status": "semantic",
+      "label": "Single-track solo toggle"
     },
     {
       "screen": "song",
@@ -179,6 +179,27 @@
       "source": "webTrackActivityGlyph(",
       "status": "semantic",
       "label": "Native cross-screen per-track pitch/waveform/clipping status in semantic Song"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/app.cpp",
+      "source": "webMonitorPianoNotes(",
+      "status": "semantic",
+      "label": "Global native piano pitch-class monitor"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "webSongLiveQueuePacked(",
+      "status": "semantic",
+      "label": "Read-only live queue indicators"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "selectedTrackBounds(",
+      "status": "fallback-missing",
+      "label": "Group range mute and solo (native multi-column selection)"
     }
   ],
   "registeredScreens": [

@@ -26,16 +26,18 @@ Current migration contract:
 | Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
 | Chain picker content preview | `webSongChainPreview` reads actual Chain steps, Phrase note events and explicit Instrument IDs/names; no invented inherited instruments | live Pages picker preview / semantic contract |
 | Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
-| Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote`, `webTrackActivityGlyph` read canonical status and exact engine waveform bitmap; right-side Song inspector and collapsed mobile expander, native canvas elsewhere | browser smoke verifies full track count / glyph pixels; responsive mobile/desktop checks |
+| Native global piano monitor | `webMonitorPianoNotes` delegates to native `monitorPianoNotes()`, preserving chord and trackEnabled mask; 12-key pitch-class UI across Song and legacy screens | browser smoke on Song and Chain + native-source contract |
+| Per-track MUTE/SOLO controls | `webSongToggleTrackMute` / `webSongToggleTrackSolo` call `audioManager.toggleTrackMute/Solo`; Web readback from track activity packed status | browser smoke single track and cross-track transition |
+| Pending LIVE queue indicators | `webSongLiveQueuePacked` from `PlaybackStatus.tracks[].queue`; independent `+` / `!` / `−` visual marks, playback still engine-owned | native bridge + browser no-queue smoke, launch action remains pending |
+| Native group-track M/S selection | **Not yet migrated**: `selectedTrackBounds` and `toggleSelectedMute/Solo` support multiple native columns; browser currently exposes independent tracks only | tracked in parity inventory, must gain range selection and regression E2E |
+| Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote`, `webTrackActivityGlyph` read canonical status and exact engine waveform bitmap; right-side cross-screen inspector and collapsed cross-screen mobile expander, native canvas underneath elsewhere | browser smoke verifies full track count / glyph pixels; responsive mobile/desktop checks |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 
 **Song is not yet native-feature-parity complete.** Native `screen_song.cpp` also implements rectangular selection, copy/cut/paste, multi-cell move, shallow/deep chain cloning, the clear-on-empty shift behavior, MUTE/SOLO status, and LIVE mode with queued/urgent/stop indicators. The DOM Song workspace currently lacks the following mappings:
 
 | Native Song behavior still missing | Planned browser equivalent | Required coverage |
 | --- | --- | --- |
-| Track mute/solo and live queue markers (+ / ! / −) | Canonical `WEB_BUILD` read-only track-state snapshots and separate small indicators; do not confuse queue vs playing | Muted/solo/queued states and STOP regression |
-| Track mute/solo actions | Explicit accessible context actions, using native audio manager pathway | MUTE/SOLO toggles and authoritative state readback |
-| Rectangular selection, copy/cut/paste, move | Direct range selection and contextual clipboard/structural tools | Range/bounds/clipboard E2E + native compatibility |
+ | Rectangular selection, copy/cut/paste, move | Direct range selection and contextual clipboard/structural tools | Range/bounds/clipboard E2E + native compatibility |
 | Shallow/deep Chain clone, clear-on-empty column shift | Named editing actions with confirmation when destructive | Clone/shift semantics, persistence and undo expectations |
 | LIVE mode per-track Chain queue and urgent transitions | Intentional live-performance UX backed by existing engine queue | Queue/play/stop ordering, status and track targeting |
 

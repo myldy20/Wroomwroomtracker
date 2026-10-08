@@ -121,6 +121,8 @@ try {
         viewport.name + ": native track monitor cannot be opened");
       assert.ok(await page.locator("#songActivityMobileRows .track-activity-row").count() > 0,
         viewport.name + ": expanded track activity has no tracks");
+      assert.equal(await page.locator("#songActivityMobilePiano .monitor-key").count(), 12,
+        viewport.name + ": global mobile piano must keep all twelve keys");
       await monitor.locator("summary").click();
     }
 
@@ -149,6 +151,21 @@ try {
       await page.waitForSelector("#songCellDialog[open]", { timeout: 5_000 });
       await page.locator("#songCellDialogClose").click();
     }
+
+    // Global monitor is visible even on legacy CHAIN; mobile expander remains
+    // reachable without switching back to SONG.
+    await page.locator('.view-tabs [data-screen="1"]').click();
+    await page.waitForFunction(() => document.querySelector("#screenName")?.textContent === "CHAIN",
+      null, { timeout: 5_000 });
+    if (viewport.desktop) {
+      assert.ok(await page.locator("#songActivityPanel").isVisible(),
+        viewport.name + ": global desktop monitor disappeared on CHAIN");
+      assert.equal(await page.locator("#songActivityPiano .monitor-key").count(), 12);
+    } else {
+      assert.ok(await page.locator("#songActivityMobile").isVisible(),
+        viewport.name + ": global mobile monitor disappeared on CHAIN");
+    }
+    await page.locator('.view-tabs [data-screen="0"]').click();
 
     await page.screenshot({
       path: path.join(outDir, viewport.name + ".png"),
