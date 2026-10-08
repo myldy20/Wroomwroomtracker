@@ -17,6 +17,10 @@ assert.match(html, /id="songActivityMobile"/, "Mobile track monitor expander mis
 assert.match(shell, /updateTrackActivity/, "Track status refresh missing");
 assert.match(app, /webTrackAudioScopeHex/, "High-resolution scope must read existing native PCM");
 assert.match(shell, /updateTrackScopes/, "Smooth rAF scope refresh missing");
+assert.match(shell, /readTrackScope/, "Track scope must decode real 16-bit PCM");
+assert.match(shell, /targetGain = 0\.86 \/ peak/, "Scope shape auto-gain missing");
+assert.match(shell, /peak < 4 \/ 32768/, "Silence gate must prevent fake waveforms");
+assert.match(app, /AUDIO_MONITOR_SAMPLES \* 4 \+ 1/, "Native 16-bit bridge output missing");
 assert.match(css, /\.track-activity-row/, "Track monitor styling missing");
 assert.match(audio, /webAccumulatePeak/, "Audio callback must collect peak data without allocation");
 assert.match(audio, /floatBuffer\[frame \* 2 \+ 1\]/, "Right channel must be measured separately");
