@@ -6,6 +6,8 @@ on:
     branches:
       - main
   push:
+    branches:
+      - web/global-monitor-native-parity-20261008
     tags:
       - 'v*'
 
@@ -13,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: web-dist
+  group: web-dist-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,9 +42,14 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add web/dist
           git commit -m "build: update web bundle"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
+          if [ "$GITHUB_REF" = "refs/heads/web/global-monitor-native-parity-20261008" ]; then
+            # Only update the feature branch; shallow checkouts cannot rebase.
+            git push origin HEAD:"$GITHUB_REF_NAME"
+          else
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
