@@ -9,6 +9,7 @@ WroomWroomTracker is a fork of [ChooChooTracker](https://github.com/paiheulevrai
 ## What is different in this fork
 
 - Browser-first UX inspired by BRKTRK.
+- Compact live MASTER L/R output level indicators across all Web workspaces.
 - Direct mouse/touch interaction with tracker cells.
 - No virtual D-pad or A/B/Start/Select pad in the web UI.
 - Explicit **SONG / CHAIN / PHRASE / SOUND / MIX** workspaces.

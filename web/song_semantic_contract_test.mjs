@@ -6,8 +6,15 @@ const html = fs.readFileSync("web/index.html", "utf8");
 const css = fs.readFileSync("web/wroom.css", "utf8");
 const app = fs.readFileSync("tracker/src/app.cpp", "utf8");
 const song = fs.readFileSync("tracker/src/screens/screen_song.cpp", "utf8");
+const audio = fs.readFileSync("tracker/src/audio_manager.cpp", "utf8");
 
 assert.match(app, /webPlaybackTrackPacked/, "Web must read a compact canonical playback snapshot");
+assert.match(audio, /webOutputStereoPeaksPacked/, "Web must export real final-output stereo peaks");
+assert.match(audio, /webAccumulatePeak/, "Audio callback must collect peak data without allocation");
+assert.match(audio, /floatBuffer\[frame \* 2 \+ 1\]/, "Right channel must be measured separately");
+assert.match(html, /id="masterPeakL"/, "Global left output meter missing");
+assert.match(html, /id="masterPeakR"/, "Global right output meter missing");
+assert.match(shell, /updateMasterMeters/, "Global meter must read live output state");
 assert.match(app, /chipnomadGetPlaybackStatus/, "Playback bridge must come from canonical PlaybackStatus");
 assert.match(song, /webSongChainSummary/, "Song must expose semantic Chain summaries");
 assert.match(song, /webSongChainPreview/, "Song must provide canonical Chain/Phrase/Instrument preview");

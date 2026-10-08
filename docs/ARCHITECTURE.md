@@ -44,6 +44,10 @@ Implement and test in dependency order: read-only state first, then track action
 
 For every later screen migration, preserve the same order: inventory native behavior, add a minimal `WEB_BUILD` bridge to canonical state, implement direct browser interaction, add regression coverage, then reduce reliance on the legacy view.
 
+## Web stereo output metering
+
+The cross-workspace MASTER L/R meters read final stereo samples from the Web audio callback **after** the ordinary tracker mix and sample-preview contribution, just before PCM conversion. Under `WEB_BUILD` only, the callback accumulates independently clamped 12-bit peaks into lock-free atomics; `webOutputStereoPeaksPacked` returns and clears both peak windows via one call. The JS shell polls at 100 ms and applies display-only decay / dBFS conversion. This is telemetry, not a second audio engine or a transport signal, and does not alter native builds.
+
 ## Modules
 
 - `tracker/src/`: application loop, SDL audio, tracker screens, editing,
