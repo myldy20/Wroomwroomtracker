@@ -21,10 +21,23 @@ Current migration contract:
 | Native behavior | Semantic Web equivalent | Regression coverage |
 | --- | --- | --- |
 | Song cursor / selected cell | `webSongSelect` + DOM `.selected` | live Pages exact-cell selection |
+| Long Song editing up to native row limit | Incremental 16-row reveal, auto-expand on keyboard navigation, explicit touch EDIT | live Pages row expansion / edit dialog / ArrowDown |
 | Song playback markers from `PlaybackStatus.tracks[].songRow` | compact `webPlaybackTrackPacked` + `.playing-row` / `.playing` classes | live Pages PLAY / selection independence / STOP |
 | Song Chain reference editing | Chain picker backed by `webSongChainSummary`; direct number remains secondary | live Pages picker assignment |
 | Song highlight / content state | packed Song cell state + semantic CSS classes | Web contract + existing engine state |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
+
+**Song is not yet native-feature-parity complete.** Native `screen_song.cpp` also implements rectangular selection, copy/cut/paste, multi-cell move, shallow/deep chain cloning, the clear-on-empty shift behavior, MUTE/SOLO status, and LIVE mode with queued/urgent/stop indicators. The DOM Song workspace currently lacks the following mappings:
+
+| Native Song behavior still missing | Planned browser equivalent | Required coverage |
+| --- | --- | --- |
+| Track mute/solo and live queue markers (+ / ! / −) | Canonical `WEB_BUILD` read-only track-state snapshots and separate small indicators; do not confuse queue vs playing | Muted/solo/queued states and STOP regression |
+| Track mute/solo actions | Explicit accessible context actions, using native audio manager pathway | MUTE/SOLO toggles and authoritative state readback |
+| Rectangular selection, copy/cut/paste, move | Direct range selection and contextual clipboard/structural tools | Range/bounds/clipboard E2E + native compatibility |
+| Shallow/deep Chain clone, clear-on-empty column shift | Named editing actions with confirmation when destructive | Clone/shift semantics, persistence and undo expectations |
+| LIVE mode per-track Chain queue and urgent transitions | Intentional live-performance UX backed by existing engine queue | Queue/play/stop ordering, status and track targeting |
+
+Implement and test in dependency order: read-only state first, then track actions, then structural editing, then LIVE workflow. No second JS-owned sequencer state; no reliance on hidden modifier keys.
 
 For every later screen migration, preserve the same order: inventory native behavior, add a minimal `WEB_BUILD` bridge to canonical state, implement direct browser interaction, add regression coverage, then reduce reliance on the legacy view.
 

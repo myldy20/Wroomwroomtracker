@@ -79,6 +79,7 @@ try {
         selection: rect("#selectionInspector"),
         firstUtility: rect(".utility-drawer"),
         songScroll: rect("#songScroll"),
+        songEdit: rect("#songEditSelected"),
         songScrollWidths: {
           client: document.querySelector("#songScroll")?.clientWidth || 0,
           scroll: document.querySelector("#songScroll")?.scrollWidth || 0,
@@ -92,6 +93,8 @@ try {
 
     assert.ok(metrics.documentOverflow <= 1, viewport.name + ": page itself must not horizontally overflow");
     assert.ok(metrics.navVisible, viewport.name + ": workspace navigation must stay visible");
+    assert.ok(metrics.songEdit?.height >= 44,
+      viewport.name + ": direct Song EDIT action must remain a 44px touch target");
 
     if (viewport.desktop) {
       assert.ok(metrics.workbenchVisible, viewport.name + ": context inspector must be visible");
@@ -107,6 +110,14 @@ try {
         viewport.name + ": bottom navigation touch targets must be at least 44px high");
       assert.ok(metrics.songScrollWidths.scroll >= metrics.songScrollWidths.client,
         viewport.name + ": Song horizontal scrolling contract is broken");
+    }
+
+    if (!viewport.desktop) {
+      // Exercise the visible touch-first editor without using a double tap,
+      // keyboard shortcut or the desktop-only inspector.
+      await page.locator("#songEditSelected").click();
+      await page.waitForSelector("#songCellDialog[open]", { timeout: 5_000 });
+      await page.locator("#songCellDialogClose").click();
     }
 
     await page.screenshot({

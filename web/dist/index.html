@@ -65,10 +65,14 @@
                 <strong>ARRANGEMENT</strong>
                 <span>Rows are song positions. Columns are tracks. Cells point to chains.</span>
               </div>
-              <button id="songJumpCursor" type="button" data-needs-runtime disabled>JUMP TO CURSOR</button>
+              <div class="song-toolbar-actions">
+                <button id="songEditSelected" type="button" data-needs-runtime disabled>EDIT CELL</button>
+                <button id="songJumpCursor" type="button" data-needs-runtime disabled aria-label="Jump to selected Song cell">LOCATE</button>
+              </div>
             </div>
             <div id="songScroll" class="song-scroll">
               <div id="songGrid" class="song-grid" role="grid" aria-label="Song arrangement grid"></div>
+              <button id="songMoreRows" class="song-more-rows" type="button" data-needs-runtime disabled hidden>SHOW 16 MORE SONG ROWS</button>
             </div>
           </section>
         </div>

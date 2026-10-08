@@ -13,6 +13,11 @@ assert.match(song, /webSongChainSummary/, "Song must expose semantic Chain summa
 assert.match(song, /webSongFindFreeChain/, "Song picker must assign a genuinely free Chain");
 
 assert.match(html, /id="chainPickerDialog"/, "Chain picker dialog must exist");
+assert.match(html, /id="songEditSelected"/, "Touch users need a visible Song editor");
+assert.match(html, /id="songMoreRows"/, "Song must expose additional arrangement rows");
+assert.match(shell, /ensureSongRowRendered/, "Keyboard navigation must expand Song rows");
+assert.match(shell, /songMinimumRows/, "Song row expansion must preserve its visible range");
+assert.match(css, /\.song-more-rows/, "Song row-expansion control needs a visible style");
 assert.match(html, /id="chainPickerSearch"/, "Chain picker must expose visible search");
 assert.match(shell, /songInspectorChooseChain/, "Picker must be the primary inspector action");
 assert.match(shell, /updateSongPlaybackVisuals/);

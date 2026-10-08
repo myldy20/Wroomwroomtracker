@@ -5,8 +5,9 @@ The browser build is the primary product focus of this fork.
 It keeps the ChooChooTracker engine and project format, but the web shell is designed around direct interaction instead of an on-screen gamepad:
 
 - tap/click tracker cells directly;
-- drag horizontally to edit values;
-- double-tap/click or use **EDIT** for the selected cell's action;
+- use **EDIT CELL** to edit a Song cell on desktop or phone, or double-tap a cell;
+- reveal additional Song rows in increments of 16; keyboard navigation expands the view automatically;
+- drag-based value adjustment remains in the legacy canvas screens until their semantic migration;
 - switch directly between **SONG**, **CHAIN**, **PHRASE**, **SOUND**, and **MIX**;
 - use explicit **PLAY**, **STOP**, **OPEN**, and **DOWNLOAD** actions.
 

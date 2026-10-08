@@ -16,6 +16,7 @@
   let trackerStarted = false;
   let activeUiScreen = 0;
   let songRendered = false;
+  let songMinimumRows = 32;
   let songSelection = { row: 0, track: 0 };
   let songLastTap = { row: -1, track: -1, time: 0 };
   let chainPickerEntries = [];
@@ -230,9 +231,18 @@
     return true;
   };
 
+  const ensureSongRowRendered = (row) => {
+    if (row < songGrid.querySelectorAll(".song-grid-row").length) return;
+    const maxRows = Math.max(1, call("webSongRowCount", "number") || 256);
+    songMinimumRows = Math.min(maxRows, Math.max(songMinimumRows, row + 8));
+    songRendered = false;
+    renderSongWorkspace();
+  };
+
   const selectSongCell = (row, track, scroll = false) => {
     if (call("webSongSelect", "number", ["number", "number"], [row, track]) !== 0) return;
     songSelection = { row, track };
+    ensureSongRowRendered(row);
     songGrid.querySelectorAll(".song-cell.selected").forEach((cell) => cell.classList.remove("selected"));
     songGrid.querySelectorAll(".song-grid-row.cursor-row").forEach((line) => line.classList.remove("cursor-row"));
     const cell = songGrid.querySelector(`[data-song-row="${row}"][data-song-track="${track}"]`);
@@ -445,7 +455,7 @@
     const cursorRow = Math.max(0, call("webSongCursorRow", "number") || 0);
     const cursorTrack = Math.max(0, call("webSongCursorTrack", "number") || 0);
     const lastUsed = Math.max(0, call("webSongLastUsedRow", "number") || 0);
-    const rows = Math.min(maxRows, Math.max(32, lastUsed + 10, cursorRow + 6));
+    const rows = Math.min(maxRows, Math.max(songMinimumRows, lastUsed + 10, cursorRow + 6));
     const previousTop = songScroll.scrollTop;
     const previousLeft = songScroll.scrollLeft;
 
@@ -510,6 +520,9 @@
     songGrid.replaceChildren(fragment);
     songScroll.scrollTop = previousTop;
     songScroll.scrollLeft = previousLeft;
+    const moreRowsButton = $("#songMoreRows");
+    moreRowsButton.hidden = rows >= maxRows;
+    moreRowsButton.textContent = "SHOW 16 MORE SONG ROWS · " + rows + " / " + maxRows;
     songRendered = true;
     lastPlaybackVisualKey = "";
     updateSongInspector();
@@ -603,6 +616,19 @@
     track = Math.max(0, Math.min(tracks - 1, track));
     selectSongCell(row, track, true);
     songGrid.querySelector(`[data-song-row="${row}"][data-song-track="${track}"]`)?.focus();
+  });
+
+  $("#songEditSelected").addEventListener("click", openSongDialog);
+
+  $("#songMoreRows").addEventListener("click", () => {
+    const firstNewRow = songGrid.querySelectorAll(".song-grid-row").length;
+    const maxRows = Math.max(1, call("webSongRowCount", "number") || 256);
+    songMinimumRows = Math.min(maxRows, Math.max(songMinimumRows, firstNewRow) + 16);
+    songRendered = false;
+    renderSongWorkspace();
+    songGrid.querySelector('[data-song-row="' + firstNewRow + '"]')?.scrollIntoView({
+      block: "center", inline: "nearest"
+    });
   });
 
   $("#songJumpCursor").addEventListener("click", () => {

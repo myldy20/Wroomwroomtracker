@@ -860,6 +860,25 @@ input {
   color: var(--muted);
 }
 
+.song-toolbar > .song-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.song-toolbar-actions button {
+  min-height: 44px;
+  margin-left: 0;
+  font-weight: 800;
+}
+
+#songEditSelected {
+  color: var(--amber);
+  border-color: rgba(255, 184, 47, .35);
+}
+
 .song-scroll {
   min-height: 0;
   flex: 1 1 auto;
@@ -876,6 +895,16 @@ input {
   min-width: 650px;
   width: 100%;
   padding-bottom: 18px;
+}
+
+.song-more-rows {
+  display: block;
+  width: min(100%, 650px);
+  min-height: 44px;
+  margin: 0 auto 16px;
+  color: var(--cyan);
+  border-color: rgba(94, 215, 255, .28);
+  background: #07131d;
 }
 
 .song-grid-header,
@@ -1243,9 +1272,18 @@ input {
     display: none;
   }
 
-  .song-toolbar button {
-    min-height: 36px;
+  .song-toolbar {
+    gap: 6px;
+  }
+
+  .song-toolbar > div:first-child span {
+    display: none;
+  }
+
+  .song-toolbar .song-toolbar-actions button {
+    min-height: 44px;
     padding-inline: 8px;
+    font-size: 10px;
   }
 
   .song-grid {
@@ -1260,10 +1298,7 @@ input {
   .song-cell {
     padding-inline: 7px;
   }
-
 }
-}
-
 
 .chain-picker-body {
   padding: 10px;
