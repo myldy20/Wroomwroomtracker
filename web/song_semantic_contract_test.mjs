@@ -10,6 +10,13 @@ const song = fs.readFileSync("tracker/src/screens/screen_song.cpp", "utf8");
 assert.match(app, /webPlaybackTrackPacked/, "Web must read a compact canonical playback snapshot");
 assert.match(app, /chipnomadGetPlaybackStatus/, "Playback bridge must come from canonical PlaybackStatus");
 assert.match(song, /webSongChainSummary/, "Song must expose semantic Chain summaries");
+assert.match(song, /webSongChainPreview/, "Song must provide canonical Chain/Phrase/Instrument preview");
+assert.match(song, /project\.phrases\[phrase\]\.rows\[row\]/, "Preview must inspect real Phrase rows");
+assert.match(song, /instrumentName\(/, "Preview must show real instrument names");
+assert.match(song, /note\.instrument/, "Preview must read actual instrument references");
+assert.match(shell, /entry\.preview/, "Picker must display actual chain content rather than repeated labels");
+assert.match(shell, /!entry\.usage && !entry\.steps/, "Picker must suppress unused empty slots by default");
+assert.match(html, /id="chainPickerEmpty"/, "Empty search must have a user-visible explanation");
 assert.match(song, /webSongFindFreeChain/, "Song picker must assign a genuinely free Chain");
 
 assert.match(html, /id="chainPickerDialog"/, "Chain picker dialog must exist");

@@ -215,12 +215,14 @@
     </header>
     <div class="chain-picker-body">
       <input id="chainPickerSearch" class="chain-picker-search" type="search" inputmode="search"
-        placeholder="Search chain number…" autocomplete="off" aria-label="Search chains">
+        placeholder="Search number or instrument…" autocomplete="off" aria-label="Search chains by number or instrument">
       <div class="chain-picker-actions">
         <button id="chainPickerClear" type="button">CLEAR CELL</button>
         <button id="chainPickerNew" type="button">NEW FREE CHAIN</button>
       </div>
+      <p class="chain-picker-hint">Used and non-empty chains. Search to find any slot.</p>
       <div id="chainPickerList" class="chain-picker-list" role="listbox" aria-label="Available chains"></div>
+      <p id="chainPickerEmpty" class="chain-picker-hint" hidden>No matching Chain. Search another number or create a free one.</p>
     </div>
   </dialog>
 
