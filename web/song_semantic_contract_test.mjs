@@ -63,5 +63,8 @@ assert.match(shell, /webSongToggleTrackSolo/, "Native solo control missing from 
 assert.match(song, /webSongLiveQueuePacked/, "Web must read native queued live actions");
 assert.match(shell, /queued-stop/, "Live stop marker missing");
 assert.match(shell, /queued-urgent/, "Urgent live launch marker missing");
+assert.match(shell, /dataset\.baseAriaLabel/, "Queue accessibility label must preserve original cell reference");
+assert.match(shell, /urgent stop queued/, "Queued urgent stop must have an accessible name");
+assert.match(shell, /chain launch queued/, "Queued Chain launch must have an accessible name");
 assert.match(css, /\.monitor-key\.black\.active/, "Active black piano keys must be visible");
 console.log("Song semantic Web contract passed");

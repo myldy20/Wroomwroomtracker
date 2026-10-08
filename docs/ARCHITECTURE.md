@@ -29,6 +29,7 @@ Current migration contract:
 | Native global piano monitor | `webMonitorPianoNotes` delegates to native `monitorPianoNotes()`, preserving chord and trackEnabled mask; 12-key pitch-class UI across Song and legacy screens | browser smoke on Song and Chain + native-source contract |
 | Per-track MUTE/SOLO controls | `webSongToggleTrackMute` / `webSongToggleTrackSolo` call `audioManager.toggleTrackMute/Solo`; Web readback from track activity packed status | browser smoke single track and cross-track transition |
 | Pending LIVE queue indicators | `webSongLiveQueuePacked` from `PlaybackStatus.tracks[].queue`; independent `+` / `!` / `−` visual marks, playback still engine-owned | native bridge + browser no-queue smoke, launch action remains pending |
+| Native group-track M/S selection | **Not yet migrated**: `selectedTrackBounds` and `toggleSelectedMute/Solo` support multiple native columns; browser currently exposes independent tracks only | tracked in parity inventory, must gain range selection and regression E2E |
 | Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote`, `webTrackActivityGlyph` read canonical status and exact engine waveform bitmap; right-side cross-screen inspector and collapsed cross-screen mobile expander, native canvas underneath elsewhere | browser smoke verifies full track count / glyph pixels; responsive mobile/desktop checks |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 

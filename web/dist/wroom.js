@@ -543,9 +543,10 @@
         cell.dataset.songRow = String(row);
         cell.dataset.songTrack = String(track);
         cell.setAttribute("role", "gridcell");
-        cell.setAttribute("aria-label",
-          "Row " + hex2(row) + ", track " + (track + 1) + ", " +
-          (state.value < 0 ? "empty" : "chain " + hex2(state.value)));
+        const baseLabel = "Row " + hex2(row) + ", track " + (track + 1) + ", " +
+          (state.value < 0 ? "empty" : "chain " + hex2(state.value));
+        cell.dataset.baseAriaLabel = baseLabel;
+        cell.setAttribute("aria-label", baseLabel);
 
         const value = document.createElement("span");
         value.className = "song-cell-value";
@@ -956,6 +957,7 @@
     songGrid.querySelectorAll(".song-cell.queued-live").forEach((cell) => {
       cell.classList.remove("queued-live", "queued-stop", "queued-urgent");
       cell.querySelector(".song-cell-queue").textContent = "";
+      cell.setAttribute("aria-label", cell.dataset.baseAriaLabel);
     });
 
     for (let track = 0; track < tracks; ++track) {
@@ -969,6 +971,9 @@
       cell.classList.toggle("queued-stop", stop);
       cell.classList.toggle("queued-urgent", urgent);
       cell.querySelector(".song-cell-queue").textContent = stop ? "−" : urgent ? "!" : "+";
+      const queueName = stop ? (urgent ? "urgent stop queued" : "stop queued") :
+        (urgent ? "urgent chain launch queued" : "chain launch queued");
+      cell.setAttribute("aria-label", cell.dataset.baseAriaLabel + ", " + queueName);
     }
 
     if (!playing) return;

@@ -59,14 +59,14 @@
       "native": "tracker/src/screens/screen_song.cpp",
       "source": "webSongToggleTrackMute",
       "status": "semantic",
-      "label": "Track mute"
+      "label": "Single-track mute toggle"
     },
     {
       "screen": "song",
       "native": "tracker/src/screens/screen_song.cpp",
       "source": "webSongToggleTrackSolo",
       "status": "semantic",
-      "label": "Track solo"
+      "label": "Single-track solo toggle"
     },
     {
       "screen": "song",
@@ -193,6 +193,13 @@
       "source": "webSongLiveQueuePacked(",
       "status": "semantic",
       "label": "Read-only live queue indicators"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "selectedTrackBounds(",
+      "status": "fallback-missing",
+      "label": "Group range mute and solo (native multi-column selection)"
     }
   ],
   "registeredScreens": [
