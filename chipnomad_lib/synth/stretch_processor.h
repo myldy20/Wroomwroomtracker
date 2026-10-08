@@ -16,6 +16,11 @@ struct InstrumentSample;
 // Stretch is active.
 class StretchProcessor {
  public:
+  StretchProcessor() = default;
+  ~StretchProcessor();
+  StretchProcessor(const StretchProcessor&) = delete;
+  StretchProcessor& operator=(const StretchProcessor&) = delete;
+
   void init(double outputSampleRate, bool cheap);
   // stretchMode: 0 = off, 1 = 1 beat, 2 = 2 beats, 3 = 1 bar, 4 = 2 bars,
   // 5 = 4 bars, 6 = 8 bars. tickRateHz is the project tick rate (BPM =
