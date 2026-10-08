@@ -20,6 +20,8 @@ const viewports = [
   { name: "desktop-1280x800", width: 1280, height: 800, desktop: true },
   { name: "tablet-768x1024", width: 768, height: 1024, desktop: false },
   { name: "mobile-390x844", width: 390, height: 844, desktop: false },
+  { name: "mobile-360x780", width: 360, height: 780, desktop: false },
+  { name: "mobile-320x680", width: 320, height: 680, desktop: false },
 ];
 
 const browser = await chromium.launch({
@@ -78,6 +80,9 @@ try {
         workbenchVisible: visible(".workbench"),
         selection: rect("#selectionInspector"),
         masterMeter: rect("#masterMeter"),
+        brand: rect(".brand"),
+        playButton: rect("#playToggle"),
+        utilityMenu: rect("#mobileMenuButton"),
         firstUtility: rect(".utility-drawer"),
         songScroll: rect("#songScroll"),
         songEdit: rect("#songEditSelected"),
@@ -94,8 +99,15 @@ try {
 
     assert.ok(metrics.documentOverflow <= 1, viewport.name + ": page itself must not horizontally overflow");
     assert.ok(metrics.navVisible, viewport.name + ": workspace navigation must stay visible");
-    assert.ok(metrics.masterMeter?.width >= 48 && metrics.masterMeter.right <= viewport.width,
+    assert.ok(metrics.masterMeter?.width >= (viewport.width <= 380 ? 40 : 48) &&
+      metrics.masterMeter.right <= viewport.width,
       viewport.name + ": global stereo meter must remain visible in the top bar");
+    assert.ok(metrics.brand?.right <= metrics.masterMeter?.x + 1,
+      viewport.name + ": brand text must not collide with master meter");
+    assert.ok(metrics.masterMeter?.right <= metrics.playButton?.x + 1,
+      viewport.name + ": stereo meter must not collide with transport");
+    assert.ok(metrics.utilityMenu?.right <= viewport.width,
+      viewport.name + ": menu button must remain on-screen");
     assert.ok(metrics.songEdit?.height >= 44,
       viewport.name + ": direct Song EDIT action must remain a 44px touch target");
 

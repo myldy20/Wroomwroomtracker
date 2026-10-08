@@ -1536,3 +1536,17 @@ input {
     padding-bottom: max(14px, env(safe-area-inset-bottom));
   }
 }
+
+/* Compact phones: preserve stereo metering and transport without allowing
+   the brand or utility controls to collide at 320–360 CSS pixels. */
+@media (max-width: 380px) {
+  .topbar { padding-inline: 4px; gap: 4px; }
+  .brand-block { gap: 0; flex: 0 1 auto; }
+  .brand { font-size: 9px; letter-spacing: 0; }
+  .master-meter { min-width: 40px; width: 40px; }
+  .master-meter-channel { grid-template-columns: 8px minmax(0, 1fr); gap: 2px; }
+  .transport { gap: 2px; }
+  .transport button { min-width: 45px; min-height: 38px; padding-inline: 4px; font-size: 8px; letter-spacing: 0; }
+  .utility-buttons { gap: 2px; }
+  .utility-buttons button { min-width: 26px; padding-inline: 3px; font-size: 9px; }
+}
