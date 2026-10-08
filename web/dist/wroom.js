@@ -359,6 +359,14 @@
       root.appendChild(stats);
     }
 
+    if (state.value >= 0) {
+      const preview = call("webSongChainPreview", "string", ["number"], [state.value]) || "";
+      const information = document.createElement("div");
+      information.className = "song-chain-preview";
+      information.textContent = preview || "This Chain has no Phrase steps yet";
+      root.appendChild(information);
+    }
+
     const choose = document.createElement("button");
     choose.type = "button";
     choose.id = dialogMode ? "songDialogChooseChain" : "songInspectorChooseChain";

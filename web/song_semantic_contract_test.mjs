@@ -15,6 +15,7 @@ assert.match(song, /project\.phrases\[phrase\]\.rows\[row\]/, "Preview must insp
 assert.match(song, /instrumentName\(/, "Preview must show real instrument names");
 assert.match(song, /note\.instrument/, "Preview must read actual instrument references");
 assert.match(shell, /entry\.preview/, "Picker must display actual chain content rather than repeated labels");
+assert.match(shell, /song-chain-preview/, "Selected Song cell must show the same canonical Chain content");
 assert.match(shell, /!entry\.usage && !entry\.steps/, "Picker must suppress unused empty slots by default");
 assert.match(html, /id="chainPickerEmpty"/, "Empty search must have a user-visible explanation");
 assert.match(song, /webSongFindFreeChain/, "Song picker must assign a genuinely free Chain");

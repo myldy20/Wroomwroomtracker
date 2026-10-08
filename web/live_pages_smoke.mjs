@@ -144,6 +144,10 @@ if (success) {
 
   const assignedValue = await firstCell.locator(".song-cell-value").innerText();
   if (assignedValue === "—") throw new Error("Chain picker did not assign the selected Song cell");
+  const selectedPreview = await page.locator("#inspectorBody .song-chain-preview").innerText();
+  if (!/P[0-9A-F]{3}/.test(selectedPreview)) {
+    throw new Error("Selected Song cell does not show actual Chain contents: " + selectedPreview);
+  }
 
   await page.locator("#playToggle").click();
   await page.waitForFunction(
