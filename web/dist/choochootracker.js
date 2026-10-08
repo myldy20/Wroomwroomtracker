@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpdegomahd.js
+// include: /tmp/tmptpjbanhr.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -210,21 +210,21 @@ Module['FS_createPath']("/waveforms", "AKWF", true, true);
 
   })();
 
-// end include: /tmp/tmpdegomahd.js
-// include: /tmp/tmpr7o30odv.js
+// end include: /tmp/tmptpjbanhr.js
+// include: /tmp/tmpcdy_f1l3.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpr7o30odv.js
-// include: /tmp/tmpu5draht7.js
+  // end include: /tmp/tmpcdy_f1l3.js
+// include: /tmp/tmpgb_78ouy.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpu5draht7.js
+  // end include: /tmp/tmpgb_78ouy.js
 
 
 var programArgs = [];
@@ -10502,6 +10502,7 @@ var _webProjectChanged = Module['_webProjectChanged'] = makeInvalidEarlyAccess('
 var _webSemanticAction = Module['_webSemanticAction'] = makeInvalidEarlyAccess('_webSemanticAction');
 var _webTouchTapAt = Module['_webTouchTapAt'] = makeInvalidEarlyAccess('_webTouchTapAt');
 var _webTouchAdjustAt = Module['_webTouchAdjustAt'] = makeInvalidEarlyAccess('_webTouchAdjustAt');
+var _webOutputStereoPeaksPacked = Module['_webOutputStereoPeaksPacked'] = makeInvalidEarlyAccess('_webOutputStereoPeaksPacked');
 var _fflush = makeInvalidEarlyAccess('_fflush');
 var _webPhraseCursorColumn = Module['_webPhraseCursorColumn'] = makeInvalidEarlyAccess('_webPhraseCursorColumn');
 var _webPhraseCursorRow = Module['_webPhraseCursorRow'] = makeInvalidEarlyAccess('_webPhraseCursorRow');
@@ -10597,6 +10598,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webSemanticAction'] != 'undefined', 'missing Wasm export: webSemanticAction');
   assert(typeof wasmExports['webTouchTapAt'] != 'undefined', 'missing Wasm export: webTouchTapAt');
   assert(typeof wasmExports['webTouchAdjustAt'] != 'undefined', 'missing Wasm export: webTouchAdjustAt');
+  assert(typeof wasmExports['webOutputStereoPeaksPacked'] != 'undefined', 'missing Wasm export: webOutputStereoPeaksPacked');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['webPhraseCursorColumn'] != 'undefined', 'missing Wasm export: webPhraseCursorColumn');
   assert(typeof wasmExports['webPhraseCursorRow'] != 'undefined', 'missing Wasm export: webPhraseCursorRow');
@@ -10689,6 +10691,7 @@ function assignWasmExports(wasmExports) {
   _webSemanticAction = Module['_webSemanticAction'] = createExportWrapper('webSemanticAction', wasmExports['webSemanticAction'], 1);
   _webTouchTapAt = Module['_webTouchTapAt'] = createExportWrapper('webTouchTapAt', wasmExports['webTouchTapAt'], 2);
   _webTouchAdjustAt = Module['_webTouchAdjustAt'] = createExportWrapper('webTouchAdjustAt', wasmExports['webTouchAdjustAt'], 3);
+  _webOutputStereoPeaksPacked = Module['_webOutputStereoPeaksPacked'] = createExportWrapper('webOutputStereoPeaksPacked', wasmExports['webOutputStereoPeaksPacked'], 0);
   _fflush = createExportWrapper('fflush', wasmExports['fflush'], 1);
   _webPhraseCursorColumn = Module['_webPhraseCursorColumn'] = createExportWrapper('webPhraseCursorColumn', wasmExports['webPhraseCursorColumn'], 0);
   _webPhraseCursorRow = Module['_webPhraseCursorRow'] = createExportWrapper('webPhraseCursorRow', wasmExports['webPhraseCursorRow'], 0);
