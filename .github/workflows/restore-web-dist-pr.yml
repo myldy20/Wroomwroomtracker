@@ -32,8 +32,14 @@ jobs:
             test -s "artifacts/generated-dist/$asset"
             cp "artifacts/generated-dist/$asset" "web/dist/$asset"
           done
-          git add web/dist/choochootracker.wasm web/dist/choochootracker.js \
+          echo "Artifact runtime/export diagnostics:"
+          sha256sum artifacts/generated-dist/choochootracker.{wasm,js} web/dist/choochootracker.{wasm,js}
+          grep -a -o -m 1 'webSongChainPreview\|webSongChainInstrumentSearch' artifacts/generated-dist/choochootracker.js || true
+          git ls-files -v web/dist/choochootracker.{wasm,js,data,html}
+          git status --short web/dist
+          git add -f web/dist/choochootracker.wasm web/dist/choochootracker.js \
             web/dist/choochootracker.data web/dist/choochootracker.html
+          git diff --cached --stat
           if git diff --cached --quiet; then
             echo "Expected a rebuilt WebAssembly bundle, but web/dist has no changes" >&2
             exit 1
