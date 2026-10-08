@@ -161,6 +161,50 @@ if (success) {
   if ((await page.locator("#songActivityRows .track-activity-wave").count()) !== monitorCount)
     throw new Error("Track waveform canvas missing");
 
+  const piano = page.locator("#songActivityPiano");
+  if ((await piano.locator(".monitor-key").count()) !== 12) {
+    throw new Error("Global monitor must show seven white and five black keys");
+  }
+  const nativePiano = await page.evaluate(() => window.Module.ccall("webMonitorPianoNotes", "number"));
+  const shownPiano = await piano.getAttribute("data-active-mask");
+  if (nativePiano !== Number(shownPiano)) {
+    throw new Error("Piano must display the engine's exact chord-aware pitch mask");
+  }
+  if (monitorCount >= 2) {
+    const firstMute = page.locator('#songActivityRows [data-track="0"] .track-mute');
+    const secondSolo = page.locator('#songActivityRows [data-track="1"] .track-solo');
+    await firstMute.click();
+    const afterMute = await page.evaluate(() => window.Module.ccall(
+      "webTrackActivityPacked", "number", ["number"], [0]));
+    if (((afterMute >> 8) & 3) !== 2 || (await firstMute.getAttribute("aria-pressed")) !== "true")
+      throw new Error("MUTE control failed to use native track state");
+    await secondSolo.click();
+    const afterSolo = await page.evaluate(() => [
+      window.Module.ccall("webTrackActivityPacked", "number", ["number"], [0]),
+      window.Module.ccall("webTrackActivityPacked", "number", ["number"], [1]),
+    ]);
+    if (((afterSolo[0] >> 8) & 3) === 2 || ((afterSolo[1] >> 8) & 3) !== 1)
+      throw new Error("SOLO did not clear existing MUTE using native audio manager");
+    await secondSolo.click();
+    const restored = await page.evaluate(() => window.Module.ccall(
+      "webTrackActivityPacked", "number", ["number"], [1]));
+    if (((restored >> 8) & 3) !== 0) throw new Error("SOLO could not be reset");
+  }
+  const noQueued = await page.evaluate(() => window.Module.ccall(
+    "webSongLiveQueuePacked", "number", ["number"], [0]));
+  if (noQueued !== 0) throw new Error("Native live queue should start empty");
+
+  // Track monitor must survive leaving semantic Song, without a second JS audio model.
+  await page.locator('.view-tabs [data-screen="1"]').click();
+  await page.waitForFunction(() => document.querySelector("#screenName")?.textContent === "CHAIN",
+    null, {timeout: 5_000});
+  if (!(await page.locator("#songActivityPanel").isVisible()))
+    throw new Error("Global track monitor disappeared on CHAIN");
+  if ((await page.locator("#songActivityPiano .monitor-key").count()) !== 12)
+    throw new Error("Global piano disappeared on CHAIN");
+  await page.locator('.view-tabs [data-screen="0"]').click();
+  await page.waitForSelector("#songGrid .song-cell", {timeout: 5_000});
+
   const stereoMeters = page.locator("#masterMeter [role=meter]");
   if ((await stereoMeters.count()) !== 2) throw new Error("Two global master meters are required");
   await page.locator("#playToggle").click();

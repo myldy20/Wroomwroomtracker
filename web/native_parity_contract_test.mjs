@@ -22,7 +22,7 @@ for (const entry of inventory.features) {
   counts[entry.status] = (counts[entry.status] || 0) + 1;
   if (entry.status === "fallback-missing") assert.equal(entry.screen, "song");
 }
-assert.ok(counts["fallback-missing"] >= 5, "The Song migration is not yet native-complete");
+assert.ok(counts["fallback-missing"] >= 3, "The Song migration is not yet native-complete");
 assert.ok(counts.legacy >= 10, "Native fallback inventory unexpectedly shrank");
 
 // Full registry snapshots: a new, renamed or removed native screen/engine

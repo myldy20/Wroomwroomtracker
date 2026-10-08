@@ -1637,7 +1637,7 @@ input {
     grid-template-columns: 14px 72px minmax(22px, 1fr) 34px 23px;
     gap: 2px; padding-inline: 3px;
   }
-  .track-activity-actions button { min-height: 38px; width: 35px; }
+  .track-activity-actions button { min-height: 44px; width: 35px; }
 }
 @media (max-width: 400px) {
   .song-activity-mobile .track-activity-rows { grid-template-columns: 1fr; }
