@@ -6,8 +6,6 @@ on:
     branches:
       - main
   push:
-    branches:
-      - web/chain-meaningful-preview-parity-20261008
     tags:
       - 'v*'
 
@@ -15,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: web-dist-${{ github.ref }}
+  group: web-dist
   cancel-in-progress: true
 
 jobs:
@@ -44,11 +42,7 @@ jobs:
           git commit -m "build: update web bundle"
           git fetch origin main
           git rebase origin/main
-          if [ "$GITHUB_REF" = "refs/heads/web/chain-meaningful-preview-parity-20261008" ]; then
-            git push origin HEAD:"$GITHUB_REF_NAME"
-          else
-            git push origin HEAD:main
-          fi
+          git push origin HEAD:main
       - uses: actions/upload-artifact@v4
         if: always()
         with:

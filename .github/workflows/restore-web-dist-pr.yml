@@ -1,0 +1,39 @@
+name: Restore generated Web bundle to PR branch
+
+on:
+  push:
+    branches:
+      - web/chain-meaningful-preview-parity-20261008
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  commit-dist:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the successful Emscripten build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: choochootracker-web
+          run-id: 37735354293
+          github-token: ${{ github.token }}
+          path: web/dist
+      - name: Verify and commit compiled runtime to feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp web/wroom.js web/dist/wroom.js
+          cmp web/wroom.css web/dist/wroom.css
+          cmp web/index.html web/dist/index.html
+          git add web/dist/
+          if git diff --cached --quiet; then
+            echo "Expected a rebuilt WebAssembly bundle, but web/dist has no changes" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(web): include regenerated Emscripten runtime"
+          git push origin HEAD:"$GITHUB_REF_NAME"
