@@ -906,16 +906,17 @@
       }
     }
   };
-  // Request 30Hz data on display frames, automatically suspended by the
-  // browser in background tabs. This avoids an 8.3Hz timer and busy polling.
-  let lastScopeFrame = -1000;
-  const animateTrackScopes = (now) => {
-    if (now - lastScopeFrame >= 33) {
-      lastScopeFrame = now;
+  // Bound native telemetry reads to 30Hz, painting on the next display
+  // frame. No recursive rAF loop (also safe for synchronous test shims).
+  let scopeFramePending = false;
+  const scheduleTrackScope = () => {
+    if (scopeFramePending || document.hidden) return;
+    scopeFramePending = true;
+    requestAnimationFrame(() => {
+      scopeFramePending = false;
       try { updateTrackScopes(); }
       catch (error) { console.error("Track scope refresh failed", error); }
-    }
-    requestAnimationFrame(animateTrackScopes);
+    });
   };
   const updateTrackActivity = () => {
     if (!window.Module?.ccall) return;
@@ -1232,7 +1233,7 @@
           try { updateTrackActivity(); }
           catch (error) { console.error("Track activity refresh failed", error); }
         }, 80);
-        requestAnimationFrame(animateTrackScopes);
+        setInterval(scheduleTrackScope, 33);
 
         // Playback visualization is intentionally bounded and reads one compact
         // snapshot per track. It only toggles DOM classes when engine state
