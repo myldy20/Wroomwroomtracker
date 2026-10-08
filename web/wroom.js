@@ -510,6 +510,10 @@
       const head = document.createElement("div");
       head.className = "song-track-header";
       head.innerHTML = "<strong>TRACK " + (track + 1) + "</strong>";
+      const mode = document.createElement("span");
+      mode.className = "song-track-mode";
+      mode.dataset.track = String(track);
+      head.appendChild(mode);
       header.appendChild(head);
     }
     fragment.appendChild(header);
@@ -546,7 +550,10 @@
         const value = document.createElement("span");
         value.className = "song-cell-value";
         value.textContent = state.value < 0 ? "—" : hex2(state.value);
-        cell.append(value);
+        const queued = document.createElement("span");
+        queued.className = "song-cell-queue";
+        queued.setAttribute("aria-hidden", "true");
+        cell.append(value, queued);
         line.appendChild(cell);
       }
       fragment.appendChild(line);
@@ -761,6 +768,55 @@
   };
 
   const activityContainers = [$("#songActivityRows"), $("#songActivityMobileRows")];
+  const monitorPianos = [$("#songActivityPiano"), $("#songActivityMobilePiano")];
+  const pitchClasses = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+  const whitePitches = [0, 2, 4, 5, 7, 9, 11];
+  const blackPitches = [1, 3, 6, 8, 10];
+  const blackBoundaries = [1, 2, 4, 5, 6];
+  const initializePianoKeys = () => {
+    for (const piano of monitorPianos) {
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < whitePitches.length; ++i) {
+        const key = document.createElement("span");
+        key.className = "monitor-key white";
+        key.dataset.pitch = String(whitePitches[i]);
+        key.style.left = (100 * i / 7) + "%";
+        fragment.appendChild(key);
+      }
+      for (let i = 0; i < blackPitches.length; ++i) {
+        const key = document.createElement("span");
+        key.className = "monitor-key black";
+        key.dataset.pitch = String(blackPitches[i]);
+        key.style.left = "calc(" + (100 * blackBoundaries[i] / 7) + "% - 4.5%)";
+        fragment.appendChild(key);
+      }
+      piano.replaceChildren(fragment);
+    }
+  };
+  initializePianoKeys();
+  let lastPianoMask = -1;
+  const updateMonitorPiano = () => {
+    const mask = call("webMonitorPianoNotes", "number");
+    if (mask == null || mask === lastPianoMask) return;
+    lastPianoMask = mask;
+    const active = pitchClasses.filter((_, pitch) => mask & (1 << pitch));
+    for (const piano of monitorPianos) {
+      for (const key of piano.children) {
+        const pitch = Number(key.dataset.pitch);
+        key.classList.toggle("active", !!(mask & (1 << pitch)));
+      }
+      piano.setAttribute("aria-label", active.length ?
+        "Playing pitch classes: " + active.join(", ") : "No notes playing");
+      piano.dataset.activeMask = String(mask);
+    }
+  };
+  const applyTrackMode = (track, mode) => {
+    const exportName = mode === "mute" ? "webSongToggleTrackMute" : "webSongToggleTrackSolo";
+    const value = call(exportName, "number", ["number"], [track]);
+    if (value == null || value < 0) return;
+    setStatus("Track " + (track + 1) + (value === 2 ? " muted" : value === 1 ? " solo" : " normal"));
+    updateTrackActivity();
+  };
   let activityTrackCount = -1;
   const ensureTrackActivity = () => {
     if (!window.Module?.ccall) return;
@@ -774,10 +830,18 @@
         row.className = "track-activity-row";
         row.dataset.track = String(track);
         row.innerHTML = '<span class="track-activity-index"></span>' +
-          '<span class="track-activity-state"></span>' +
+          '<span class="track-activity-actions">' +
+          '<button type="button" class="track-mute" aria-pressed="false">M</button>' +
+          '<button type="button" class="track-solo" aria-pressed="false">S</button></span>' +
           '<canvas class="track-activity-wave" role="img"></canvas>' +
           '<span class="track-activity-note"></span>' +
           '<span class="track-activity-warning"></span>';
+        for (const mode of ["mute", "solo"]) {
+          const button = row.querySelector(".track-" + mode);
+          button.setAttribute("aria-label", (mode === "mute" ? "Mute" : "Solo") +
+            " track " + (track + 1));
+          button.addEventListener("click", () => applyTrackMode(track, mode));
+        }
         row.querySelector(".track-activity-index").textContent = String(track + 1);
         const scope = row.querySelector("canvas");
         scope.width = 8;
@@ -812,8 +876,20 @@
     ctx.putImageData(pixels, 0, 0);
   };
   const updateTrackActivity = () => {
-    if (!window.Module?.ccall || activeUiScreen !== 0) return;
+    if (!window.Module?.ccall) return;
     ensureTrackActivity();
+    updateMonitorPiano();
+    if (songRendered) {
+      for (let track = 0; track < activityTrackCount; ++track) {
+        const state = call("webTrackActivityPacked", "number", ["number"], [track]);
+        const head = songGrid.querySelector('.song-track-mode[data-track="' + track + '"]');
+        if (!head || state == null || state < 0) continue;
+        const mode = (state >> 8) & 3;
+        head.textContent = mode === 2 ? "MUTED" : mode === 1 ? "SOLO" : "";
+        head.classList.toggle("muted", mode === 2);
+        head.classList.toggle("solo", mode === 1);
+      }
+    }
     for (let track = 0; track < activityTrackCount; ++track) {
       const packed = call("webTrackActivityPacked", "number", ["number"], [track]);
       if (packed < 0) continue;
@@ -831,7 +907,8 @@
         row.classList.toggle("clipping", clipped);
         row.classList.toggle("selected", !!(packed & (1 << 12)));
         row.classList.toggle("note-warning", warning);
-        row.querySelector(".track-activity-state").textContent = muted ? "M" : solo ? "S" : "";
+        row.querySelector(".track-mute").setAttribute("aria-pressed", String(muted));
+        row.querySelector(".track-solo").setAttribute("aria-pressed", String(solo));
         row.querySelector(".track-activity-note").textContent = note;
         row.querySelector(".track-activity-warning").textContent = clipped ? "CLIP" : warning ? "!" : "";
         row.setAttribute("aria-label", "Track " + (track + 1) +
@@ -849,6 +926,11 @@
     mode: (packed >> 19) & 0x1f,
   });
 
+  const readLiveQueue = (packed) => ({
+    row: (packed & 0x1ff) ? (packed & 0x1ff) - 1 : -1,
+    action: (packed >> 9) & 7,
+  });
+
   const updateSongPlaybackVisuals = () => {
     if (!window.Module?.ccall || activeUiScreen !== 0 || !songRendered) return;
 
@@ -862,6 +944,7 @@
       const state = decodePlaybackTrack(packed);
       rows.push(state.songRow);
       snapshot.push(packed);
+      snapshot.push(call("webSongLiveQueuePacked", "number", ["number"], [track]) || 0);
     }
 
     const key = snapshot.join(",");
@@ -870,6 +953,23 @@
 
     songGrid.querySelectorAll(".song-cell.playing").forEach((cell) => cell.classList.remove("playing"));
     songGrid.querySelectorAll(".song-grid-row.playing-row").forEach((row) => row.classList.remove("playing-row"));
+    songGrid.querySelectorAll(".song-cell.queued-live").forEach((cell) => {
+      cell.classList.remove("queued-live", "queued-stop", "queued-urgent");
+      cell.querySelector(".song-cell-queue").textContent = "";
+    });
+
+    for (let track = 0; track < tracks; ++track) {
+      const { row, action } = readLiveQueue(snapshot[2 + track * 2]);
+      if (row < 0 || action === 0) continue;
+      const cell = songGrid.querySelector('[data-song-row="' + row + '"][data-song-track="' + track + '"]');
+      if (!cell) continue;
+      const stop = action === 3 || action === 4;
+      const urgent = action === 2 || action === 4;
+      cell.classList.add("queued-live");
+      cell.classList.toggle("queued-stop", stop);
+      cell.classList.toggle("queued-urgent", urgent);
+      cell.querySelector(".song-cell-queue").textContent = stop ? "−" : urgent ? "!" : "+";
+    }
 
     if (!playing) return;
 

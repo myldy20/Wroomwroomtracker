@@ -712,6 +712,38 @@ int songKeyJazzHandleRawKey(InputCode input, int isDown) {
 #endif // DESKTOP_BUILD
 
 #ifdef WEB_BUILD
+// Song MUTE/SOLO must use the same manager and track-enabled command pathway
+// as the native editor, never a browser-maintained copy of the mute mask.
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongToggleTrackMute(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return -1;
+  audioManager.toggleTrackMute(track);
+  if (currentScreen == &screenSong) fullRedraw();
+  return audioManager.trackStates[track];
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongToggleTrackSolo(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return -1;
+  audioManager.toggleTrackSolo(track);
+  if (currentScreen == &screenSong) fullRedraw();
+  return audioManager.trackStates[track];
+}
+
+// Packed canonical pending live command: low 9 bits = queued Song row + 1
+// (0 if none), bits 9..11 = LiveQueueAction (0..4).
+extern "C" EMSCRIPTEN_KEEPALIVE int webSongLiveQueuePacked(int track) {
+  if (!chipnomadState || track < 0 || track >= chipnomadState->project.tracksCount) return 0;
+  const PlaybackStatus* status = chipnomadGetPlaybackStatus(chipnomadState);
+  if (!status) return 0;
+  const PlaybackTrackState& state = status->tracks[track];
+  const int action = (int)state.queue.liveAction;
+  if (action <= 0 || action > 4) return 0;
+  const bool stop = action == (int)LiveQueueAction::stopNormal ||
+                    action == (int)LiveQueueAction::stopUrgent;
+  const int row = stop ? state.songRow : state.queue.songRow;
+  if (row < 0 || row >= PROJECT_MAX_LENGTH) return 0;
+  return (row + 1) | (action << 9);
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webSongRowCount(void) {
   return PROJECT_MAX_LENGTH;
 }

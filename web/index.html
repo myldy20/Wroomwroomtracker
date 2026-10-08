@@ -70,6 +70,12 @@
           <span id="gestureHint">CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN</span>
         </header>
 
+        <details id="songActivityMobile" class="song-activity-mobile" aria-label="Track monitor and live keyboard">
+          <summary>TRACK MONITOR <span>notes · waveforms · keyboard · M/S</span></summary>
+          <div id="songActivityMobileRows" class="track-activity-rows"></div>
+          <div id="songActivityMobilePiano" class="monitor-piano" role="img" aria-label="No notes playing"></div>
+        </details>
+
         <div id="semanticWorkspace" class="semantic-workspace">
           <section id="songWorkspace" class="workspace-view song-workspace" aria-label="Song arrangement">
             <div class="song-toolbar">
@@ -82,11 +88,7 @@
                 <button id="songJumpCursor" type="button" data-needs-runtime disabled aria-label="Jump to selected Song cell">LOCATE</button>
               </div>
             </div>
-            <details id="songActivityMobile" class="song-activity-mobile">
-              <summary>TRACK ACTIVITY <span>native waveforms · pitch · M/S</span></summary>
-              <div id="songActivityMobileRows" class="track-activity-rows"></div>
-            </details>
-            <div id="songScroll" class="song-scroll">
+             <div id="songScroll" class="song-scroll">
               <div id="songGrid" class="song-grid" role="grid" aria-label="Song arrangement grid"></div>
               <button id="songMoreRows" class="song-more-rows" type="button" data-needs-runtime disabled hidden>SHOW 16 MORE SONG ROWS</button>
             </div>
@@ -115,8 +117,9 @@
         </div>
       </section>
       <section id="songActivityPanel" class="tool-section track-activity-panel" aria-label="Native track activity">
-        <header><strong>TRACK ACTIVITY</strong><span>audio · note · M/S</span></header>
+        <header><strong>TRACK MONITOR</strong><span>notes · waveform · M/S</span></header>
         <div id="songActivityRows" class="track-activity-rows"></div>
+        <div id="songActivityPiano" class="monitor-piano" role="img" aria-label="No notes playing"></div>
       </section>
 
       <details class="utility-drawer">

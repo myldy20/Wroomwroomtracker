@@ -57,15 +57,15 @@
     {
       "screen": "song",
       "native": "tracker/src/screens/screen_song.cpp",
-      "source": "toggleSelectedMute(",
-      "status": "fallback-missing",
+      "source": "webSongToggleTrackMute",
+      "status": "semantic",
       "label": "Track mute"
     },
     {
       "screen": "song",
       "native": "tracker/src/screens/screen_song.cpp",
-      "source": "toggleSelectedSolo(",
-      "status": "fallback-missing",
+      "source": "webSongToggleTrackSolo",
+      "status": "semantic",
       "label": "Track solo"
     },
     {
@@ -179,6 +179,20 @@
       "source": "webTrackActivityGlyph(",
       "status": "semantic",
       "label": "Native cross-screen per-track pitch/waveform/clipping status in semantic Song"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/app.cpp",
+      "source": "webMonitorPianoNotes(",
+      "status": "semantic",
+      "label": "Global native piano pitch-class monitor"
+    },
+    {
+      "screen": "song",
+      "native": "tracker/src/screens/screen_song.cpp",
+      "source": "webSongLiveQueuePacked(",
+      "status": "semantic",
+      "label": "Read-only live queue indicators"
     }
   ],
   "registeredScreens": [
