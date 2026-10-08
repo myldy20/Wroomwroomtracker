@@ -162,16 +162,68 @@ if (success) {
     throw new Error("Track waveform canvas missing");
   const scopeHex = await page.evaluate(() => window.Module.ccall(
     "webTrackAudioScopeHex", "string", ["number"], [0]));
-  if (!/^[0-9A-F]{512}$/.test(scopeHex))
-    throw new Error("Native 256-sample audio scope bridge missing or invalid");
+  if (!/^[0-9A-F]{1024}$/.test(scopeHex))
+    throw new Error("Native 256-sample signed 16-bit audio scope bridge missing or invalid");
   await page.waitForFunction(() =>
     document.querySelector("#songActivityRows .track-activity-wave")?.width > 8,
     null, {timeout: 5_000});
   const scopeSize = await page.locator("#songActivityRows .track-activity-wave").first()
     .evaluate(node => ({width: node.width, height: node.height}));
-  if (scopeSize.width < 24 || scopeSize.height < 12)
-    throw new Error("Track monitor is still rendering the tiny native glyph: " +
+  if (scopeSize.width < 24 || scopeSize.height < 28)
+    throw new Error("Track monitor is too small for a readable waveform: " +
       JSON.stringify(scopeSize));
+
+  // Use a controlled bridge response to verify the renderer, leaving native
+  // audio untouched. Identical 2-millipercent and 70%-level sine shapes must
+  // fill similar vertical space; true silence must stay flat.
+  await page.evaluate(() => {
+    window.__scopeOriginalCcall = window.Module.ccall;
+    window.__scopeInjectedHex = null;
+    window.Module.ccall = function(name, ...args) {
+      if (name === "webTrackAudioScopeHex" && args[2]?.[0] === 0 &&
+          window.__scopeInjectedHex !== null) return window.__scopeInjectedHex;
+      return window.__scopeOriginalCcall.call(this, name, ...args);
+    };
+  });
+  const probeScopeSpan = async (amplitude) => {
+    await page.evaluate(level => {
+      window.__scopeInjectedHex = Array.from({length: 256}, (_, i) => {
+        const sample = Math.round(Math.sin(i * Math.PI * 8 / 256) * level * 32767);
+        return (sample & 65535).toString(16).toUpperCase().padStart(4, "0");
+      }).join("");
+    }, amplitude);
+    await page.waitForTimeout(160);
+    return page.locator("#songActivityRows .track-activity-wave").first().evaluate(canvas => {
+      const {width, height} = canvas;
+      const data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      let top = height, bottom = -1;
+      for (let y = 0; y < height; ++y) {
+        for (let x = 0; x < width; ++x) {
+          const i = (y * width + x) * 4;
+          // Count opaque cyan signal pixels, not the faint reference baseline.
+          if (data[i + 3] > 128 && data[i] > 65 && data[i + 1] > 150) {
+            top = Math.min(top, y); bottom = Math.max(bottom, y);
+          }
+        }
+      }
+      return {span: bottom < top ? 0 : bottom - top + 1, height};
+    });
+  };
+  const quiet = await probeScopeSpan(0.002);
+  const loud = await probeScopeSpan(0.7);
+  const silent = await probeScopeSpan(0);
+  await page.evaluate(() => {
+    window.Module.ccall = window.__scopeOriginalCcall;
+    delete window.__scopeOriginalCcall;
+    delete window.__scopeInjectedHex;
+  });
+  if (quiet.span < quiet.height * 0.45 || loud.span < loud.height * 0.45 ||
+      Math.abs(quiet.span - loud.span) > loud.height * 0.25)
+    throw new Error("Auto-gain failed for quiet/loud waveforms: " +
+      JSON.stringify({quiet, loud}));
+  if (silent.span > 2)
+    throw new Error("Silence was amplified into a false waveform: " +
+      JSON.stringify(silent));
 
   const piano = page.locator("#songActivityPiano");
   if ((await piano.locator(".monitor-key").count()) !== 12) {
