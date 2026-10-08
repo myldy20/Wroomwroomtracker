@@ -25,6 +25,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "HEAD binary fingerprints before copy:"
+          git hash-object web/dist/choochootracker.wasm web/dist/choochootracker.js
+          echo "Compiled artifact fingerprints and named exports:"
+          git hash-object artifacts/generated-dist/choochootracker.wasm artifacts/generated-dist/choochootracker.js
+          grep -a -o -m 1 'webSongChainPreview\|webSongChainInstrumentSearch' artifacts/generated-dist/choochootracker.wasm || true
           # Only compiled runtime assets are copied. The hand-maintained Web
           # UI source/dist parity is already maintained in this PR and its
           # JS/CSS/HTML must never be overwritten from a different artifact.
