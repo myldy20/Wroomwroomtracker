@@ -87,23 +87,7 @@
       </section>
     </main>
 
-    <aside class="workbench" aria-label="Project tools">
-      <section class="tool-section">
-        <header><strong>PROJECT</strong><span>browser storage</span></header>
-        <div class="tool-body">
-          <button id="importProject" type="button" data-file-action="open-project" data-needs-runtime disabled><strong>OPEN PROJECT</strong><br>.cct from this device</button>
-          <button id="saveProject" type="button" data-file-action="download-project" data-needs-runtime disabled><strong>DOWNLOAD PROJECT</strong><br>save current .cct</button>
-        </div>
-      </section>
-
-      <section class="tool-section">
-        <header><strong>SAMPLES</strong><span>local only</span></header>
-        <div class="tool-body">
-          <button id="importSamples" type="button" data-file-action="add-samples" data-needs-runtime disabled><strong>ADD WAV FILES</strong></button>
-          <button id="importFolder" type="button" data-file-action="add-folder" data-needs-runtime disabled><strong>ADD SAMPLE FOLDER</strong></button>
-        </div>
-      </section>
-
+    <aside class="workbench" aria-label="Selection and project tools">
       <section id="selectionInspector" class="tool-section selection-inspector">
         <header><strong id="inspectorTitle">SELECTION</strong><span id="inspectorLocation">nothing selected</span></header>
         <div id="inspectorBody" class="tool-body inspector-body">
@@ -111,13 +95,32 @@
         </div>
       </section>
 
-      <section class="tool-section">
-        <header><strong>LINKS</strong><span>reference</span></header>
-        <div class="tool-body">
+      <details class="utility-drawer">
+        <summary><strong>PROJECT & FILES</strong><span>browser storage</span></summary>
+        <div class="utility-drawer-body">
+          <button id="importProject" type="button" data-file-action="open-project" data-needs-runtime disabled>
+            <strong>OPEN PROJECT</strong><span>.cct from this device</span>
+          </button>
+          <button id="saveProject" type="button" data-file-action="download-project" data-needs-runtime disabled>
+            <strong>DOWNLOAD PROJECT</strong><span>save current .cct</span>
+          </button>
+          <div class="utility-drawer-divider"><span>SAMPLES</span></div>
+          <button id="importSamples" type="button" data-file-action="add-samples" data-needs-runtime disabled>
+            <strong>ADD WAV FILES</strong><span>local browser storage</span>
+          </button>
+          <button id="importFolder" type="button" data-file-action="add-folder" data-needs-runtime disabled>
+            <strong>ADD SAMPLE FOLDER</strong><span>local browser storage</span>
+          </button>
+        </div>
+      </details>
+
+      <details class="utility-drawer">
+        <summary><strong>REFERENCES</strong><span>manual + source</span></summary>
+        <div class="utility-drawer-body">
           <button type="button" onclick="location.href='./manual.html'"><strong>USER MANUAL</strong></button>
           <button type="button" onclick="location.href='https://github.com/myldy20/Wroomwroomtracker'"><strong>GITHUB</strong></button>
         </div>
-      </section>
+      </details>
     </aside>
 
     <footer class="status-bar">
