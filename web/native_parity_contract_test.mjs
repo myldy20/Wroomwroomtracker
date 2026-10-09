@@ -11,6 +11,11 @@ assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 4 && !nativ
 assert.match(html, /id="soundOpenNative"/, "SOUND must retain its full native editor");
 assert.match(html, /id="soundReturnDirect"/, "Native preset dialogs must remain accessible");
 assert.match(html, /id="soundPresetInput"/, "USER preset file import must be exposed");
+assert.match(html, /id="soundPresetLibrary"/, "SOUND needs an in-page native USER catalog");
+assert.match(shell, /webSoundPresetsOpen/, "USER LOAD action must invoke the native parser");
+assert.match(app, /webSoundSaveUserPreset/, "Native .cni saving must not be duplicated in JS");
+assert.match(app, /userPresetFolder\(/, "Web library must reuse native engine type mapping");
+assert.match(app, /webSoundPresetsError/, "Invalid USER programs must expose native error details");
 assert.match(html, /id="mixOpenNative"/, "MIX must preserve the complete native mixer");
 assert.match(html, /id="mixReturnDirect"/, "MIX must allow returning to direct PAN");
 assert.match(shell, /\$\$\("\.view-tabs \[data-screen\], \.utility-buttons \[data-screen\]"\)\.forEach/,
