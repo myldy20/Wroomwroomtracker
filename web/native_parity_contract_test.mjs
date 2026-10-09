@@ -10,6 +10,8 @@ assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 4 && !nativ
   "Only Song and partial direct-PAN MIX may use the DOM workspace");
 assert.match(html, /id="mixOpenNative"/, "MIX must preserve the complete native mixer");
 assert.match(html, /id="mixReturnDirect"/, "MIX must allow returning to direct PAN");
+assert.match(shell, /\$\$\("\.view-tabs \[data-screen\], \.utility-buttons \[data-screen\]"\)\.forEach/,
+  "Workspace navigation must bind a list of tabs, not a single element");
 assert.match(shell, /legacyWorkspace\.hidden = semantic;/,
   "Legacy fallback must remain available for unmigrated screens");
 assert.match(html, /<canvas id="canvas"/, "Native canvas fallback must still exist");
