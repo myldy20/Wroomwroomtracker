@@ -420,7 +420,7 @@ if (success) {
     throw new Error("Native mixer became unreachable after direct MIX migration");
   await page.locator("#mixReturnDirect").click();
   if (!(await page.locator("#mixWorkspace").isVisible()) ||
-      !(await page.locator("#mixTrackRows .mix-volume-slider").isVisible()))
+      !(await page.locator("#mixTrackRows .mix-volume-slider").first().isVisible()))
     throw new Error("Could not return from native MIX to direct volume / pan");
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songWorkspace:not([hidden]) #songGrid .song-cell", {timeout: 6_000});
