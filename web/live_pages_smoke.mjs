@@ -536,6 +536,63 @@ if (success) {
     },path,{timeout:5000});
     await page.evaluate(path => window.Module.FS.unlink(path),path);
   }
+
+  // Unlike a synthetic ZIP smoke, generate a genuine .cni with the native
+  // instrument serializer, navigate the native USER library, and reload it.
+  const compatibleSlot = await page.evaluate(() => {
+    const call = window.Module.ccall;
+    for (let i = 0; i < call("webSoundSlotCount", "number"); ++i) {
+      if (call("webSoundSlotTypeId","number",["number"],[i]) <= 0) continue;
+      if (call("webSoundSelectSlot","number",["number"],[i]) !== 0) continue;
+      if (call("webSoundUserPresetFolder","string")) return i;
+    }
+    return -1;
+  });
+  if (compatibleSlot < 0)
+    throw new Error("The bundled FM demonstration must expose at least one compatible USER instrument");
+  await page.locator("#soundSlot").selectOption(String(compatibleSlot));
+  const originalInstrumentPan = await page.evaluate(slot =>
+    window.Module.ccall("webSoundSlotPan","number",["number"],[slot]),compatibleSlot);
+  const originalInstrumentType = await page.evaluate(slot =>
+    window.Module.ccall("webSoundSlotTypeId","number",["number"],[slot]),compatibleSlot);
+  const nativeFolder = await page.evaluate(() =>
+    window.Module.ccall("webSoundUserPresetFolder","string"));
+  const nativePath = "/user/instruments/USER/" + nativeFolder + "/native-roundtrip.cni";
+  const nativeSave = await page.evaluate(path => {
+    const fs = window.Module.FS;
+    fs.mkdirTree(path.substring(0,path.lastIndexOf("/")));
+    return window.Module.ccall("webSoundSaveUserPreset","number",["string"],["native-roundtrip.cni"]);
+  },nativePath);
+  if (nativeSave !== 0)
+    throw new Error("The engine could not produce a valid native USER .cni for testing");
+  await page.locator("#soundLibraryToggle").click();
+  await page.waitForSelector("#soundPresetLibrary:not([hidden]) .sound-preset-item[data-kind='3']",
+    {timeout: 8_000});
+  const libraryCount = await page.evaluate(() =>
+    window.Module.ccall("webSoundPresetsCount","number"));
+  if (libraryCount <= 0)
+    throw new Error("Native USER library did not discover its own exported .cni");
+  const entryName = await page.locator("#soundPresetItems .sound-preset-item[data-kind='3']").first().innerText();
+  const changed = await page.evaluate(slot => window.Module.ccall(
+    "webSoundSetSlotPan","number",["number","number"],[slot,17]),compatibleSlot);
+  if (changed !== 0)
+    throw new Error("Instrument PAN could not be changed before preset restoration");
+  await page.locator("#soundPresetItems .sound-preset-item[data-kind='3']").first().click();
+  const restoredPan = await page.evaluate(slot =>
+    window.Module.ccall("webSoundSlotPan","number",["number"],[slot]),compatibleSlot);
+  const restoredType = await page.evaluate(slot =>
+    window.Module.ccall("webSoundSlotTypeId","number",["number"],[slot]),compatibleSlot);
+  if (restoredPan !== originalInstrumentPan || restoredType !== originalInstrumentType)
+    throw new Error("Loading native USER .cni failed to restore its instrument PAN/type: " +
+      JSON.stringify({originalInstrumentPan,restoredPan,originalInstrumentType,restoredType,entryName}));
+  const rejected = await page.evaluate(() =>
+    window.Module.ccall("webSoundSaveUserPreset","number",["string"],["../unsafe.cni"]));
+  if (rejected !== 1) throw new Error("USER preset filename traversal was accepted");
+  await page.evaluate(path => window.Module.FS.unlink(path),nativePath);
+  await page.locator("#soundPresetRefresh").click();
+  await page.locator("#soundLibraryToggle").click();
+  await page.waitForSelector("#soundPresetLibrary[hidden]",{timeout:5_000});
+
   await page.locator("#soundOpenNative").click();
   if (!(await page.locator("#legacyWorkspace").isVisible()) ||
       !(await page.locator("#soundReturnDirect").isVisible()))
