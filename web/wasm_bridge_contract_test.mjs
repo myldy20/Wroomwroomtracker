@@ -30,7 +30,7 @@ for (const name of ["webMixTrackPan", "webMixSetTrackPan",
   assert.ok(generated.includes(name),
     "Compiled Web mixer runtime omits: " + name);
 }
-for (const name of ["webChainCurrentId","webChainStepValue","webChainSelectStep",
+for (const name of ["webChainCurrentId","webChainSelectedStep","webChainStepValue","webChainSelectStep",
                     "webChainSetStep","webPhraseCurrentId","webPhrasePitchCount",
                     "webPhrasePitchLabel","webPhraseCellValue","webPhraseSetCell"]) {
   assert.ok(fs.readFileSync("tracker/src/app.cpp","utf8").includes(name + "("),
