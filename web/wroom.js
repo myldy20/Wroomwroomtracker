@@ -1315,7 +1315,7 @@
       setStatus("Choose a supported native chip/FM instrument before importing");
       return;
     }
-    const allowed = /\\.(?:cni|zip|syx|opm|sbi|bnk|vgi|y12|op2|wopl|wopn|ins|pat|dmp)$/i;
+    const allowed = /\.(?:cni|zip|syx|opm|sbi|bnk|vgi|y12|op2|wopl|wopn|ins|pat|dmp)$/i;
     if (files.length > 24 || files.some(f => f.size > 5*1024*1024) ||
         files.reduce((n,f) => n+f.size,0) > 24*1024*1024) {
       setStatus("Limit: 24 files, 5 MB each, 24 MB per import");
