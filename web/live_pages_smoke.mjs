@@ -364,6 +364,13 @@ if (success) {
     throw new Error("Center button did not reset native PAN");
   await page.evaluate(value => window.Module.ccall(
     "webMixSetTrackPan", "number", ["number","number"], [0, value]), originalPan);
+  await page.locator("#mixOpenNative").click();
+  if (!(await page.locator("#legacyWorkspace").isVisible()) ||
+      !(await page.locator("#mixReturnDirect").isVisible()))
+    throw new Error("Native mixer became unreachable after PAN migration");
+  await page.locator("#mixReturnDirect").click();
+  if (!(await page.locator("#mixWorkspace").isVisible()))
+    throw new Error("Could not return from native MIX to direct PAN");
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songWorkspace:not([hidden]) #songGrid .song-cell", {timeout: 6_000});
 

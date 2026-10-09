@@ -1700,7 +1700,10 @@ input {
 /* Engine-backed touch/mouse mixer */
 .workspace-view[hidden] { display: none !important; }
 .mix-workspace { min-height: 0; overflow: auto; }
-.mix-toolbar { display: grid; gap: 6px; padding: 14px 18px; border-bottom: 1px solid var(--line-soft); background: #071019; }
+.mix-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line-soft); background: #071019; flex-wrap: wrap; }
+.mix-toolbar > div { display: grid; gap: 6px; min-width: 0; }
+#mixOpenNative { min-height: 44px; font-weight: 800; color: var(--amber); flex: 0 0 auto; }
+#mixReturnDirect { min-height: 44px; color: var(--cyan); font-weight: 800; }
 .mix-toolbar strong { color: var(--cyan); letter-spacing: .1em; }
 .mix-toolbar span { color: var(--muted); font-size: 11px; }
 .mix-track-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 9px; padding: 14px; align-content: start; }
