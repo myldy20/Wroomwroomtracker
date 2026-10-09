@@ -765,6 +765,12 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webChainCurrentId(void) {
   return webSelectedChainId();
 }
 
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSelectedStep(void) {
+  if (webSelectedChainId() < 0 || !pChainRow ||
+      *pChainRow < 0 || *pChainRow >= 16) return -1;
+  return *pChainRow;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE int webChainStepValue(int step, int field) {
   const int chain = webSelectedChainId();
   if (chain < 0 || step < 0 || step >= 16 || field < 0 || field > 1) return -2;
@@ -843,9 +849,14 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetCell(int row, int field, int val
   if (field == 0) {
     if (value < -2 || value >= webPhrasePitchCount()) return 1;
     const uint8_t next = value == -1 ? EMPTY_VALUE_8 : value == -2 ? NOTE_OFF : (uint8_t)value;
-    if (cell.note == next) return 0;
+    // Native note CLEAR and OFF clear the inherited-state modifiers too.
+    // A row with no note can still change playback instrument/volume.
+    const bool clearRow = next == EMPTY_VALUE_8 || next == NOTE_OFF;
+    const bool changed = cell.note != next ||
+      (clearRow && (cell.instrument != EMPTY_VALUE_8 || cell.volume != EMPTY_VALUE_16));
+    if (!changed) return 0;
     cell.note = next;
-    if (next == NOTE_OFF) {
+    if (clearRow) {
       cell.instrument = EMPTY_VALUE_8;
       cell.volume = EMPTY_VALUE_16;
     }
