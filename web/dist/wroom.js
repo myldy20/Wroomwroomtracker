@@ -9,6 +9,8 @@
   const semanticWorkspace = $("#semanticWorkspace");
   const legacyWorkspace = $("#legacyWorkspace");
   const songWorkspace = $("#songWorkspace");
+  const soundWorkspace = $("#soundWorkspace");
+  const soundSlot = $("#soundSlot");
   const mixWorkspace = $("#mixWorkspace");
   const mixTrackRows = $("#mixTrackRows");
   const songGrid = $("#songGrid");
@@ -22,6 +24,7 @@
   let trackerStarted = false;
   let activeUiScreen = 0;
   let nativeMixerExpanded = false;
+  let nativeSoundExpanded = false;
   // webOpenScreen queues a native screen change; the C++ screen pointer only
   // updates on a following draw frame. Do not revert the DOM during that gap.
   let pendingNativeScreen = null;
@@ -51,6 +54,7 @@
     fs.mkdirTree("/user/projects");
     fs.mkdirTree("/user/samples");
     fs.mkdirTree("/user/exports");
+    fs.mkdirTree("/user/instruments/USER");
   };
 
   const syncUserStorage = (done) => {
@@ -677,6 +681,54 @@
     }
   };
 
+
+  const hexSound = value => Number(value).toString(16).toUpperCase().padStart(2, "0");
+  const soundPanText = value => {
+    if (value === 128) return "CENTER";
+    if (value < 128) return "L " + Math.round((128-value)/128*100) + "%";
+    return "R " + Math.round((value-128)/127*100) + "%";
+  };
+
+  // Native Project is authoritative for slot, engine, name, volume, and PAN.
+  const renderSoundWorkspace = (rebuild = false) => {
+    if (!window.Module?.ccall || activeUiScreen !== 3 || nativeSoundExpanded) return;
+    const count = call("webSoundSlotCount", "number") || 0;
+    if (rebuild || soundSlot.options.length !== count) {
+      const options = document.createDocumentFragment();
+      for (let slot = 0; slot < count; slot++) {
+        const name = call("webSoundSlotName", "string", ["number"], [slot]) || "";
+        const type = call("webSoundSlotTypeId", "number", ["number"], [slot]);
+        const typeName = call("webSoundSlotType", "string", ["number"], [slot]) || "";
+        const option = document.createElement("option");
+        option.value = String(slot);
+        option.textContent = hexSound(slot) + " · " + (type === 0 ? "EMPTY" : (name || typeName));
+        options.appendChild(option);
+      }
+      soundSlot.replaceChildren(options);
+    }
+    const selected = call("webSoundSelectedSlot", "number");
+    if (!Number.isInteger(selected) || selected < 0 || selected >= count) return;
+    soundSlot.value = String(selected);
+    const type = call("webSoundSlotType", "string", ["number"], [selected]) || "EMPTY";
+    const typeId = call("webSoundSlotTypeId", "number", ["number"], [selected]);
+    const name = call("webSoundSlotName", "string", ["number"], [selected]) || "(unnamed)";
+    const empty = typeId === 0;
+    $("#soundInstrumentInfo").textContent = empty ? "Empty instrument · choose a slot or open FULL SOUND to create one" : name + " · " + type;
+    const volume = call("webSoundSlotVolume", "number", ["number"], [selected]);
+    const pan = call("webSoundSlotPan", "number", ["number"], [selected]);
+    $("#soundVolume").value = String(volume);
+    $("#soundVolumeValue").textContent = hexSound(volume);
+    $("#soundPan").value = String(pan);
+    $("#soundPanValue").textContent = soundPanText(pan);
+    for (const control of ["#soundVolume","#soundPan","#soundPanCenter"]) $(control).disabled = empty;
+    const folder = call("webSoundUserPresetFolder", "string") || "";
+    $("#soundImportPresets").disabled = !folder;
+    $("#soundBrowsePresets").disabled = !folder;
+    $("#soundPresetInfo").textContent = folder
+      ? "Library for " + type + " · " + folder + " · import .cni, ZIP or compatible chip programs"
+      : "USER preset import is available for compatible native chip/FM instruments.";
+  };
+
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
     $$(".view-tabs [data-screen]").forEach((button) => {
@@ -685,20 +737,27 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0 || (screen === 4 && !nativeMixerExpanded);
+    const semantic = screen === 0 || (screen === 4 && !nativeMixerExpanded) ||
+      (screen === 3 && !nativeSoundExpanded);
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
     songWorkspace.hidden = screen !== 0;
+    soundWorkspace.hidden = screen !== 3 || nativeSoundExpanded;
     mixWorkspace.hidden = screen !== 4 || nativeMixerExpanded;
     $("#mixReturnDirect").hidden = screen !== 4 || !nativeMixerExpanded;
+    $("#soundReturnDirect").hidden = screen !== 3 || !nativeSoundExpanded;
     $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
+      : screen === 3 && !nativeSoundExpanded ? "PICK INSTRUMENT · DRAG LEVEL / PAN"
+      : screen === 3 ? "FULL NATIVE SOUND · DIRECT SOUND TO RETURN"
       : screen === 4 && !nativeMixerExpanded ? "DRAG VOL / PAN · TAP BUTTONS TO RESET"
       : screen === 4 ? "FULL NATIVE MIXER · DIRECT MIX TO RETURN"
       : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
 
     if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
+    } else if (screen === 3 && !nativeSoundExpanded) {
+      renderSoundWorkspace(true);
     } else if (screen === 4 && !nativeMixerExpanded) {
       updateMixWorkspace();
     } else if (syncNative) {
@@ -716,6 +775,7 @@
     }
 
     nativeMixerExpanded = false;
+    nativeSoundExpanded = false;
     pendingNativeScreen = screen;
     pendingNativeUntil = performance.now() + 3000;
     setWorkspaceMode(screen, true);
@@ -1181,6 +1241,7 @@
     // Auto Mix confirmation and other native dialogs must remain on screen.
     // Never offer a way to hide a pending Apply/Cancel decision.
     if (nativeMixerExpanded) $("#mixReturnDirect").hidden = current !== 4;
+    if (nativeSoundExpanded) $("#soundReturnDirect").hidden = current !== 3;
 
     let editLabel = "EDIT";
     if (current === 2) {
@@ -1198,7 +1259,82 @@
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
     updateSongPlaybackVisuals();
     updateMixWorkspace();
+    renderSoundWorkspace();
   };
+
+
+  soundSlot.addEventListener("change", () => {
+    const result = call("webSoundSelectSlot","number",["number"],[Number(soundSlot.value)]);
+    if (result !== 0) { setStatus("Instrument slot could not be selected"); return; }
+    renderSoundWorkspace(true);
+  });
+  const setSoundControl = (field) => {
+    const slot = Number(soundSlot.value);
+    const slider = field === "Pan" ? $("#soundPan") : $("#soundVolume");
+    const value = Number(slider.value);
+    const result = call("webSoundSetSlot" + field, "number",["number","number"],[slot,value]);
+    if (result !== 0) { setStatus("Instrument " + field + " update rejected"); return; }
+    $(field === "Pan" ? "#soundPanValue" : "#soundVolumeValue").textContent =
+      field === "Pan" ? soundPanText(value) : hexSound(value);
+  };
+  $("#soundPan").addEventListener("input", () => setSoundControl("Pan"));
+  $("#soundVolume").addEventListener("input", () => setSoundControl("Volume"));
+  $("#soundPanCenter").addEventListener("click", () => {
+    $("#soundPan").value = "128"; setSoundControl("Pan");
+  });
+  $("#soundOpenNative").addEventListener("click", () => {
+    if (call("webOpenScreen","number",["number"],[3]) !== 0) return;
+    nativeSoundExpanded = true;
+    pendingNativeScreen = 3;
+    pendingNativeUntil = performance.now() + 3000;
+    setWorkspaceMode(3, true);
+  });
+  $("#soundReturnDirect").addEventListener("click", () => {
+    if (call("webCurrentScreen","number") !== 3) {
+      setStatus("Finish or cancel the native instrument dialog first");
+      return;
+    }
+    nativeSoundExpanded = false;
+    setWorkspaceMode(3, true);
+  });
+  $("#soundBrowsePresets").addEventListener("click", () => {
+    if (call("webSoundOpenUserPresets", "number") !== 0) {
+      setStatus("No compatible USER preset library for this instrument");
+      return;
+    }
+    nativeSoundExpanded = true;
+    setWorkspaceMode(3, true);
+  });
+  $("#soundImportPresets").addEventListener("click", () => $("#soundPresetInput").click());
+  $("#soundPresetInput").addEventListener("change", async event => {
+    const folder = call("webSoundUserPresetFolder", "string") || "";
+    const fs = getFs();
+    const files = [...event.target.files];
+    event.target.value = "";
+    if (!folder || !fs || !/^[a-z0-9-]+$/.test(folder)) {
+      setStatus("Choose a supported native chip/FM instrument before importing");
+      return;
+    }
+    const allowed = /\\.(?:cni|zip|syx|opm|sbi|bnk|vgi|y12|op2|wopl|wopn|ins|pat|dmp)$/i;
+    if (files.length > 24 || files.some(f => f.size > 5*1024*1024) ||
+        files.reduce((n,f) => n+f.size,0) > 24*1024*1024) {
+      setStatus("Limit: 24 files, 5 MB each, 24 MB per import");
+      return;
+    }
+    const root = "/user/instruments/USER/" + folder;
+    fs.mkdirTree(root);
+    let count = 0;
+    for (const file of files) {
+      if (!allowed.test(file.name)) continue;
+      const name = userPath(file.name);
+      if (!name || name.includes("/") || name.startsWith(".")) continue;
+      fs.writeFile(root + "/" + name, new Uint8Array(await file.arrayBuffer()));
+      count++;
+    }
+    syncUserStorage(error => setStatus(error
+      ? count + " preset file(s) imported temporarily; browser persistence failed"
+      : count + " preset file(s) available in " + folder + " USER library"));
+  });
 
   $("#mixOpenNative").addEventListener("click", () => {
     // screenMixer.draw() refreshes only meters/analyzers, not level/PAN glyphs.
