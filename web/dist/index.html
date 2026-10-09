@@ -93,6 +93,39 @@
               <button id="songMoreRows" class="song-more-rows" type="button" data-needs-runtime disabled hidden>SHOW 16 MORE SONG ROWS</button>
             </div>
           </section>
+          <section id="soundWorkspace" class="workspace-view sound-workspace" aria-label="Direct instrument controls" hidden>
+            <header class="mix-toolbar">
+              <div><strong>INSTRUMENT</strong>
+                <span>Pick a native instrument slot, adjust its level and stereo position.</span></div>
+              <button id="soundOpenNative" type="button" data-needs-runtime disabled>FULL SOUND ↗</button>
+            </header>
+            <div class="sound-panel">
+              <label class="sound-slot-label">INSTRUMENT SLOT
+                <select id="soundSlot" aria-label="Instrument slot"></select>
+              </label>
+              <p id="soundInstrumentInfo" class="sound-type-info">Choose an instrument slot</p>
+              <div class="sound-control-row">
+                <label for="soundVolume">LEVEL</label>
+                <input id="soundVolume" type="range" min="0" max="255" step="1" aria-label="Instrument volume">
+                <output id="soundVolumeValue" for="soundVolume">--</output>
+              </div>
+              <div class="sound-control-row">
+                <label for="soundPan">PAN</label>
+                <input id="soundPan" type="range" min="0" max="255" step="1" aria-label="Instrument pan">
+                <output id="soundPanValue" for="soundPan">--</output>
+                <button id="soundPanCenter" type="button" data-needs-runtime disabled>CENTER</button>
+              </div>
+              <div class="sound-preset-tools">
+                <strong>USER PRESETS</strong>
+                <p id="soundPresetInfo">Select a compatible chip/FM instrument to import external presets.</p>
+                <div>
+                  <button id="soundImportPresets" type="button" data-needs-runtime disabled>IMPORT FILES</button>
+                  <button id="soundBrowsePresets" type="button" data-needs-runtime disabled>BROWSE IN ENGINE ↗</button>
+                </div>
+                <small>Files remain in this browser's storage. Supported formats depend on the selected engine.</small>
+              </div>
+            </div>
+          </section>
           <section id="mixWorkspace" class="workspace-view mix-workspace" aria-label="Direct track mixer" hidden>
             <header class="mix-toolbar">
               <div><strong>TRACK MIXER</strong>
@@ -111,6 +144,7 @@
             <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
             <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
             <button id="mixReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT MIX</button>
+            <button id="soundReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT SOUND</button>
             <span class="spacer"></span>
             <span class="hint">This screen is still using the legacy tracker view while its web workspace is being migrated.</span>
           </div>
@@ -295,6 +329,7 @@
   <input id="projectInput" type="file" accept=".cct" hidden>
   <input id="sampleInput" type="file" accept=".wav,audio/wav" multiple hidden>
   <input id="sampleFolderInput" type="file" accept=".wav,audio/wav" webkitdirectory multiple hidden>
+  <input id="soundPresetInput" type="file" accept=".cni,.zip,.syx,.opm,.sbi,.bnk,.vgi,.y12,.op2,.wopl,.wopn,.ins,.pat,.dmp" multiple hidden>
 
   <script id="wroom-bootstrap">
     window.WROOM_BUILD = "__WROOM_BUILD__";

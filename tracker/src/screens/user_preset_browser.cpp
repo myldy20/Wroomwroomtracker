@@ -107,7 +107,14 @@ bool setupUserPresetLibrary(UserPresets& target, InstrumentType type) {
     if (fileGetDefaultDirectory(directory, sizeof(directory))) return false;
     base = std::string(directory) + "/instruments/";
   }
+#ifdef WEB_BUILD
+  // Keep uploaded Web presets in IDBFS. The packaged /instruments tree is
+  // deliberately not preloaded for fast startup and must not be the USER root.
+  target.setup(std::string("/user/instruments/USER/") + subfolder, type,
+               std::string("/instruments/banks/") + subfolder);
+#else
   target.setup(base + "USER/" + subfolder, type, base + "banks/" + subfolder);
+#endif
   return true;
 }
 

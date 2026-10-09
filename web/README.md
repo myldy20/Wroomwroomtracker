@@ -31,3 +31,17 @@ python3 -m http.server 8080
 Then open `http://localhost:8080`.
 
 The original desktop keyboard/gamepad input remains available, but it is no longer required to operate the web UI.
+
+## SOUND and imported USER presets
+
+SOUND offers a direct instrument-slot selector, native instrument volume (hex
+00–FF), and stereo PAN. **FULL SOUND** opens the complete native editor for
+oscillators, envelopes, modulation, import/export and other parameters.
+**DIRECT SOUND** returns after the native editor is finished.
+
+For compatible chip/FM instruments, **IMPORT FILES** adds .cni, .zip or
+engine-specific preset programs to the selected engine's USER folder in browser
+IndexedDB. Use **BROWSE IN ENGINE** to open the native compatible USER preset
+browser, audition and load them. The Web bundle deliberately does not preload
+the large factory library. Files are local to the browser and may be erased
+when site data is cleared.

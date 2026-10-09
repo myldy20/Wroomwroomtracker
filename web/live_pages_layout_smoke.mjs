@@ -217,6 +217,24 @@ try {
     assert.ok(mixGeometry.resetHeight >= 44, viewport.name + ": PAN center is not a touch target");
     await page.locator('.view-tabs [data-screen="0"]').click();
 
+    // All six breakpoints must keep SOUND sliders and slot selection usable.
+    await page.locator('.view-tabs [data-screen="3"]').click();
+    await page.waitForSelector("#soundWorkspace:not([hidden]) #soundSlot", {timeout: 6_000});
+    const soundGeometry = await page.evaluate(() => {
+      const slider = document.querySelector("#soundPan").getBoundingClientRect();
+      const workspace = document.querySelector("#soundWorkspace");
+      return { documentOverflow: document.documentElement.scrollWidth - innerWidth,
+        panelWidth:workspace.clientWidth, contentWidth:workspace.scrollWidth,
+        sliderWidth:slider.width,
+        fullSoundHeight:document.querySelector("#soundOpenNative").getBoundingClientRect().height
+      };
+    });
+    assert.ok(soundGeometry.documentOverflow <= 1, viewport.name + ": SOUND causes page overflow");
+    assert.ok(soundGeometry.contentWidth <= soundGeometry.panelWidth + 1, viewport.name + ": SOUND panel overflows");
+    assert.ok(soundGeometry.sliderWidth >= 45, viewport.name + ": SOUND PAN is too narrow");
+    assert.ok(soundGeometry.fullSoundHeight >= 44, viewport.name + ": FULL SOUND is not a touch target");
+    await page.locator('.view-tabs [data-screen="0"]').click();
+
     await page.screenshot({
       path: path.join(outDir, viewport.name + ".png"),
       fullPage: false,

@@ -479,6 +479,73 @@ if (success) {
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songWorkspace:not([hidden]) #songGrid .song-cell", {timeout: 6_000});
 
+
+  // SOUND must reflect real native slot/type/PAN, preserve full editor and imports.
+  await page.locator('.view-tabs [data-screen="3"]').click();
+  await page.waitForSelector("#soundWorkspace:not([hidden]) #soundSlot", {timeout: 6_000});
+  const soundCount = await page.evaluate(() => window.Module.ccall("webSoundSlotCount", "number"));
+  if (soundCount !== 128 || (await page.locator("#soundSlot option").count()) !== soundCount)
+    throw new Error("SOUND slot selector must expose all 128 native slots");
+  await page.waitForFunction(() => window.Module.ccall("webCurrentScreen","number") === 3);
+  const soundSlot = await page.evaluate(() => {
+    const c = window.Module.ccall;
+    for (let slot = 0; slot < c("webSoundSlotCount","number"); slot++)
+      if (c("webSoundSlotTypeId","number",["number"],[slot]) > 0) return slot;
+    return -1;
+  });
+  if (soundSlot < 0) throw new Error("SOUND demo project has no live native instrument");
+  await page.locator("#soundSlot").selectOption(String(soundSlot));
+  const nativeSelected = await page.evaluate(() => window.Module.ccall("webSoundSelectedSlot","number"));
+  if (nativeSelected !== soundSlot) throw new Error("SOUND changed UI slot, not native instrument cursor");
+  const previousPan = await page.evaluate(slot => window.Module.ccall(
+    "webSoundSlotPan","number",["number"],[slot]), soundSlot);
+  const previousVolume = await page.evaluate(slot => window.Module.ccall(
+    "webSoundSlotVolume","number",["number"],[slot]), soundSlot);
+  await page.locator("#soundPan").evaluate(el => {
+    el.value = "32"; el.dispatchEvent(new Event("input",{bubbles:true}));
+  });
+  const afterPan = await page.evaluate(slot => window.Module.ccall(
+    "webSoundSlotPan","number",["number"],[slot]), soundSlot);
+  if (afterPan !== 32 || !/L 75%/.test(await page.locator("#soundPanValue").innerText()))
+    throw new Error("SOUND PAN must read/write native Project instrument");
+  if ((await page.evaluate(slot => window.Module.ccall(
+      "webSoundSetSlotPan","number",["number","number"],[slot,256]), soundSlot)) !== 1)
+    throw new Error("SOUND accepted out-of-range PAN");
+  await page.locator("#soundPanCenter").click();
+  if ((await page.evaluate(slot => window.Module.ccall(
+      "webSoundSlotPan","number",["number"],[slot]), soundSlot)) !== 128)
+    throw new Error("SOUND CENTER did not restore native PAN");
+  await page.locator("#soundVolume").evaluate(el => {
+    el.value = "71"; el.dispatchEvent(new Event("input",{bubbles:true}));
+  });
+  if ((await page.evaluate(slot => window.Module.ccall(
+      "webSoundSlotVolume","number",["number"],[slot]), soundSlot)) !== 71)
+    throw new Error("SOUND level was not written to native Project");
+  await page.evaluate(({slot,pan,volume}) => {
+    window.Module.ccall("webSoundSetSlotPan","number",["number","number"],[slot,pan]);
+    window.Module.ccall("webSoundSetSlotVolume","number",["number","number"],[slot,volume]);
+  },{slot:soundSlot,pan:previousPan,volume:previousVolume});
+  const activeFolder = await page.evaluate(() => window.Module.ccall("webSoundUserPresetFolder","string"));
+  if (activeFolder) {
+    await page.locator("#soundPresetInput").setInputFiles({
+      name:"smoke-preset.zip", mimeType:"application/zip", buffer:Buffer.from([80,75,5,6, ...Array(18).fill(0)])
+    });
+    const path = "/user/instruments/USER/" + activeFolder + "/smoke-preset.zip";
+    await page.waitForFunction(path => {
+      try { return window.Module.FS.analyzePath(path).exists; } catch (_) { return false; }
+    },path,{timeout:5000});
+    await page.evaluate(path => window.Module.FS.unlink(path),path);
+  }
+  await page.locator("#soundOpenNative").click();
+  if (!(await page.locator("#legacyWorkspace").isVisible()) ||
+      !(await page.locator("#soundReturnDirect").isVisible()))
+    throw new Error("FULL SOUND native editor inaccessible");
+  await page.locator("#soundReturnDirect").click();
+  if (!(await page.locator("#soundWorkspace").isVisible()))
+    throw new Error("Cannot return from native SOUND editor");
+  await page.locator('.view-tabs [data-screen="0"]').click();
+  await page.waitForSelector("#songWorkspace:not([hidden]) .song-cell", {timeout:6000});
+
   interaction = {
     rowsBefore,
     rowsAfter,

@@ -1722,3 +1722,27 @@ input {
   .mix-control-row { grid-template-columns: 24px minmax(0,1fr) 40px 44px; gap: 3px; }
   .mix-pan-center, .mix-volume-max { padding-inline: 2px; }
 }
+
+
+/* SOUND: selected native instrument, no JS-owned synthesizer state. */
+.sound-workspace { min-height: 0; overflow: auto; }
+.sound-panel { display: grid; gap: 16px; padding: 18px; max-width: 860px; }
+.sound-slot-label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 800; }
+#soundSlot { width: 100%; max-width: 550px; min-height: 46px; border-radius: 5px; padding: 0 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); }
+.sound-type-info { margin: 0; color: var(--cyan); font-size: 12px; }
+.sound-control-row { display: grid; grid-template-columns: 55px minmax(0,1fr) 76px 70px; gap: 10px; align-items: center; background: #08131d; border: 1px solid var(--line); border-radius: 7px; padding: 11px; }
+.sound-control-row label { color: var(--muted); font-weight: 800; }
+.sound-control-row input[type=range] { width: 100%; min-width: 0; min-height: 44px; accent-color: var(--cyan); }
+.sound-control-row output { color: var(--amber); font-weight: 800; text-align: right; white-space: nowrap; }
+.sound-control-row button { min-height: 44px; padding-inline: 4px; font-weight: 800; }
+#soundOpenNative,#soundReturnDirect { min-height: 44px; color: var(--cyan); font-weight: 800; }
+.sound-preset-tools { display: grid; gap: 8px; border: 1px solid var(--line); background: #08131d; border-radius: 7px; padding: 15px; }
+.sound-preset-tools > strong { color: var(--cyan); letter-spacing: .07em; }
+.sound-preset-tools p,.sound-preset-tools small { margin: 0; color: var(--muted); }
+.sound-preset-tools > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.sound-preset-tools button { min-height: 44px; }
+@media (max-width: 560px) {
+  .sound-panel { padding: 8px; gap: 10px; }
+  .sound-control-row { grid-template-columns: 38px minmax(0,1fr) 57px 58px; gap: 5px; padding: 8px; }
+  .sound-preset-tools { padding: 10px; }
+}
