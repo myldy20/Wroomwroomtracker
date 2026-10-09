@@ -131,3 +131,14 @@ playback state.
 Unit tests cover modulation limits, the instrument catalogue, handoffs and
 commands, and voices. Final validation remains auditory and hardware-based:
 dense playback, live editing, motion recording, effects and saving.
+
+
+### Native MIX fallback safety
+
+The direct Web MIX screen owns volume/PAN edits in the canonical Project. Opening
+FULL MIXER must re-enter native `webOpenScreen(4)` to trigger a native Mixer
+`fullRedraw`; its ordinary `draw()` only refreshes meters and analyzers.
+The DIRECT MIX button is unavailable while a different native screen,
+including the Auto Mix Apply/Cancel confirmation, is active. The native dialog
+must be resolved before switching back to semantic controls; previews must
+not be silently accepted by hiding the canvas.

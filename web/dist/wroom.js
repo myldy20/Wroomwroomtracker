@@ -1167,6 +1167,9 @@
     if (!window.Module?.ccall) return;
     const current = call("webCurrentScreen", "number");
     if (current >= 0 && current !== activeUiScreen) setWorkspaceMode(current);
+    // Auto Mix confirmation and other native dialogs must remain on screen.
+    // Never offer a way to hide a pending Apply/Cancel decision.
+    if (nativeMixerExpanded) $("#mixReturnDirect").hidden = current !== 4;
 
     let editLabel = "EDIT";
     if (current === 2) {
@@ -1187,10 +1190,22 @@
   };
 
   $("#mixOpenNative").addEventListener("click", () => {
+    // screenMixer.draw() refreshes only meters/analyzers, not level/PAN glyphs.
+    // Re-enter native Mixer to schedule a fullRedraw with the latest Web edits.
+    if (call("webOpenScreen", "number", ["number"], [4]) !== 0) {
+      setStatus("Native mixer could not open");
+      return;
+    }
     nativeMixerExpanded = true;
     setWorkspaceMode(4, true);
   });
   $("#mixReturnDirect").addEventListener("click", () => {
+    // The native Auto Mix dialog previews new volumes pending Apply/Cancel.
+    // Hiding it would permit editing/saving uncommitted preview values.
+    if (call("webCurrentScreen", "number") !== 4) {
+      setStatus("Apply or cancel the native mixer dialog first");
+      return;
+    }
     nativeMixerExpanded = false;
     setWorkspaceMode(4, true);
   });

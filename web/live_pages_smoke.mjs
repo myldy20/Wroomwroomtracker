@@ -414,10 +414,64 @@ if (success) {
   await page.evaluate(value => window.Module.ccall(
     "webMixSetTrackVolume", "number", ["number", "number"], [0, value]), originalVolume);
 
+  // A native mixer canvas can be stale after direct Web edits: verify that
+  // FULL MIXER re-enters native screen setup and updates the LVL glyph pixels.
+  const snapshotLevelPixels = async () => page.locator("#canvas").evaluate(el => {
+    const ctx = el.getContext("2d", {willReadFrequently: true});
+    const w = el.width, h = el.height;
+    // Native mixer LVL field: text column 4, row 3 (+ content row offset).
+    // Use a slim region that excludes meters and other changing displays.
+    const px = Math.round(w * 4 / 40), py = Math.round(h * 3 / 20);
+    const width = Math.round(w * 2 / 40), height = Math.round(h / 20);
+    return Array.from(ctx.getImageData(px, py, width, height).data);
+  });
   await page.locator("#mixOpenNative").click();
+  await page.waitForFunction(() => window.Module.ccall("webCurrentScreen", "number") === 4);
+  await page.waitForTimeout(100);
+  const beforeLevelPixels = await snapshotLevelPixels();
   if (!(await page.locator("#legacyWorkspace").isVisible()) ||
       !(await page.locator("#mixReturnDirect").isVisible()))
     throw new Error("Native mixer became unreachable after direct MIX migration");
+  await page.locator("#mixReturnDirect").click();
+  await page.locator("#mixTrackRows .mix-volume-slider").first().evaluate(el => {
+    el.value = "0"; el.dispatchEvent(new Event("input", {bubbles:true}));
+  });
+  if ((await page.evaluate(() => window.Module.ccall(
+    "webMixTrackVolume", "number", ["number"], [0]))) !== 0)
+    throw new Error("Direct MIX zero-level test setup failed");
+  await page.locator("#mixOpenNative").click();
+  await page.waitForTimeout(150);
+  const afterLevelPixels = await snapshotLevelPixels();
+  if (beforeLevelPixels.length !== afterLevelPixels.length ||
+      beforeLevelPixels.every((value, i) => value === afterLevelPixels[i]))
+    throw new Error("Native mixer LVL glyph did not redraw after direct volume edit");
+  await page.locator("#mixReturnDirect").click();
+  await page.evaluate(value => window.Module.ccall(
+    "webMixSetTrackVolume", "number", ["number", "number"], [0, value]), originalVolume);
+
+  // Mock only the read-only native screen-status response to model an active
+  // Auto Mix confirmation without manipulating audio, DSP, or the project.
+  await page.locator("#mixOpenNative").click();
+  const confirmationGuard = await page.evaluate(() => {
+    const real = window.Module.ccall;
+    try {
+      window.Module.ccall = function (name, ...args) {
+        if (name === "webCurrentScreen") return -1;
+        return real.call(this, name, ...args);
+      };
+      document.querySelector("#mixReturnDirect").click();
+      return {
+        nativeVisible: !document.querySelector("#legacyWorkspace").hidden,
+        directHidden: document.querySelector("#mixWorkspace").hidden,
+        status: document.querySelector("#status").textContent
+      };
+    } finally {
+      window.Module.ccall = real;
+    }
+  });
+  if (!confirmationGuard.nativeVisible || !confirmationGuard.directHidden ||
+      !/Apply or cancel/.test(confirmationGuard.status))
+    throw new Error("Native Auto Mix dialog bypasses Apply/Cancel guard");
   await page.locator("#mixReturnDirect").click();
   if (!(await page.locator("#mixWorkspace").isVisible()) ||
       !(await page.locator("#mixTrackRows .mix-volume-slider").first().isVisible()))
