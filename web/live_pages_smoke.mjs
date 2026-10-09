@@ -336,6 +336,23 @@ if (success) {
 
   // Test the real freshly built Web PAN interface, not a JS-only fake state.
   await page.locator('.view-tabs [data-screen="4"]').click();
+  const mixLayout = await page.evaluate(() => {
+    const shell = document.querySelector("#semanticWorkspace");
+    const workspace = document.querySelector("#mixWorkspace");
+    const slider = document.querySelector("#mixTrackRows .mix-pan-slider");
+    const snapshot = node => node ? ({
+      hidden: node.hidden, display: getComputedStyle(node).display,
+      visibility: getComputedStyle(node).visibility,
+      width: node.getBoundingClientRect().width,
+      height: node.getBoundingClientRect().height
+    }) : null;
+    return {
+      screenName: document.querySelector("#screenName")?.textContent,
+      nativeScreen: window.Module?.ccall?.("webCurrentScreen", "number"),
+      shell: snapshot(shell), workspace: snapshot(workspace), slider: snapshot(slider)
+    };
+  });
+  console.log("MIX layout", JSON.stringify(mixLayout));
   await page.waitForSelector("#mixWorkspace:not([hidden]) .mix-pan-slider", {timeout: 6_000});
   const panTrackCount = await page.evaluate(() => window.Module.ccall("webSongTrackCount", "number"));
   if ((await page.locator("#mixTrackRows .mix-track-row").count()) !== panTrackCount)
