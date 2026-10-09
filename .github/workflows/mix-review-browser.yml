@@ -1,0 +1,49 @@
+name: Temporary MIX Review Browser Proof
+on:
+  push:
+    branches: [feat/web-native-mix-volume-20261009]
+    paths:
+      - '.github/workflows/mix-review-browser.yml'
+permissions:
+  contents: read
+jobs:
+  mixer-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check latest Web assets and bridge
+        run: |
+          cmp web/wroom.js web/dist/wroom.js
+          cmp web/wroom.css web/dist/wroom.css
+          cmp web/index.html web/dist/index.html
+          node --check web/wroom.js
+          node web/native_parity_contract_test.mjs
+          node web/wasm_bridge_contract_test.mjs
+      - name: Install browser runner
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          npm install --no-save --ignore-scripts playwright-core@1.56.1
+      - name: Verify native redraw, confirmation guard, volume/pan and responsive layout
+        env:
+          LIVE_URL: http://127.0.0.1:8765/
+          EXPECTED_BUILD: review-preview
+        run: |
+          sed -i 's/__WROOM_BUILD__/review-preview/g' web/dist/index.html
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory web/dist >/tmp/mix-review-browser.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8765/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node web/live_pages_smoke.mjs
+          node web/live_pages_layout_smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mix-review-proof-${{ github.sha }}
+          path: artifacts/live-pages-smoke/
+          if-no-files-found: warn
