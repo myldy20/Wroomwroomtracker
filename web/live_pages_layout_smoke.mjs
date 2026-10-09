@@ -167,6 +167,34 @@ try {
     }
     await page.locator('.view-tabs [data-screen="0"]').click();
 
+    // The migrated MIX must be directly usable at desktop and narrow phone sizes.
+    await page.locator('.view-tabs [data-screen="4"]').click();
+    await page.waitForSelector("#mixWorkspace:not([hidden]) .mix-pan-slider", {timeout: 6_000});
+    const mixGeometry = await page.evaluate(() => {
+      const parent = document.querySelector("#mixWorkspace");
+      const slider = document.querySelector(".mix-pan-slider");
+      const volume = document.querySelector(".mix-volume-slider");
+      const reset = document.querySelector(".mix-pan-center");
+      const bounds = slider?.getBoundingClientRect();
+      const volumeBounds = volume?.getBoundingClientRect();
+      const button = reset?.getBoundingClientRect();
+      return {
+        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+        parentWidth: parent?.clientWidth,
+        parentScrollWidth: parent?.scrollWidth,
+        sliderWidth: bounds?.width,
+        volumeWidth: volumeBounds?.width,
+        resetHeight: button?.height,
+      };
+    });
+    assert.ok(mixGeometry.pageOverflow <= 1, viewport.name + ": MIX causes page overflow");
+    assert.ok(mixGeometry.parentScrollWidth <= mixGeometry.parentWidth + 1,
+      viewport.name + ": PAN controls overflow workspace");
+    assert.ok(mixGeometry.sliderWidth >= 55 && mixGeometry.volumeWidth >= 55,
+      viewport.name + ": MIX sliders unusably small: " + JSON.stringify(mixGeometry));
+    assert.ok(mixGeometry.resetHeight >= 44, viewport.name + ": PAN center is not a touch target");
+    await page.locator('.view-tabs [data-screen="0"]').click();
+
     await page.screenshot({
       path: path.join(outDir, viewport.name + ".png"),
       fullPage: false,

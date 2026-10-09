@@ -8,6 +8,9 @@
   const fileButtons = $$("[data-needs-runtime]");
   const semanticWorkspace = $("#semanticWorkspace");
   const legacyWorkspace = $("#legacyWorkspace");
+  const songWorkspace = $("#songWorkspace");
+  const mixWorkspace = $("#mixWorkspace");
+  const mixTrackRows = $("#mixTrackRows");
   const songGrid = $("#songGrid");
   const songScroll = $("#songScroll");
   const masterMeterChannels = [...document.querySelectorAll("#masterMeter .master-meter-channel")];
@@ -18,6 +21,7 @@
   const chainPickerList = $("#chainPickerList");
   let trackerStarted = false;
   let activeUiScreen = 0;
+  let nativeMixerExpanded = false;
   let songRendered = false;
   let songMinimumRows = 32;
   let songSelection = { row: 0, track: 0 };
@@ -573,6 +577,102 @@
     updateTrackActivity();
   };
 
+
+  // No browser-owned mixer: every displayed value and edit belongs to
+  // native Project, with edits adopted by DSP on its normal snapshot boundary.
+  const formatTrackPan = (value) => {
+    if (value === 128) return "CENTER";
+    if (value < 128) return "L " + Math.round((128 - value) / 128 * 100) + "%";
+    return "R " + Math.round((value - 128) / 127 * 100) + "%";
+  };
+
+  const updateMixWorkspace = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 4) return;
+    const count = Math.max(0, Math.min(8, Number(call("webSongTrackCount", "number")) || 0));
+    if (mixTrackRows.childElementCount !== count) {
+      const fragment = document.createDocumentFragment();
+      for (let track = 0; track < count; track++) {
+        const row = document.createElement("section");
+        row.className = "mix-track-row";
+        row.dataset.track = String(track);
+        const heading = document.createElement("strong");
+        heading.className = "mix-track-heading";
+        heading.textContent = "TRACK " + (track + 1);
+
+        const makeControl = (label, cssName, max, initial) => {
+          const control = document.createElement("div");
+          control.className = "mix-control-row";
+          const name = document.createElement("span");
+          name.className = "mix-control-label";
+          name.textContent = label;
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.className = cssName;
+          slider.min = "0"; slider.max = String(max); slider.step = "1";
+          slider.value = String(initial);
+          slider.setAttribute("aria-label", "Track " + (track + 1) + " " + label.toLowerCase());
+          const output = document.createElement("output");
+          output.className = cssName + "-value";
+          control.append(name, slider, output);
+          return {control, slider, output};
+        };
+
+        const pan = makeControl("PAN", "mix-pan-slider", 255, 128);
+        pan.output.textContent = "CENTER";
+        const center = document.createElement("button");
+        center.type = "button";
+        center.className = "mix-pan-center";
+        center.textContent = "CENTER";
+        center.setAttribute("aria-label", "Center track " + (track + 1));
+        const setPan = (value) => {
+          const result = call("webMixSetTrackPan", "number", ["number", "number"], [track, value]);
+          if (result !== 0) { setStatus("PAN update failed"); return; }
+          pan.slider.value = String(value);
+          pan.output.textContent = formatTrackPan(value);
+        };
+        pan.slider.addEventListener("input", () => setPan(Number(pan.slider.value)));
+        center.addEventListener("click", () => setPan(128));
+        pan.control.appendChild(center);
+
+        const volume = makeControl("VOL", "mix-volume-slider", 100, 100);
+        volume.output.textContent = "100%";
+        const maxVolume = document.createElement("button");
+        maxVolume.type = "button";
+        maxVolume.className = "mix-volume-max";
+        maxVolume.textContent = "100%";
+        maxVolume.setAttribute("aria-label", "Set track " + (track + 1) + " volume to 100 percent");
+        const setVolume = (value) => {
+          const result = call("webMixSetTrackVolume", "number", ["number", "number"], [track, value]);
+          if (result !== 0) { setStatus("VOLUME update failed"); return; }
+          volume.slider.value = String(value);
+          volume.output.textContent = value + "%";
+        };
+        volume.slider.addEventListener("input", () => setVolume(Number(volume.slider.value)));
+        maxVolume.addEventListener("click", () => setVolume(100));
+        volume.control.appendChild(maxVolume);
+
+        row.append(heading, volume.control, pan.control);
+        fragment.appendChild(row);
+      }
+      mixTrackRows.replaceChildren(fragment);
+    }
+    for (const row of mixTrackRows.children) {
+      const track = Number(row.dataset.track);
+      const volume = call("webMixTrackVolume", "number", ["number"], [track]);
+      if (Number.isInteger(volume) && volume >= 0 && volume <= 100) {
+        const slider = row.querySelector(".mix-volume-slider");
+        if (document.activeElement !== slider) slider.value = String(volume);
+        row.querySelector(".mix-volume-slider-value").textContent = volume + "%";
+      }
+      const pan = call("webMixTrackPan", "number", ["number"], [track]);
+      if (Number.isInteger(pan) && pan >= 0 && pan <= 255) {
+        const slider = row.querySelector(".mix-pan-slider");
+        if (document.activeElement !== slider) slider.value = String(pan);
+        row.querySelector(".mix-pan-slider-value").textContent = formatTrackPan(pan);
+      }
+    }
+  };
+
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
     $$(".view-tabs [data-screen]").forEach((button) => {
@@ -581,15 +681,22 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0;
+    const semantic = screen === 0 || (screen === 4 && !nativeMixerExpanded);
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
-    $("#gestureHint").textContent = semantic
+    songWorkspace.hidden = screen !== 0;
+    mixWorkspace.hidden = screen !== 4 || nativeMixerExpanded;
+    $("#mixReturnDirect").hidden = screen !== 4 || !nativeMixerExpanded;
+    $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
+      : screen === 4 && !nativeMixerExpanded ? "DRAG VOL / PAN · TAP BUTTONS TO RESET"
+      : screen === 4 ? "FULL NATIVE MIXER · DIRECT MIX TO RETURN"
       : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
 
-    if (semantic) {
+    if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
+    } else if (screen === 4 && !nativeMixerExpanded) {
+      updateMixWorkspace();
     } else if (syncNative) {
       requestAnimationFrame(() => canvas.focus());
     }
@@ -604,6 +711,7 @@
       return false;
     }
 
+    nativeMixerExpanded = false;
     setWorkspaceMode(screen, true);
     if (screen === 0) {
       songRendered = false;
@@ -1059,6 +1167,9 @@
     if (!window.Module?.ccall) return;
     const current = call("webCurrentScreen", "number");
     if (current >= 0 && current !== activeUiScreen) setWorkspaceMode(current);
+    // Auto Mix confirmation and other native dialogs must remain on screen.
+    // Never offer a way to hide a pending Apply/Cancel decision.
+    if (nativeMixerExpanded) $("#mixReturnDirect").hidden = current !== 4;
 
     let editLabel = "EDIT";
     if (current === 2) {
@@ -1075,7 +1186,29 @@
     $("#playToggle").setAttribute("aria-pressed", playing ? "true" : "false");
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
     updateSongPlaybackVisuals();
+    updateMixWorkspace();
   };
+
+  $("#mixOpenNative").addEventListener("click", () => {
+    // screenMixer.draw() refreshes only meters/analyzers, not level/PAN glyphs.
+    // Re-enter native Mixer to schedule a fullRedraw with the latest Web edits.
+    if (call("webOpenScreen", "number", ["number"], [4]) !== 0) {
+      setStatus("Native mixer could not open");
+      return;
+    }
+    nativeMixerExpanded = true;
+    setWorkspaceMode(4, true);
+  });
+  $("#mixReturnDirect").addEventListener("click", () => {
+    // The native Auto Mix dialog previews new volumes pending Apply/Cancel.
+    // Hiding it would permit editing/saving uncommitted preview values.
+    if (call("webCurrentScreen", "number") !== 4) {
+      setStatus("Apply or cancel the native mixer dialog first");
+      return;
+    }
+    nativeMixerExpanded = false;
+    setWorkspaceMode(4, true);
+  });
 
   $$(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
     button.addEventListener("click", () => navigateToScreen(Number(button.dataset.screen)));

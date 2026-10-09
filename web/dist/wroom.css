@@ -1695,3 +1695,30 @@ input {
 @media (max-width: 940px) {
   .monitor-piano { height: 46px; }
 }
+
+
+/* Engine-backed touch/mouse mixer */
+.workspace-view[hidden] { display: none !important; }
+.mix-workspace { min-height: 0; overflow: auto; }
+
+.mix-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line-soft); background: #071019; }
+.mix-toolbar > div { display: grid; gap: 6px; min-width: 0; }
+#mixOpenNative { min-height: 44px; font-weight: 800; color: var(--amber); flex: 0 0 auto; }
+#mixReturnDirect { min-height: 44px; color: var(--cyan); font-weight: 800; }
+.mix-toolbar strong { color: var(--cyan); letter-spacing: .1em; }
+.mix-toolbar span { color: var(--muted); font-size: 11px; }
+.mix-track-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 9px; padding: 14px; align-content: start; }
+.mix-track-row { display: grid; gap: 5px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: #08131d; }
+.mix-track-heading { color: var(--ink); font-size: 11px; letter-spacing: .05em; margin-bottom: 3px; }
+.mix-control-row { display: grid; grid-template-columns: 32px minmax(0,1fr) 53px 64px; align-items: center; gap: 7px; min-width: 0; }
+.mix-control-label { font-size: 10px; color: var(--muted); font-weight: 800; }
+.mix-pan-slider, .mix-volume-slider { width: 100%; min-width: 0; min-height: 40px; accent-color: var(--cyan); cursor: pointer; touch-action: pan-y; }
+.mix-pan-slider:focus-visible, .mix-volume-slider:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.mix-pan-slider-value, .mix-volume-slider-value { color: var(--amber); font-size: 10px; font-weight: 800; text-align: right; white-space: nowrap; }
+.mix-pan-center, .mix-volume-max { min-height: 44px; padding: 0 6px; font-weight: 800; font-size: 10px; color: var(--muted); }
+@media (max-width: 560px) {
+  .mix-track-grid { grid-template-columns: 1fr; padding: 5px; }
+  .mix-track-row { padding: 6px; }
+  .mix-control-row { grid-template-columns: 24px minmax(0,1fr) 40px 44px; gap: 3px; }
+  .mix-pan-center, .mix-volume-max { padding-inline: 2px; }
+}

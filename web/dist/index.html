@@ -93,6 +93,14 @@
               <button id="songMoreRows" class="song-more-rows" type="button" data-needs-runtime disabled hidden>SHOW 16 MORE SONG ROWS</button>
             </div>
           </section>
+          <section id="mixWorkspace" class="workspace-view mix-workspace" aria-label="Direct track mixer" hidden>
+            <header class="mix-toolbar">
+              <div><strong>TRACK MIXER</strong>
+                <span>Control track volume and panorama. Open the full native mixer for other settings.</span></div>
+              <button id="mixOpenNative" type="button" data-needs-runtime disabled>FULL MIXER ↗</button>
+            </header>
+            <div id="mixTrackRows" class="mix-track-grid" aria-label="Track panorama controls"></div>
+          </section>
         </div>
 
         <div id="legacyWorkspace" class="legacy-workspace" hidden>
@@ -102,6 +110,7 @@
             <button id="editAction" class="primary" type="button" data-needs-runtime disabled>EDIT</button>
             <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
             <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
+            <button id="mixReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT MIX</button>
             <span class="spacer"></span>
             <span class="hint">This screen is still using the legacy tracker view while its web workspace is being migrated.</span>
           </div>

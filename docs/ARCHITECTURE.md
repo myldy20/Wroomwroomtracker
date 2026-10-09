@@ -31,6 +31,7 @@ Current migration contract:
 | Pending LIVE queue indicators | `webSongLiveQueuePacked` from `PlaybackStatus.tracks[].queue`; independent `+` / `!` / `−` visual marks, playback still engine-owned | native bridge + browser no-queue smoke, launch action remains pending |
 | Native group-track M/S selection | **Not yet migrated**: `selectedTrackBounds` and `toggleSelectedMute/Solo` support multiple native columns; browser currently exposes independent tracks only | tracked in parity inventory, must gain range selection and regression E2E |
 | Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote` read canonical status; native canvas retains `webTrackActivityGlyph` and chip-specific visuals. Web reads real 256-sample post-level PCM as signed 16-bit hex via `webTrackAudioScopeHex`; visual-only per-track auto gain + silence gate at ~30 Hz Canvas/rAF, with no DSP or audio callback changes; desktop inspector + mobile expander | browser smoke verifies tracks, native glyph, PCM payload and high-res canvas; responsive checks |
+| Direct Web MIX volume and PAN | `webMixTrackVolume` / `webMixSetTrackVolume` and `webMixTrackPan` / `webMixSetTrackPan` edit native `Project` (0–100% volume; 0–255 pan); browser never maintains audio gain or panning state | Chromium verifies native readback, isolation, invalid values and reset controls; WASM export contract |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 
 **Song is not yet native-feature-parity complete.** Native `screen_song.cpp` also implements rectangular selection, copy/cut/paste, multi-cell move, shallow/deep chain cloning, the clear-on-empty shift behavior, MUTE/SOLO status, and LIVE mode with queued/urgent/stop indicators. The DOM Song workspace currently lacks the following mappings:
@@ -130,3 +131,14 @@ playback state.
 Unit tests cover modulation limits, the instrument catalogue, handoffs and
 commands, and voices. Final validation remains auditory and hardware-based:
 dense playback, live editing, motion recording, effects and saving.
+
+
+### Native MIX fallback safety
+
+The direct Web MIX screen owns volume/PAN edits in the canonical Project. Opening
+FULL MIXER must re-enter native `webOpenScreen(4)` to trigger a native Mixer
+`fullRedraw`; its ordinary `draw()` only refreshes meters and analyzers.
+The DIRECT MIX button is unavailable while a different native screen,
+including the Auto Mix Apply/Cancel confirmation, is active. The native dialog
+must be resolved before switching back to semantic controls; previews must
+not be silently accepted by hiding the canvas.
