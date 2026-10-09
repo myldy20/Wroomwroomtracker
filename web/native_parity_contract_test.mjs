@@ -6,8 +6,10 @@ const inventory = JSON.parse(fs.readFileSync("web/native_parity_inventory.json",
 const shell = fs.readFileSync("web/wroom.js", "utf8");
 const html = fs.readFileSync("web/index.html", "utf8");
 assert.equal(inventory.screens.song, "semantic-incomplete");
-assert.match(shell, /const semantic = screen === 0;/,
-  "Do not silently treat unfinished screens as fully semantic");
+assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 4 && !nativeMixerExpanded\);/,
+  "Only Song and partial direct-PAN MIX may use the DOM workspace");
+assert.match(html, /id="mixOpenNative"/, "MIX must preserve the complete native mixer");
+assert.match(html, /id="mixReturnDirect"/, "MIX must allow returning to direct PAN");
 assert.match(shell, /legacyWorkspace\.hidden = semantic;/,
   "Legacy fallback must remain available for unmigrated screens");
 assert.match(html, /<canvas id="canvas"/, "Native canvas fallback must still exist");
