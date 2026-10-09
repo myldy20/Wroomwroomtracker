@@ -714,7 +714,20 @@
     const typeId = call("webSoundSlotTypeId", "number", ["number"], [selected]);
     const name = call("webSoundSlotName", "string", ["number"], [selected]) || "(unnamed)";
     const empty = typeId === 0;
-    $("#soundInstrumentInfo").textContent = empty ? "Empty instrument · choose a slot or open FULL SOUND to create one" : name + " · " + type;
+    $("#soundInstrumentInfo").textContent = empty ? "Empty instrument · create a new engine below or use FULL SOUND" : name + " · " + type;
+    $("#soundCreateControls").hidden = !empty;
+    if (empty && !$("#soundTypeChoice").options.length) {
+      const fragment = document.createDocumentFragment();
+      for (let id = 1; id < 28; id++) {
+        const label = call("webSoundTypeChoiceName","string",["number"],[id]) || "";
+        if (!label) continue;
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = label;
+        fragment.appendChild(option);
+      }
+      $("#soundTypeChoice").replaceChildren(fragment);
+    }
     const volume = call("webSoundSlotVolume", "number", ["number"], [selected]);
     const pan = call("webSoundSlotPan", "number", ["number"], [selected]);
     $("#soundVolume").value = String(volume);
@@ -1269,6 +1282,17 @@
     renderSoundWorkspace();
   };
 
+
+  $("#soundCreateInstrument").addEventListener("click", () => {
+    const slot = Number(soundSlot.value);
+    const type = Number($("#soundTypeChoice").value);
+    if (!Number.isInteger(type) || type <= 0) return;
+    const created = call("webSoundCreateInstrument","number",["number","number"],[slot,type]);
+    if (created !== 0) { setStatus("Instrument creation was rejected"); return; }
+    renderSoundWorkspace(true);
+    setStatus("Created " + (call("webSoundSlotType","string",["number"],[slot]) || "instrument") +
+      " in slot " + hexSound(slot));
+  });
 
   soundSlot.addEventListener("change", () => {
     const result = call("webSoundSelectSlot","number",["number"],[Number(soundSlot.value)]);

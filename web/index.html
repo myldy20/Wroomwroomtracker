@@ -104,6 +104,11 @@
                 <select id="soundSlot" aria-label="Instrument slot"></select>
               </label>
               <p id="soundInstrumentInfo" class="sound-type-info">Choose an instrument slot</p>
+              <div id="soundCreateControls" class="sound-create-controls" hidden>
+                <label for="soundTypeChoice">NEW ENGINE</label>
+                <select id="soundTypeChoice" aria-label="New instrument engine"></select>
+                <button id="soundCreateInstrument" type="button" data-needs-runtime disabled>CREATE INSTRUMENT</button>
+              </div>
               <div class="sound-control-row">
                 <label for="soundVolume">LEVEL</label>
                 <input id="soundVolume" type="range" min="0" max="255" step="1" aria-label="Instrument volume">

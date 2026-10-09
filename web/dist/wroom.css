@@ -1759,3 +1759,9 @@ input {
 .sound-preset-item strong { color: var(--amber); font-size: 9px; white-space: nowrap; }
 .sound-preset-item[data-kind="3"] strong { color: var(--green); }
 .sound-preset-library > p { color: var(--muted); margin: 4px; }
+
+.sound-create-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 9px; padding: 11px; background: #091622; border: 1px solid var(--line); border-radius: 7px; }
+.sound-create-controls[hidden] { display: none !important; }
+.sound-create-controls label { color: var(--muted); font-weight: 800; }
+.sound-create-controls select { min-height: 44px; min-width: 150px; padding: 5px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); }
+.sound-create-controls button { min-height: 44px; color: var(--green); font-weight: 800; }

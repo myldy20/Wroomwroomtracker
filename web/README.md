@@ -55,3 +55,10 @@ program (and publishes the Project audio snapshot). The native popup remains
 available for auditioning programs. **SAVE CURRENT .CNI** creates a fresh native
 instrument file in browser-local USER storage; filenames receive a unique
 timestamp suffix. Imported and saved presets are not uploaded to any server.
+
+### Creating new instruments
+
+Choose an **EMPTY** instrument slot in SOUND, select the desired chip,
+synth, FM, drum or sample engine, and press **CREATE INSTRUMENT**.
+This calls the original native engine initializer and cannot overwrite an
+occupied slot. Existing instruments are still edited with **FULL SOUND**.
