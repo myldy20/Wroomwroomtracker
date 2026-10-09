@@ -15,6 +15,11 @@ for (const id of ["chainWorkspace","phraseWorkspace","chainOpenNative","phraseOp
   assert.ok(html.includes('id="' + id + '"'), "Native fallback/direct pattern missing: " + id);
 }
 assert.match(shell, /webPhraseSetCell/, "Direct Phrase must use native Project bridge");
+assert.match(shell, /webChainSelectedStep/, "Direct Chain cursor must follow native selection");
+assert.match(shell, /activeUiScreen === 1 && !nativeChainExpanded\) renderChainWorkspace\(\)/,
+  "Loading a project must refresh the visible Chain editor");
+assert.match(shell, /activeUiScreen === 2 && !nativePhraseExpanded\) renderPhraseWorkspace\(\)/,
+  "Loading a project must refresh the visible Phrase editor");
 assert.match(html, /id="soundOpenNative"/, "SOUND must retain its full native editor");
 assert.match(html, /id="soundReturnDirect"/, "Native preset dialogs must remain accessible");
 assert.match(html, /id="soundPresetInput"/, "USER preset file import must be exposed");
