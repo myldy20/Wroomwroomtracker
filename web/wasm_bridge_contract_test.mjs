@@ -30,6 +30,14 @@ for (const name of ["webMixTrackPan", "webMixSetTrackPan",
   assert.ok(generated.includes(name),
     "Compiled Web mixer runtime omits: " + name);
 }
+for (const name of ["webChainCurrentId","webChainStepValue","webChainSelectStep",
+                    "webChainSetStep","webPhraseCurrentId","webPhrasePitchCount",
+                    "webPhrasePitchLabel","webPhraseCellValue","webPhraseSetCell"]) {
+  assert.ok(fs.readFileSync("tracker/src/app.cpp","utf8").includes(name + "("),
+    "Native Chain/Phrase bridge missing: " + name);
+  assert.ok(generated.includes(name),
+    "Compiled WASM loader missing Chain/Phrase native bridge: " + name);
+}
 const audio = fs.readFileSync("tracker/src/audio_manager.cpp", "utf8");
 assert.ok(audio.includes('extern "C" EMSCRIPTEN_KEEPALIVE int webOutputStereoPeaksPacked('), "Stereo export removed from C++");
 assert.ok(generated.includes("webOutputStereoPeaksPacked"), "Committed WASM loader must include stereo export");
