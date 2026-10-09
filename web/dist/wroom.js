@@ -25,6 +25,7 @@
   let activeUiScreen = 0;
   let nativeMixerExpanded = false;
   let nativeSoundExpanded = false;
+  let soundLibraryOpen = false;
   let nativeChainExpanded = false;
   let nativePhraseExpanded = false;
   let directChainStep = 0;
@@ -716,7 +717,20 @@
     const typeId = call("webSoundSlotTypeId", "number", ["number"], [selected]);
     const name = call("webSoundSlotName", "string", ["number"], [selected]) || "(unnamed)";
     const empty = typeId === 0;
-    $("#soundInstrumentInfo").textContent = empty ? "Empty instrument · choose a slot or open FULL SOUND to create one" : name + " · " + type;
+    $("#soundInstrumentInfo").textContent = empty ? "Empty instrument · create a new engine below or use FULL SOUND" : name + " · " + type;
+    $("#soundCreateControls").hidden = !empty;
+    if (empty && !$("#soundTypeChoice").options.length) {
+      const fragment = document.createDocumentFragment();
+      for (let id = 1; id < 28; id++) {
+        const label = call("webSoundTypeChoiceName","string",["number"],[id]) || "";
+        if (!label) continue;
+        const option = document.createElement("option");
+        option.value = String(id);
+        option.textContent = label;
+        fragment.appendChild(option);
+      }
+      $("#soundTypeChoice").replaceChildren(fragment);
+    }
     const volume = call("webSoundSlotVolume", "number", ["number"], [selected]);
     const pan = call("webSoundSlotPan", "number", ["number"], [selected]);
     $("#soundVolume").value = String(volume);
@@ -727,6 +741,12 @@
     const folder = call("webSoundUserPresetFolder", "string") || "";
     $("#soundImportPresets").disabled = !folder;
     $("#soundBrowsePresets").disabled = !folder;
+    $("#soundLibraryToggle").disabled = !folder;
+    $("#soundSaveCurrent").disabled = !folder;
+    if (!folder) {
+      soundLibraryOpen = false;
+      $("#soundPresetLibrary").hidden = true;
+    }
     $("#soundPresetInfo").textContent = folder
       ? "Library for " + type + " · " + folder + " · import .cni, ZIP or compatible chip programs"
       : "USER preset import is available for compatible native chip/FM instruments.";
@@ -1473,10 +1493,22 @@
   registerNativePatternFallback(1,"#chainOpenNative","#chainReturnDirect");
   registerNativePatternFallback(2,"#phraseOpenNative","#phraseReturnDirect");
 
+  $("#soundCreateInstrument").addEventListener("click", () => {
+    const slot = Number(soundSlot.value);
+    const type = Number($("#soundTypeChoice").value);
+    if (!Number.isInteger(type) || type <= 0) return;
+    const created = call("webSoundCreateInstrument","number",["number","number"],[slot,type]);
+    if (created !== 0) { setStatus("Instrument creation was rejected"); return; }
+    renderSoundWorkspace(true);
+    setStatus("Created " + (call("webSoundSlotType","string",["number"],[slot]) || "instrument") +
+      " in slot " + hexSound(slot));
+  });
+
   soundSlot.addEventListener("change", () => {
     const result = call("webSoundSelectSlot","number",["number"],[Number(soundSlot.value)]);
     if (result !== 0) { setStatus("Instrument slot could not be selected"); return; }
     renderSoundWorkspace(true);
+    if (soundLibraryOpen) refreshSoundPresetLibrary();
   });
   const setSoundControl = (field) => {
     const slot = Number(soundSlot.value);
@@ -1507,6 +1539,72 @@
     nativeSoundExpanded = false;
     setWorkspaceMode(3, true);
   });
+
+  const refreshSoundPresetLibrary = () => {
+    if (!soundLibraryOpen || activeUiScreen !== 3 || nativeSoundExpanded) return;
+    const state = call("webSoundPresetsRefresh","number");
+    if (state !== 0) { setStatus("USER library not available"); return; }
+    drawSoundPresetLibrary();
+  };
+  const drawSoundPresetLibrary = () => {
+    const count = call("webSoundPresetsCount","number");
+    if (!Number.isInteger(count) || count < 0) return;
+    const title = call("webSoundPresetsLabel","string") || "USER";
+    $("#soundPresetPath").textContent = title || "USER PRESETS";
+    const fragment = document.createDocumentFragment();
+    for (let index = 0; index < Math.min(count, 8192); index++) {
+      const kind = call("webSoundPresetsKind","number",["number"],[index]);
+      const name = call("webSoundPresetsName","string",["number"],[index]) || "(unnamed)";
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "sound-preset-item";
+      item.dataset.kind = String(kind);
+      item.dataset.index = String(index);
+      const label = document.createElement("span");
+      label.textContent = name;
+      const action = document.createElement("strong");
+      action.textContent = kind === 3 ? "LOAD" : "OPEN ›";
+      item.append(label,action);
+      item.addEventListener("click", () => {
+        const result = call("webSoundPresetsOpen","number",["number"],[index]);
+        if (result === 0) {
+          setStatus(call("webSoundPresetsError","string") || "Preset cannot be opened");
+          return;
+        }
+        if (result === 2) {
+          renderSoundWorkspace(true);
+          setStatus("Loaded " + name + " into instrument " + soundSlot.value);
+        }
+        drawSoundPresetLibrary();
+      });
+      fragment.appendChild(item);
+    }
+    $("#soundPresetItems").replaceChildren(fragment);
+    $("#soundPresetEmpty").hidden = count !== 0;
+  };
+  $("#soundLibraryToggle").addEventListener("click", () => {
+    soundLibraryOpen = !soundLibraryOpen;
+    $("#soundPresetLibrary").hidden = !soundLibraryOpen;
+    if (soundLibraryOpen) refreshSoundPresetLibrary();
+  });
+  $("#soundPresetRefresh").addEventListener("click", refreshSoundPresetLibrary);
+  $("#soundPresetBack").addEventListener("click", () => {
+    if (call("webSoundPresetsBack","number") === 0) drawSoundPresetLibrary();
+  });
+  $("#soundSaveCurrent").addEventListener("click", () => {
+    const fs = getFs();
+    const folder = call("webSoundUserPresetFolder","string") || "";
+    if (!fs || !/^[a-z0-9-]+$/.test(folder)) return;
+    const name = (call("webSoundSlotName","string",["number"],[Number(soundSlot.value)]) || "instrument")
+      .replace(/[^a-z0-9_-]+/gi,"-").slice(0,25).replace(/^-|-$/g,"") || "instrument";
+    const filename = name + "-" + Date.now().toString(36) + ".cni";
+    fs.mkdirTree("/user/instruments/USER/" + folder);
+    const saved = call("webSoundSaveUserPreset","number",["string"],[filename]);
+    if (saved !== 0) { setStatus("Could not save native .cni preset"); return; }
+    syncUserStorage(error => setStatus(error ? "Preset saved temporarily" : "Saved native USER preset " + filename));
+    if (soundLibraryOpen) refreshSoundPresetLibrary();
+  });
+
   $("#soundBrowsePresets").addEventListener("click", () => {
     if (call("webSoundOpenUserPresets", "number") !== 0) {
       setStatus("No compatible USER preset library for this instrument");
@@ -1544,6 +1642,7 @@
     syncUserStorage(error => setStatus(error
       ? count + " preset file(s) imported temporarily; browser persistence failed"
       : count + " preset file(s) available in " + folder + " USER library"));
+    if (soundLibraryOpen) refreshSoundPresetLibrary();
   });
 
   $("#mixOpenNative").addEventListener("click", () => {

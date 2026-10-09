@@ -17,6 +17,10 @@
 #include <strings.h>
 #include <math.h>
 #include <chrono>
+#ifdef WEB_BUILD
+#include <emscripten/emscripten.h>
+extern "C" void webProjectChanged(void);
+#endif
 
 extern const AppScreen screenInstrumentPool;
 
@@ -225,6 +229,28 @@ static void setInstrumentType(InstrumentType newType) {
 static void selectInstrumentType(int value) {
   setInstrumentType((InstrumentType)value);
 }
+
+#ifdef WEB_BUILD
+// Let touch users CREATE a real instrument in an empty native slot, using
+// precisely the same type switcher/initializer as the built-in SOUND editor.
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundTypeChoiceName(int value) {
+  if (value <= 0 || value >= int(InstrumentType::totalCount)) return "";
+  const auto* definition = getInstrumentDefinition(InstrumentType(value));
+  if (!definition || definition->category == InstrumentCategory::none) return "";
+  return instrumentTypeName(InstrumentType(value));
+}
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundCreateInstrument(int slot, int type) {
+  if (!chipnomadState || currentScreen != &screenInstrument ||
+      slot != cInstrument || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS)
+    return 1;
+  if (chipnomadState->project.instruments[slot].type != InstrumentType::none ||
+      !webSoundTypeChoiceName(type)[0]) return 1;
+  setInstrumentType(InstrumentType(type));
+  webProjectChanged();
+  return 0;
+}
+#endif
+
 
 static void cancelInstrumentTypeSelection(void) {
   screenSetup(&screenInstrument, cInstrument);

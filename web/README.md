@@ -45,3 +45,20 @@ IndexedDB. Use **BROWSE IN ENGINE** to open the native compatible USER preset
 browser, audition and load them. The Web bundle deliberately does not preload
 the large factory library. Files are local to the browser and may be erased
 when site data is cleared.
+
+### Native USER catalogue
+
+**PRESET LIBRARY** now lists entries returned by the native `UserPresets`
+scanner, including subdirectories, ZIP banks and compatible programs. Clicking
+**LOAD** replaces the currently selected instrument with the engine-parsed
+program (and publishes the Project audio snapshot). The native popup remains
+available for auditioning programs. **SAVE CURRENT .CNI** creates a fresh native
+instrument file in browser-local USER storage; filenames receive a unique
+timestamp suffix. Imported and saved presets are not uploaded to any server.
+
+### Creating new instruments
+
+Choose an **EMPTY** instrument slot in SOUND, select the desired chip,
+synth, FM, drum or sample engine, and press **CREATE INSTRUMENT**.
+This calls the original native engine initializer and cannot overwrite an
+occupied slot. Existing instruments are still edited with **FULL SOUND**.
