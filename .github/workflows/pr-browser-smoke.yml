@@ -25,7 +25,7 @@ jobs:
           version: '6.0.6'
       - name: Rebuild this PR's WebAssembly bundle
         run: |
-          make -C tracker -j2 -f Makefile.web web-deploy \\
+          make -C tracker -j2 -f Makefile.web web-deploy \
             COMMON_CFLAGS='-std=c++17 -Wall -g -Os -DTEST'
           test -s web/dist/choochootracker.wasm
           test -s web/dist/choochootracker.js
