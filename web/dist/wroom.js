@@ -8,6 +8,9 @@
   const fileButtons = $$("[data-needs-runtime]");
   const semanticWorkspace = $("#semanticWorkspace");
   const legacyWorkspace = $("#legacyWorkspace");
+  const songWorkspace = $("#songWorkspace");
+  const mixWorkspace = $("#mixWorkspace");
+  const mixTrackRows = $("#mixTrackRows");
   const songGrid = $("#songGrid");
   const songScroll = $("#songScroll");
   const masterMeterChannels = [...document.querySelectorAll("#masterMeter .master-meter-channel")];
@@ -573,6 +576,61 @@
     updateTrackActivity();
   };
 
+
+  // Only the native project supplies PAN values; there is no parallel mixer model.
+  const formatTrackPan = (value) => {
+    if (value === 128) return "CENTER";
+    if (value < 128) return "L " + Math.round((128 - value) / 128 * 100) + "%";
+    return "R " + Math.round((value - 128) / 127 * 100) + "%";
+  };
+
+  const updateMixWorkspace = () => {
+    if (!window.Module?.ccall || activeUiScreen !== 4) return;
+    const count = Math.max(0, Math.min(8, Number(call("webSongTrackCount", "number")) || 0));
+    if (mixTrackRows.childElementCount !== count) {
+      const fragment = document.createDocumentFragment();
+      for (let track = 0; track < count; track++) {
+        const row = document.createElement("div");
+        row.className = "mix-track-row";
+        row.dataset.track = String(track);
+        const heading = document.createElement("strong");
+        heading.textContent = "TRACK " + (track + 1);
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.className = "mix-pan-slider";
+        slider.min = "0"; slider.max = "255"; slider.step = "1";
+        slider.value = "128"; slider.dataset.track = String(track);
+        slider.setAttribute("aria-label", "Track " + (track + 1) + " pan");
+        const output = document.createElement("output");
+        output.className = "mix-pan-value";
+        output.textContent = "CENTER";
+        const center = document.createElement("button");
+        center.type = "button"; center.className = "mix-pan-center";
+        center.textContent = "CENTER";
+        center.setAttribute("aria-label", "Center track " + (track + 1));
+        const update = (value) => {
+          const result = call("webMixSetTrackPan", "number", ["number","number"], [track,value]);
+          if (result !== 0) { setStatus("PAN update failed"); return; }
+          slider.value = String(value);
+          output.textContent = formatTrackPan(value);
+        };
+        slider.addEventListener("input", () => update(Number(slider.value)));
+        center.addEventListener("click", () => update(128));
+        row.append(heading,slider,output,center);
+        fragment.appendChild(row);
+      }
+      mixTrackRows.replaceChildren(fragment);
+    }
+    for (const row of mixTrackRows.children) {
+      const track = Number(row.dataset.track);
+      const value = call("webMixTrackPan", "number", ["number"], [track]);
+      if (!Number.isInteger(value) || value < 0 || value > 255) continue;
+      const slider = row.querySelector(".mix-pan-slider");
+      if (document.activeElement !== slider) slider.value = String(value);
+      row.querySelector(".mix-pan-value").textContent = formatTrackPan(value);
+    }
+  };
+
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
     $$(".view-tabs [data-screen]").forEach((button) => {
@@ -581,15 +639,20 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0;
+    const semantic = screen === 0 || screen === 4;
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
-    $("#gestureHint").textContent = semantic
+    songWorkspace.hidden = screen !== 0;
+    mixWorkspace.hidden = screen !== 4;
+    $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
+      : screen === 4 ? "DRAG PAN · TAP CENTER TO RESET"
       : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
 
-    if (semantic) {
+    if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
+    } else if (screen === 4) {
+      updateMixWorkspace();
     } else if (syncNative) {
       requestAnimationFrame(() => canvas.focus());
     }
@@ -1075,9 +1138,10 @@
     $("#playToggle").setAttribute("aria-pressed", playing ? "true" : "false");
     $("#playToggle").textContent = playing ? "❚❚ PLAYING" : "▶ PLAY";
     updateSongPlaybackVisuals();
+    updateMixWorkspace();
   };
 
-  $$(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
+  $(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
     button.addEventListener("click", () => navigateToScreen(Number(button.dataset.screen)));
   });
 

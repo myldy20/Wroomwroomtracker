@@ -333,6 +333,40 @@ if (success) {
     }
   }
 
+
+  // Test the real freshly built Web PAN interface, not a JS-only fake state.
+  await page.locator('.view-tabs [data-screen="4"]').click();
+  await page.waitForSelector("#mixWorkspace:not([hidden]) .mix-pan-slider", {timeout: 6_000});
+  const panTrackCount = await page.evaluate(() => window.Module.ccall("webSongTrackCount", "number"));
+  if ((await page.locator("#mixTrackRows .mix-track-row").count()) !== panTrackCount)
+    throw new Error("Native track count and MIX controls disagree");
+  const originalPan = await page.evaluate(() => window.Module.ccall("webMixTrackPan", "number", ["number"], [0]));
+  const otherPan = panTrackCount > 1
+    ? await page.evaluate(() => window.Module.ccall("webMixTrackPan", "number", ["number"], [1]))
+    : null;
+  await page.locator("#mixTrackRows .mix-pan-slider").first().evaluate(el => {
+    el.value = "32"; el.dispatchEvent(new Event("input", {bubbles:true}));
+  });
+  const nativePan = await page.evaluate(() => window.Module.ccall("webMixTrackPan", "number", ["number"], [0]));
+  if (nativePan !== 32 || !/L 75%/.test(await page.locator(".mix-pan-value").first().textContent()))
+    throw new Error("MIX slider did not update native PAN");
+  if (otherPan !== null && (await page.evaluate(() => window.Module.ccall(
+      "webMixTrackPan", "number", ["number"], [1]))) !== otherPan)
+    throw new Error("MIX PAN changed the wrong track");
+  const invalidPan = await page.evaluate(() => window.Module.ccall(
+    "webMixSetTrackPan", "number", ["number","number"], [0, 256]));
+  if (invalidPan !== 1 || await page.evaluate(() => window.Module.ccall(
+    "webMixTrackPan", "number", ["number"], [0])) !== 32)
+    throw new Error("MIX PAN accepted invalid value");
+  await page.locator(".mix-pan-center").first().click();
+  if ((await page.evaluate(() => window.Module.ccall(
+    "webMixTrackPan", "number", ["number"], [0]))) !== 128)
+    throw new Error("Center button did not reset native PAN");
+  await page.evaluate(value => window.Module.ccall(
+    "webMixSetTrackPan", "number", ["number","number"], [0, value]), originalPan);
+  await page.locator('.view-tabs [data-screen="0"]').click();
+  await page.waitForSelector("#songWorkspace:not([hidden]) #songGrid .song-cell", {timeout: 6_000});
+
   interaction = {
     rowsBefore,
     rowsAfter,

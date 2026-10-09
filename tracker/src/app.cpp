@@ -636,6 +636,25 @@ extern "C" EMSCRIPTEN_KEEPALIVE void webProjectChanged(void) {
   audioProjectDirty = 1;
 }
 
+// The Web mixer edits canonical Project state; DSP consumes the next safe audio snapshot.
+extern "C" EMSCRIPTEN_KEEPALIVE int webMixTrackPan(int track) {
+  if (!chipnomadState || track < 0 ||
+      track >= chipnomadState->project.tracksCount) return -1;
+  return (int)chipnomadState->project.trackPan[track];
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webMixSetTrackPan(int track, int value) {
+  if (!chipnomadState || track < 0 ||
+      track >= chipnomadState->project.tracksCount ||
+      value < 0 || value > 255) return 1;
+  if (chipnomadState->project.trackPan[track] != (uint8_t)value) {
+    chipnomadState->project.trackPan[track] = (uint8_t)value;
+    projectModified = 1;
+    audioProjectDirty = 1;
+  }
+  return 0;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
   switch (action) {
