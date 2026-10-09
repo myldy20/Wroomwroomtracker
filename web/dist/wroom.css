@@ -1721,5 +1721,3 @@ input {
   .mix-track-row { padding: 9px; }
   .mix-control-row { grid-template-columns: 28px minmax(0,1fr) 46px 56px; gap: 4px; }
 }
-  .mix-track-row { grid-template-columns: 51px minmax(0, 1fr) 58px 58px; gap: 5px; padding: 11px 7px; }
-}
