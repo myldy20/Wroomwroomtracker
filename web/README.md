@@ -9,6 +9,7 @@ It keeps the ChooChooTracker engine and project format, but the web shell is des
 - reveal additional Song rows in increments of 16; keyboard navigation expands the view automatically;
 - drag-based value adjustment remains in the legacy canvas screens until their semantic migration;
 - switch directly between **SONG**, **CHAIN**, **PHRASE**, **SOUND**, and **MIX**;
+- in **MIX**, adjust track pan directly using eight touch/mouse sliders. **CENTER** resets each track; **FULL MIXER** opens all original volume/send/insert-FX controls, and **DIRECT PAN** returns;
 - use explicit **PLAY**, **STOP**, **OPEN**, and **DOWNLOAD** actions.
 
 Imported projects and samples live in browser-local IndexedDB storage. Nothing is uploaded automatically.
