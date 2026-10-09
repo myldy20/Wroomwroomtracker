@@ -25,6 +25,9 @@
   let activeUiScreen = 0;
   let nativeMixerExpanded = false;
   let nativeSoundExpanded = false;
+  let nativeChainExpanded = false;
+  let nativePhraseExpanded = false;
+  let directChainStep = 0;
   // webOpenScreen queues a native screen change; the C++ screen pointer only
   // updates on a following draw frame. Do not revert the DOM during that gap.
   let pendingNativeScreen = null;
@@ -729,6 +732,165 @@
       : "USER preset import is available for compatible native chip/FM instruments.";
   };
 
+  // All values are read on demand from native Project. Browser state tracks
+  // only which row is highlighted; no second pattern, note, or FX model.
+  const nativeHex = (value, digits) =>
+    value < 0 ? "---" : value.toString(16).toUpperCase().padStart(digits, "0");
+  const parseNativeHex = (text, maximum) => {
+    const value = text.trim().toUpperCase();
+    if (!value || value === "---") return -1;
+    if (!/^[0-9A-F]{1,3}$/.test(value)) return null;
+    const parsed = Number.parseInt(value, 16);
+    return parsed <= maximum ? parsed : null;
+  };
+  const makePatternField = (name, value, maxLength, action) => {
+    const box = document.createElement("div");
+    box.className = "pattern-field";
+    const label = document.createElement("label");
+    label.textContent = name;
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = maxLength;
+    input.value = value;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.setAttribute("aria-label", name);
+    input.addEventListener("change", () => action(input.value));
+    box.append(label, input);
+    return box;
+  };
+  const editNativePatternValue = (kind, row, field, input, max, rerender) => {
+    const value = parseNativeHex(input, max);
+    if (value === null) {
+      setStatus("Invalid hex value: " + input);
+      rerender();
+      return;
+    }
+    const fn = kind === "Chain" ? "webChainSetStep" : "webPhraseSetCell";
+    if (call(fn, "number", ["number","number","number"], [row,field,value]) !== 0) {
+      setStatus(kind + " edit rejected");
+      rerender();
+      return;
+    }
+    publishProjectEdit();
+    rerender();
+  };
+  const renderChainWorkspace = () => {
+    if (activeUiScreen !== 1 || nativeChainExpanded) return;
+    const chain = call("webChainCurrentId", "number");
+    const host = $("#chainRows");
+    host.replaceChildren();
+    if (!Number.isInteger(chain) || chain < 0) {
+      $("#chainEditorTitle").textContent = "CHAIN · NO SELECTION";
+      setStatus("Assign a Chain in SONG first");
+      return;
+    }
+    $("#chainEditorTitle").textContent = "CHAIN " + nativeHex(chain, 2) +
+      " · SONG " + songSelection.row.toString(16).toUpperCase() +
+      " / TRACK " + (songSelection.track + 1);
+    const fragment = document.createDocumentFragment();
+    for (let step = 0; step < 16; step++) {
+      const phrase = call("webChainStepValue", "number", ["number","number"], [step,0]);
+      const transpose = call("webChainStepValue", "number", ["number","number"], [step,1]);
+      const item = document.createElement("div");
+      item.className = "pattern-step chain-step" + (step === directChainStep ? " selected" : "");
+      item.dataset.step = String(step);
+      const choose = document.createElement("button");
+      choose.className = "pattern-step-number";
+      choose.type = "button";
+      choose.textContent = nativeHex(step,2);
+      choose.setAttribute("aria-label","Select chain step " + nativeHex(step,2));
+      choose.addEventListener("click", () => {
+        if (call("webChainSelectStep","number",["number"],[step]) !== 0) return;
+        directChainStep = step;
+        renderChainWorkspace();
+      });
+      const p = makePatternField("PHRASE ID",nativeHex(phrase,3),3,value =>
+        editNativePatternValue("Chain",step,0,value,1023,renderChainWorkspace));
+      p.querySelector("input").setAttribute("aria-label","Chain step " + step + " phrase");
+      const t = makePatternField("TRANSPOSE",nativeHex(transpose,2),2,value =>
+        editNativePatternValue("Chain",step,1,value,255,renderChainWorkspace));
+      t.querySelector("input").setAttribute("aria-label","Chain step " + step + " transpose");
+      const open = document.createElement("button");
+      open.className = "pattern-open";
+      open.type = "button";
+      open.textContent = phrase >= 0 ? "EDIT PHRASE ↗" : "EMPTY";
+      open.disabled = phrase < 0;
+      open.setAttribute("aria-label","Open phrase for chain step " + step);
+      open.addEventListener("click", () => {
+        if (call("webChainSelectStep","number",["number"],[step]) !== 0) return;
+        directChainStep = step;
+        navigateToScreen(2);
+      });
+      item.append(choose,p,t,open);
+      fragment.append(item);
+    }
+    host.append(fragment);
+  };
+  const renderPhraseWorkspace = () => {
+    if (activeUiScreen !== 2 || nativePhraseExpanded) return;
+    const phrase = call("webPhraseCurrentId", "number");
+    const host = $("#phraseRows");
+    host.replaceChildren();
+    if (!Number.isInteger(phrase) || phrase < 0) {
+      $("#phraseEditorTitle").textContent = "PHRASE · NO SELECTION";
+      setStatus("Choose a non-empty Chain step first");
+      return;
+    }
+    $("#phraseEditorTitle").textContent = "PHRASE " + nativeHex(phrase,3) +
+      " · CHAIN STEP " + nativeHex(directChainStep,2);
+    const pitchCount = call("webPhrasePitchCount","number") || 0;
+    const pitches = [];
+    for (let pitch = 0; pitch < pitchCount; pitch++)
+      pitches.push([pitch,call("webPhrasePitchLabel","string",["number"],[pitch]) || nativeHex(pitch,2)]);
+    const fragment = document.createDocumentFragment();
+    for (let row = 0; row < 16; row++) {
+      const get = field => call("webPhraseCellValue","number",["number","number"],[row,field]);
+      const note = get(0), instrument = get(1), volume = get(2);
+      const item = document.createElement("div");
+      item.className = "pattern-step phrase-step";
+      item.dataset.row = String(row);
+      const num = document.createElement("strong");
+      num.className = "pattern-step-number";
+      num.textContent = nativeHex(row,2);
+      const noteBox = document.createElement("div");
+      noteBox.className = "pattern-field";
+      const noteLabel = document.createElement("label");
+      noteLabel.textContent = "NOTE";
+      const noteSelect = document.createElement("select");
+      noteSelect.setAttribute("aria-label","Phrase row " + row + " note");
+      for (const [value,text] of [[-1,"--- (EMPTY)"],[-2,"OFF"],...pitches]) {
+        const option = document.createElement("option");
+        option.value = String(value);
+        option.textContent = text;
+        noteSelect.appendChild(option);
+      }
+      noteSelect.value = String(note);
+      noteSelect.addEventListener("change", () => {
+        const result = call("webPhraseSetCell","number",["number","number","number"],
+          [row,0,Number(noteSelect.value)]);
+        if (result !== 0) setStatus("Native note edit rejected");
+        else publishProjectEdit();
+        renderPhraseWorkspace();
+      });
+      noteBox.append(noteLabel,noteSelect);
+      const instrumentField = makePatternField("INSTRUMENT",nativeHex(instrument,2),2,value =>
+        editNativePatternValue("Phrase",row,1,value,127,renderPhraseWorkspace));
+      instrumentField.querySelector("input").setAttribute("aria-label","Phrase row " + row + " instrument");
+      const volumeField = makePatternField("VOLUME",nativeHex(volume,2),2,value =>
+        editNativePatternValue("Phrase",row,2,value,127,renderPhraseWorkspace));
+      volumeField.querySelector("input").setAttribute("aria-label","Phrase row " + row + " volume");
+      const fx = document.createElement("div");
+      fx.className = "pattern-fx";
+      fx.setAttribute("aria-label","Phrase row " + row + " native effect commands");
+      fx.textContent = [0,1,2].map(i =>
+        "FX"+(i+1)+" "+nativeHex(get(3+i*2),2)+":"+nativeHex(get(4+i*2),2)).join(" · ");
+      item.append(num,noteBox,instrumentField,volumeField,fx);
+      fragment.appendChild(item);
+    }
+    host.appendChild(fragment);
+  };
+
   const setWorkspaceMode = (screen, syncNative = false) => {
     activeUiScreen = screen;
     $$(".view-tabs [data-screen]").forEach((button) => {
@@ -737,17 +899,26 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0 || (screen === 4 && !nativeMixerExpanded) ||
+    const semantic = screen === 0 || (screen === 1 && !nativeChainExpanded) ||
+      (screen === 2 && !nativePhraseExpanded) ||
+      (screen === 4 && !nativeMixerExpanded) ||
       (screen === 3 && !nativeSoundExpanded);
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
     songWorkspace.hidden = screen !== 0;
+    $("#chainWorkspace").hidden = screen !== 1 || nativeChainExpanded;
+    $("#phraseWorkspace").hidden = screen !== 2 || nativePhraseExpanded;
     soundWorkspace.hidden = screen !== 3 || nativeSoundExpanded;
     mixWorkspace.hidden = screen !== 4 || nativeMixerExpanded;
+    $("#chainReturnDirect").hidden = screen !== 1 || !nativeChainExpanded;
+    $("#phraseReturnDirect").hidden = screen !== 2 || !nativePhraseExpanded;
     $("#mixReturnDirect").hidden = screen !== 4 || !nativeMixerExpanded;
     $("#soundReturnDirect").hidden = screen !== 3 || !nativeSoundExpanded;
     $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
+      : screen === 1 && !nativeChainExpanded ? "EDIT PHRASE REFERENCES · OPEN ANY STEP"
+      : screen === 2 && !nativePhraseExpanded ? "EDIT NOTES · INSTRUMENT · VOLUME"
+      : screen === 1 || screen === 2 ? "FULL NATIVE EDITOR · RETURN TO DIRECT EDIT"
       : screen === 3 && !nativeSoundExpanded ? "PICK INSTRUMENT · DRAG LEVEL / PAN"
       : screen === 3 ? "FULL NATIVE SOUND · DIRECT SOUND TO RETURN"
       : screen === 4 && !nativeMixerExpanded ? "DRAG VOL / PAN · TAP BUTTONS TO RESET"
@@ -756,6 +927,10 @@
 
     if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
+    } else if (screen === 1 && !nativeChainExpanded) {
+      renderChainWorkspace();
+    } else if (screen === 2 && !nativePhraseExpanded) {
+      renderPhraseWorkspace();
     } else if (screen === 3 && !nativeSoundExpanded) {
       renderSoundWorkspace(true);
     } else if (screen === 4 && !nativeMixerExpanded) {
@@ -776,6 +951,8 @@
 
     nativeMixerExpanded = false;
     nativeSoundExpanded = false;
+    nativeChainExpanded = false;
+    nativePhraseExpanded = false;
     pendingNativeScreen = screen;
     pendingNativeUntil = performance.now() + 3000;
     setWorkspaceMode(screen, true);
@@ -1240,6 +1417,8 @@
       setWorkspaceMode(current);
     // Auto Mix confirmation and other native dialogs must remain on screen.
     // Never offer a way to hide a pending Apply/Cancel decision.
+    if (nativeChainExpanded) $("#chainReturnDirect").hidden = current !== 1;
+    if (nativePhraseExpanded) $("#phraseReturnDirect").hidden = current !== 2;
     if (nativeMixerExpanded) $("#mixReturnDirect").hidden = current !== 4;
     if (nativeSoundExpanded) $("#soundReturnDirect").hidden = current !== 3;
 
@@ -1262,6 +1441,31 @@
     renderSoundWorkspace();
   };
 
+
+  const registerNativePatternFallback = (screen, openId, returnId) => {
+    $(openId).addEventListener("click", () => {
+      if (call("webOpenScreen","number",["number"],[screen]) !== 0) {
+        setStatus("Could not open native editor");
+        return;
+      }
+      if (screen === 1) nativeChainExpanded = true;
+      else nativePhraseExpanded = true;
+      pendingNativeScreen = screen;
+      pendingNativeUntil = performance.now() + 3000;
+      setWorkspaceMode(screen,true);
+    });
+    $(returnId).addEventListener("click", () => {
+      if (call("webCurrentScreen","number") !== screen) {
+        setStatus("Finish or cancel the native editor dialog first");
+        return;
+      }
+      if (screen === 1) nativeChainExpanded = false;
+      else nativePhraseExpanded = false;
+      setWorkspaceMode(screen,true);
+    });
+  };
+  registerNativePatternFallback(1,"#chainOpenNative","#chainReturnDirect");
+  registerNativePatternFallback(2,"#phraseOpenNative","#phraseReturnDirect");
 
   soundSlot.addEventListener("change", () => {
     const result = call("webSoundSelectSlot","number",["number"],[Number(soundSlot.value)]);
