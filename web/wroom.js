@@ -22,6 +22,10 @@
   let trackerStarted = false;
   let activeUiScreen = 0;
   let nativeMixerExpanded = false;
+  // webOpenScreen queues a native screen change; the C++ screen pointer only
+  // updates on a following draw frame. Do not revert the DOM during that gap.
+  let pendingNativeScreen = null;
+  let pendingNativeUntil = 0;
   let songRendered = false;
   let songMinimumRows = 32;
   let songSelection = { row: 0, track: 0 };
@@ -712,6 +716,8 @@
     }
 
     nativeMixerExpanded = false;
+    pendingNativeScreen = screen;
+    pendingNativeUntil = performance.now() + 3000;
     setWorkspaceMode(screen, true);
     if (screen === 0) {
       songRendered = false;
@@ -1166,7 +1172,12 @@
   const refreshScreenState = () => {
     if (!window.Module?.ccall) return;
     const current = call("webCurrentScreen", "number");
-    if (current >= 0 && current !== activeUiScreen) setWorkspaceMode(current);
+    if (pendingNativeScreen !== null &&
+        (current === pendingNativeScreen || performance.now() >= pendingNativeUntil)) {
+      pendingNativeScreen = null;
+    }
+    if (pendingNativeScreen === null && current >= 0 && current !== activeUiScreen)
+      setWorkspaceMode(current);
     // Auto Mix confirmation and other native dialogs must remain on screen.
     // Never offer a way to hide a pending Apply/Cancel decision.
     if (nativeMixerExpanded) $("#mixReturnDirect").hidden = current !== 4;
@@ -1197,6 +1208,8 @@
       return;
     }
     nativeMixerExpanded = true;
+    pendingNativeScreen = 4;
+    pendingNativeUntil = performance.now() + 3000;
     setWorkspaceMode(4, true);
   });
   $("#mixReturnDirect").addEventListener("click", () => {

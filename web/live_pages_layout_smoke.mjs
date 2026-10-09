@@ -168,7 +168,29 @@ try {
     await page.locator('.view-tabs [data-screen="0"]').click();
 
     // The migrated MIX must be directly usable at desktop and narrow phone sizes.
+    // Native screen setup is queued until the next draw; simulate one stale
+    // status response on tablet to ensure polling cannot undo a new tab choice.
+    const staleNativeStatus = viewport.name.startsWith("tablet-");
+    if (staleNativeStatus) await page.evaluate(() => {
+      const real = window.Module.ccall;
+      window.__mixLayoutRealCCall = real;
+      window.Module.ccall = function (name, ...args) {
+        return name === "webCurrentScreen" ? 0 : real.call(this, name, ...args);
+      };
+    });
     await page.locator('.view-tabs [data-screen="4"]').click();
+    if (staleNativeStatus) {
+      await page.waitForTimeout(1350); // crosses 1200ms periodic UI-state polling
+      const stayedInMix = await page.locator("#mixWorkspace").isVisible();
+      await page.evaluate(() => {
+        window.Module.ccall = window.__mixLayoutRealCCall;
+        delete window.__mixLayoutRealCCall;
+      });
+      assert.ok(stayedInMix, viewport.name + ": stale native screen status reversed direct MIX navigation");
+    }
+    await page.waitForFunction(() =>
+      window.Module.ccall("webCurrentScreen", "number") === 4,
+      null, {timeout: 10_000});
     await page.waitForSelector("#mixWorkspace:not([hidden]) .mix-pan-slider", {timeout: 6_000});
     const mixGeometry = await page.evaluate(() => {
       const parent = document.querySelector("#mixWorkspace");
