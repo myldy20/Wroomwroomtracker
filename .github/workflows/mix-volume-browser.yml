@@ -51,3 +51,4 @@ jobs:
 # Rerun after fixing tab binding; no recompile required.
 # Check semantic MIX visibility after CSS cleanup.
 # Recheck strict-locator correction for direct MIX fallback.
+# Rerun after mobile 360px track-slider layout tightening.
