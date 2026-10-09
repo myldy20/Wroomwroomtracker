@@ -48,3 +48,4 @@ jobs:
           path: artifacts/live-pages-smoke/
           if-no-files-found: warn
 # Browser smoke is triggered after the compiled WASM bundle is committed.
+# Rerun after fixing tab binding; no recompile required.
