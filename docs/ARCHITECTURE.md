@@ -32,6 +32,8 @@ Current migration contract:
 | Native group-track M/S selection | **Not yet migrated**: `selectedTrackBounds` and `toggleSelectedMute/Solo` support multiple native columns; browser currently exposes independent tracks only | tracked in parity inventory, must gain range selection and regression E2E |
 | Native per-track activity strip | `webTrackActivityPacked`, `webTrackActivityNote` read canonical status; native canvas retains `webTrackActivityGlyph` and chip-specific visuals. Web reads real 256-sample post-level PCM as signed 16-bit hex via `webTrackAudioScopeHex`; visual-only per-track auto gain + silence gate at ~30 Hz Canvas/rAF, with no DSP or audio callback changes; desktop inspector + mobile expander | browser smoke verifies tracks, native glyph, PCM payload and high-res canvas; responsive checks |
 | Direct Web MIX volume and PAN | `webMixTrackVolume` / `webMixSetTrackVolume` and `webMixTrackPan` / `webMixSetTrackPan` edit native `Project` (0–100% volume; 0–255 pan); browser never maintains audio gain or panning state | Chromium verifies native readback, isolation, invalid values and reset controls; WASM export contract |
+| Direct Web CHAIN (partial) | 16 native Chain rows, phrase references 0–1023 / empty and raw 8-bit transpose; selection changes native `pChainRow`, opening a Phrase follows native context. FULL CHAIN retains copy/paste/cloning. | browser native read/write/restore and full fallback |
+| Direct Web PHRASE (partial) | 16 native Phrase rows; note/NOTE OFF/empty, explicit instrument / inherited, 0–127 volume / inherited; three FX pairs shown read-only, FULL PHRASE retains native FX and selection editing. | browser native read/write/restore and FX/fallback check |
 | Screens without semantic parity | legacy 640×480 canvas fallback | navigation / native CI remain authoritative |
 
 **Song is not yet native-feature-parity complete.** Native `screen_song.cpp` also implements rectangular selection, copy/cut/paste, multi-cell move, shallow/deep chain cloning, the clear-on-empty shift behavior, MUTE/SOLO status, and LIVE mode with queued/urgent/stop indicators. The DOM Song workspace currently lacks the following mappings:
@@ -148,3 +150,15 @@ The native `webOpenScreen()` call queues `screenSetup()` and only commits
 bounded pending target so a stale `webCurrentScreen()` poll cannot replace the
 new workspace while the transition is in flight. This also applies when
 entering FULL MIXER.
+
+### Direct Chain / Phrase editing (partial)
+
+Direct editors always use the canonical native `Project`, the current Song
+selection and the Chain row cursor. Chain references and transpositions are
+represented in hexadecimal, matching the native screens. Phrase note options
+are generated from `Project.pitchTable` and labeled using native `noteName`;
+explicit instrument and volume use native inheritance sentinels. Effect
+commands remain displayed but read-only: native FULL PHRASE and FULL CHAIN
+are deliberately preserved for FX, copy/paste, cloning and advanced selection.
+Native edits mark `projectModified` and `audioProjectDirty`; no Web sequencer
+state or new DSP is introduced.
