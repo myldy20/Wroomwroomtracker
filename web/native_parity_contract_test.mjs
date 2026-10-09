@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 const inventory = JSON.parse(fs.readFileSync("web/native_parity_inventory.json", "utf8"));
 const shell = fs.readFileSync("web/wroom.js", "utf8");
 const html = fs.readFileSync("web/index.html", "utf8");
+const app = fs.readFileSync("tracker/src/app.cpp", "utf8");
 assert.equal(inventory.screens.song, "semantic-incomplete");
 assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 4 && !nativeMixerExpanded\) \|\|/,
   "Song, partial SOUND and partial MIX use DOM; native fallback remains");
