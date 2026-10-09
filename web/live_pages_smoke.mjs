@@ -316,6 +316,15 @@ if (success) {
       "number",["number","number"],[0,f]),[field]) !== Number.parseInt(value,16))
       throw new Error("Direct PHRASE " + name + " did not update native Project");
   }
+  // Clearing a NOTE must clear explicit Instrument and Volume too:
+  // those fields can affect playback even when the note is empty.
+  await page.locator('#phraseRows .phrase-step[data-row="0"] select').selectOption("-1");
+  const cleared = await page.evaluate(() => [0,1,2].map(field =>
+    window.Module.ccall("webPhraseCellValue","number",["number","number"],[0,field])));
+  if (cleared.some(value => value !== -1))
+    throw new Error("Clearing native Phrase note retained active Instrument/Volume: " +
+      JSON.stringify(cleared));
+
   await page.locator("#phraseOpenNative").click();
   if (!(await page.locator("#legacyWorkspace").isVisible()) ||
       !(await page.locator("#phraseReturnDirect").isVisible()))
@@ -333,10 +342,18 @@ if (success) {
   if (!(await page.locator("#legacyWorkspace").isVisible()) ||
       !(await page.locator("#chainReturnDirect").isVisible()))
     throw new Error("FULL CHAIN did not preserve native editing operations");
+  // The direct highlight must follow the actual native Chain cursor,
+  // including a step selected while FULL CHAIN was open.
+  await page.evaluate(() => window.Module.ccall(
+    "webChainSelectStep","number",["number"],[5]));
   await page.locator("#chainReturnDirect").click();
+  if (!(await page.locator('#chainRows .chain-step[data-step="5"]').evaluate(
+      row => row.classList.contains("selected"))))
+    throw new Error("Direct CHAIN highlight diverged from native cursor");
   await page.evaluate(original => {
     for (let field = 0; field < 2; field++) window.Module.ccall(
       "webChainSetStep","number",["number","number","number"],[0,field,original[field]]);
+    window.Module.ccall("webChainSelectStep","number",["number"],[0]);
   },originalStep);
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songGrid .song-cell", {timeout: 5_000});
