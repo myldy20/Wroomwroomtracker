@@ -18,6 +18,8 @@
 #include "screens/screen_instrument.h"
 #include "screens/user_preset_browser.h"
 #include "user_presets.h"
+#include <memory>
+#include <string>
 #include "midi/midi_router.h"
 #include "midi/midi_backend_desktop.h"
 #ifdef ANDROID_BUILD
@@ -750,6 +752,99 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webMixSetTrackVolume(int track, int value) {
    openUserPresetBrowser();
    return 0;
  }
+
+
+// One browser-facing USER catalogue for the currently selected native
+// instrument. Navigation and parsing are entirely delegated to UserPresets.
+static std::unique_ptr<UserPresets> webUserPresets;
+static InstrumentType webUserPresetType = InstrumentType::none;
+static int webUserPresetSlot = -1;
+static std::string webUserPresetError;
+static std::string webUserPresetLabel;
+
+static bool webUserPresetReady(void) {
+  return chipnomadState && currentScreen == &screenInstrument &&
+    webUserPresets && webUserPresetSlot == cInstrument &&
+    cInstrument >= 0 && cInstrument < PROJECT_MAX_INSTRUMENTS &&
+    chipnomadState->project.instruments[cInstrument].type == webUserPresetType;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundPresetsRefresh(void) {
+  webUserPresets.reset();
+  webUserPresetSlot = -1;
+  webUserPresetError.clear();
+  if (!chipnomadState || currentScreen != &screenInstrument ||
+      cInstrument < 0 || cInstrument >= PROJECT_MAX_INSTRUMENTS) return 1;
+  webUserPresetType = chipnomadState->project.instruments[cInstrument].type;
+  webUserPresets = std::make_unique<UserPresets>();
+  if (!setupUserPresetLibrary(*webUserPresets, webUserPresetType)) {
+    webUserPresets.reset();
+    return 1;
+  }
+  if (!webUserPresets->refresh(webUserPresetError)) return 2;
+  webUserPresetSlot = cInstrument;
+  return 0;
+}
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundPresetsCount(void) {
+  return webUserPresetReady() ? int(webUserPresets->items().size()) : -1;
+}
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundPresetsName(int index) {
+  if (!webUserPresetReady() || index < 0 ||
+      size_t(index) >= webUserPresets->items().size()) return "";
+  return webUserPresets->items()[index].name.c_str();
+}
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundPresetsKind(int index) {
+  if (!webUserPresetReady() || index < 0 ||
+      size_t(index) >= webUserPresets->items().size()) return -1;
+  return int(webUserPresets->items()[index].kind);
+}
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundPresetsLabel(void) {
+  if (!webUserPresetReady()) return "";
+  webUserPresetLabel = webUserPresets->label();
+  return webUserPresetLabel.c_str();
+}
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundPresetsError(void) {
+  return webUserPresetError.c_str();
+}
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundPresetsBack(void) {
+  if (!webUserPresetReady()) return 1;
+  webUserPresetError.clear();
+  return webUserPresets->back(webUserPresetError) ? 0 : 1;
+}
+// 1 = opened a folder/archive/bank; 2 = loaded a compatible program.
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundPresetsOpen(int index) {
+  if (!webUserPresetReady() || index < 0 ||
+      size_t(index) >= webUserPresets->items().size()) return 0;
+  webUserPresetError.clear();
+  if (webUserPresets->items()[index].kind != UserPresets::Kind::preset)
+    return webUserPresets->enter(size_t(index), webUserPresetError) ? 1 : 0;
+  const auto reference = webUserPresets->reference(size_t(index));
+  if (!webUserPresets->load(size_t(index), &chipnomadState->project,
+                            cInstrument, webUserPresetError)) return 0;
+  rememberUserPreset(reference);
+  projectModified = 1;
+  audioProjectDirty = 1;
+  screenSetup(&screenInstrument, cInstrument);
+  return 2;
+}
+// A native .cni producer is required for a genuine save/load round trip.
+extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSaveUserPreset(const char* filename) {
+  if (!chipnomadState || currentScreen != &screenInstrument ||
+      cInstrument < 0 || cInstrument >= PROJECT_MAX_INSTRUMENTS ||
+      !filename) return 1;
+  const char* folder = userPresetFolder(chipnomadState->project.instruments[cInstrument].type);
+  if (!folder) return 1;
+  const std::string name(filename);
+  if (name.empty() || name.size() > 63 || name[0] == '.' ||
+      name.find("..") != std::string::npos ||
+      name.size() < 5 || name.substr(name.size()-4) != ".cni") return 1;
+  for (unsigned char c : name)
+    if (!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') &&
+        !(c >= '0' && c <= '9') && c != '-' && c != '_' && c != '.' &&
+        c != ' ') return 1;
+  const std::string path = std::string("/user/instruments/USER/") + folder + "/" + name;
+  return instrumentSave(&chipnomadState->project, path.c_str(), cInstrument);
+}
 
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
