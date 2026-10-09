@@ -6,8 +6,15 @@ const inventory = JSON.parse(fs.readFileSync("web/native_parity_inventory.json",
 const shell = fs.readFileSync("web/wroom.js", "utf8");
 const html = fs.readFileSync("web/index.html", "utf8");
 assert.equal(inventory.screens.song, "semantic-incomplete");
-assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 4 && !nativeMixerExpanded\) \|\|/,
-  "Song, partial SOUND and partial MIX use DOM; native fallback remains");
+assert.match(shell, /const semantic = screen === 0 \|\| \(screen === 1 && !nativeChainExpanded\) \|\|/,
+  "Direct Chain must coexist with native fallback");
+assert.match(shell, /screen === 2 && !nativePhraseExpanded/,
+  "Direct Phrase must coexist with native fallback");
+for (const id of ["chainWorkspace","phraseWorkspace","chainOpenNative","phraseOpenNative",
+                  "chainReturnDirect","phraseReturnDirect"]) {
+  assert.ok(html.includes('id="' + id + '"'), "Native fallback/direct pattern missing: " + id);
+}
+assert.match(shell, /webPhraseSetCell/, "Direct Phrase must use native Project bridge");
 assert.match(html, /id="soundOpenNative"/, "SOUND must retain its full native editor");
 assert.match(html, /id="soundReturnDirect"/, "Native preset dialogs must remain accessible");
 assert.match(html, /id="soundPresetInput"/, "USER preset file import must be exposed");
