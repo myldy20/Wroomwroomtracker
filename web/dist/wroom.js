@@ -577,7 +577,8 @@
   };
 
 
-  // Only the native project supplies PAN values; there is no parallel mixer model.
+  // No browser-owned mixer: every displayed value and edit belongs to
+  // native Project, with edits adopted by DSP on its normal snapshot boundary.
   const formatTrackPan = (value) => {
     if (value === 128) return "CENTER";
     if (value < 128) return "L " + Math.round((128 - value) / 128 * 100) + "%";
@@ -590,44 +591,84 @@
     if (mixTrackRows.childElementCount !== count) {
       const fragment = document.createDocumentFragment();
       for (let track = 0; track < count; track++) {
-        const row = document.createElement("div");
+        const row = document.createElement("section");
         row.className = "mix-track-row";
         row.dataset.track = String(track);
         const heading = document.createElement("strong");
+        heading.className = "mix-track-heading";
         heading.textContent = "TRACK " + (track + 1);
-        const slider = document.createElement("input");
-        slider.type = "range";
-        slider.className = "mix-pan-slider";
-        slider.min = "0"; slider.max = "255"; slider.step = "1";
-        slider.value = "128"; slider.dataset.track = String(track);
-        slider.setAttribute("aria-label", "Track " + (track + 1) + " pan");
-        const output = document.createElement("output");
-        output.className = "mix-pan-value";
-        output.textContent = "CENTER";
+
+        const makeControl = (label, cssName, max, initial) => {
+          const control = document.createElement("div");
+          control.className = "mix-control-row";
+          const name = document.createElement("span");
+          name.className = "mix-control-label";
+          name.textContent = label;
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.className = cssName;
+          slider.min = "0"; slider.max = String(max); slider.step = "1";
+          slider.value = String(initial);
+          slider.setAttribute("aria-label", "Track " + (track + 1) + " " + label.toLowerCase());
+          const output = document.createElement("output");
+          output.className = cssName + "-value";
+          control.append(name, slider, output);
+          return {control, slider, output};
+        };
+
+        const pan = makeControl("PAN", "mix-pan-slider", 255, 128);
+        pan.output.textContent = "CENTER";
         const center = document.createElement("button");
-        center.type = "button"; center.className = "mix-pan-center";
+        center.type = "button";
+        center.className = "mix-pan-center";
         center.textContent = "CENTER";
         center.setAttribute("aria-label", "Center track " + (track + 1));
-        const update = (value) => {
-          const result = call("webMixSetTrackPan", "number", ["number","number"], [track,value]);
+        const setPan = (value) => {
+          const result = call("webMixSetTrackPan", "number", ["number", "number"], [track, value]);
           if (result !== 0) { setStatus("PAN update failed"); return; }
-          slider.value = String(value);
-          output.textContent = formatTrackPan(value);
+          pan.slider.value = String(value);
+          pan.output.textContent = formatTrackPan(value);
         };
-        slider.addEventListener("input", () => update(Number(slider.value)));
-        center.addEventListener("click", () => update(128));
-        row.append(heading,slider,output,center);
+        pan.slider.addEventListener("input", () => setPan(Number(pan.slider.value)));
+        center.addEventListener("click", () => setPan(128));
+        pan.control.appendChild(center);
+
+        const volume = makeControl("VOL", "mix-volume-slider", 100, 100);
+        volume.output.textContent = "100%";
+        const maxVolume = document.createElement("button");
+        maxVolume.type = "button";
+        maxVolume.className = "mix-volume-max";
+        maxVolume.textContent = "100%";
+        maxVolume.setAttribute("aria-label", "Set track " + (track + 1) + " volume to 100 percent");
+        const setVolume = (value) => {
+          const result = call("webMixSetTrackVolume", "number", ["number", "number"], [track, value]);
+          if (result !== 0) { setStatus("VOLUME update failed"); return; }
+          volume.slider.value = String(value);
+          volume.output.textContent = value + "%";
+        };
+        volume.slider.addEventListener("input", () => setVolume(Number(volume.slider.value)));
+        maxVolume.addEventListener("click", () => setVolume(100));
+        volume.control.appendChild(maxVolume);
+
+        row.append(heading, volume.control, pan.control);
         fragment.appendChild(row);
       }
       mixTrackRows.replaceChildren(fragment);
     }
     for (const row of mixTrackRows.children) {
       const track = Number(row.dataset.track);
-      const value = call("webMixTrackPan", "number", ["number"], [track]);
-      if (!Number.isInteger(value) || value < 0 || value > 255) continue;
-      const slider = row.querySelector(".mix-pan-slider");
-      if (document.activeElement !== slider) slider.value = String(value);
-      row.querySelector(".mix-pan-value").textContent = formatTrackPan(value);
+      const volume = call("webMixTrackVolume", "number", ["number"], [track]);
+      if (Number.isInteger(volume) && volume >= 0 && volume <= 100) {
+        const slider = row.querySelector(".mix-volume-slider");
+        if (document.activeElement !== slider) slider.value = String(volume);
+        row.querySelector(".mix-volume-slider-value").textContent = volume + "%";
+      }
+      const pan = call("webMixTrackPan", "number", ["number"], [track]);
+      if (Number.isInteger(pan) && pan >= 0 && pan <= 255) {
+        const slider = row.querySelector(".mix-pan-slider");
+        if (document.activeElement !== slider) slider.value = String(pan);
+        row.querySelector(".mix-pan-slider-value").textContent = formatTrackPan(pan);
+      }
     }
   };
 
