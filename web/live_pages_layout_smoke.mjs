@@ -152,11 +152,26 @@ try {
       await page.locator("#songCellDialogClose").click();
     }
 
-    // Global monitor is visible even on legacy CHAIN; mobile expander remains
-    // reachable without switching back to SONG.
+    // Direct CHAIN must fit the viewport and retain native Track Monitor.
     await page.locator('.view-tabs [data-screen="1"]').click();
-    await page.waitForFunction(() => document.querySelector("#screenName")?.textContent === "CHAIN",
-      null, { timeout: 5_000 });
+    await page.waitForSelector("#chainWorkspace:not([hidden]) .chain-step", {timeout: 10_000});
+    assert.equal(await page.locator("#chainRows .chain-step").count(),16,
+      viewport.name + ": direct Chain rows missing");
+    const patternGeometry = await page.evaluate(() => {
+      const pane = document.querySelector("#chainWorkspace");
+      const scroller = pane.querySelector(".pattern-editor-scroll");
+      const input = pane.querySelector(".pattern-field input");
+      const open = pane.querySelector(".pattern-open");
+      return {
+        overflow: document.documentElement.scrollWidth - innerWidth,
+        scrollerClient: scroller.clientWidth, scrollerWidth: scroller.scrollWidth,
+        inputHeight: input?.getBoundingClientRect().height,
+        buttonHeight: open?.getBoundingClientRect().height
+      };
+    });
+    assert.ok(patternGeometry.overflow <= 1, viewport.name + ": Chain causes global horizontal overflow");
+    assert.ok(patternGeometry.inputHeight >= 40 && patternGeometry.buttonHeight >= 44,
+      viewport.name + ": Chain controls lack touch targets");
     if (viewport.desktop) {
       assert.ok(await page.locator("#songActivityPanel").isVisible(),
         viewport.name + ": global desktop monitor disappeared on CHAIN");
