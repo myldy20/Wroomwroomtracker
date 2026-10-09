@@ -24,7 +24,7 @@ The underlying tracker engine, project format and synthesis capabilities come fr
 ## Web controls
 
 - **Tap/click** a cell to select it.
-- In **SONG**, choose cells directly and use **EDIT CELL** (also available on phones) or the inspector to assign a Chain. Use **SHOW 16 MORE SONG ROWS** to extend the visible arrangement.
+- In **CHAIN**, edit the 16 native step phrase IDs and transpose values directly; tap EDIT PHRASE to continue. In **PHRASE**, edit notes, instruments and volume; FX remain visible with FULL PHRASE for advanced edits.\n- In **SONG**, choose cells directly and use **EDIT CELL** (also available on phones) or the inspector to assign a Chain. Use **SHOW 16 MORE SONG ROWS** to extend the visible arrangement.
 - **Double tap/click** a Song cell for its editor; the legacy screens still support drag-based value adjustment and their EDIT action.
 - Use the workspace tabs to move directly between Song, Chain, Phrase, Sound and Mix.
 - In **MIX**, drag VOL for each track, adjust PAN, or tap **CENTER**. Both parameters are saved in the native project. **FULL MIXER** opens the native mixer (level, reverb/delay sends, tilt, PAN, Auto Mix and effect returns); **DIRECT MIX** returns after any open confirmation has been resolved.
