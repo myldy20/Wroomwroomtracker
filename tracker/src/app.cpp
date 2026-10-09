@@ -751,6 +751,132 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webMixSetTrackVolume(int track, int value) {
    return 0;
  }
 
+// Direct CHAIN/PHRASE Web editors read and write the canonical native Project.
+// All IDs come from the Song/Chain cursors; no JS sequencer or duplicate data.
+static int webSelectedChainId(void) {
+  if (!chipnomadState || !pSongRow || !pSongTrack ||
+      *pSongRow < 0 || *pSongRow >= PROJECT_MAX_LENGTH ||
+      *pSongTrack < 0 || *pSongTrack >= chipnomadState->project.tracksCount) return -1;
+  const uint16_t chain = chipnomadState->project.song[*pSongRow][*pSongTrack];
+  return chain < PROJECT_MAX_CHAINS ? (int)chain : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainCurrentId(void) {
+  return webSelectedChainId();
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSelectedStep(void) {
+  if (webSelectedChainId() < 0 || !pChainRow ||
+      *pChainRow < 0 || *pChainRow >= 16) return -1;
+  return *pChainRow;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainStepValue(int step, int field) {
+  const int chain = webSelectedChainId();
+  if (chain < 0 || step < 0 || step >= 16 || field < 0 || field > 1) return -2;
+  const ChainRow& row = chipnomadState->project.chains[chain].rows[step];
+  if (field == 1) return row.transpose;
+  return row.phrase == EMPTY_VALUE_16 ? -1 : (int)row.phrase;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSelectStep(int step) {
+  if (webSelectedChainId() < 0 || !pChainRow || step < 0 || step >= 16) return 1;
+  *pChainRow = step;
+  if (currentScreen == &screenChain) currentScreen->fullRedraw();
+  return 0;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webChainSetStep(int step, int field, int value) {
+  const int chain = webSelectedChainId();
+  if (chain < 0 || step < 0 || step >= 16 || field < 0 || field > 1) return 1;
+  ChainRow& row = chipnomadState->project.chains[chain].rows[step];
+  if (field == 0) {
+    if (value < -1 || value >= PROJECT_MAX_PHRASES) return 1;
+    const uint16_t phrase = value == -1 ? EMPTY_VALUE_16 : (uint16_t)value;
+    if (row.phrase == phrase) return 0;
+    row.phrase = phrase;
+  } else {
+    if (value < 0 || value > 255) return 1;
+    if (row.transpose == (uint8_t)value) return 0;
+    row.transpose = (uint8_t)value;
+  }
+  projectModified = 1;
+  audioProjectDirty = 1;
+  if (currentScreen == &screenChain) currentScreen->fullRedraw();
+  return 0;
+}
+
+static int webSelectedPhraseId(void) {
+  const int chain = webSelectedChainId();
+  if (chain < 0 || !pChainRow || *pChainRow < 0 || *pChainRow >= 16) return -1;
+  const uint16_t phrase = chipnomadState->project.chains[chain].rows[*pChainRow].phrase;
+  return phrase < PROJECT_MAX_PHRASES ? (int)phrase : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCurrentId(void) {
+  return webSelectedPhraseId();
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhrasePitchCount(void) {
+  if (!chipnomadState) return 0;
+  const int count = chipnomadState->project.pitchTable.length;
+  return count < NOTE_OFF ? count : NOTE_OFF;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE const char* webPhrasePitchLabel(int pitch) {
+  if (!chipnomadState || pitch < 0 || pitch >= webPhrasePitchCount()) return "---";
+  return noteName(&chipnomadState->project, (uint8_t)pitch);
+}
+
+// Fields 0 note, 1 explicit instrument, 2 explicit volume,
+// then 3..8 the three FX command/value pairs (read-only in direct Web).
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseCellValue(int row, int field) {
+  const int phrase = webSelectedPhraseId();
+  if (phrase < 0 || row < 0 || row >= 16 || field < 0 || field > 8) return -3;
+  const PhraseRow& cell = chipnomadState->project.phrases[phrase].rows[row];
+  if (field == 0) return cell.note == EMPTY_VALUE_8 ? -1 : cell.note == NOTE_OFF ? -2 : cell.note;
+  if (field == 1) return cell.instrument == EMPTY_VALUE_8 ? -1 : cell.instrument;
+  if (field == 2) return cell.volume == EMPTY_VALUE_16 ? -1 : cell.volume;
+  const int fx = (field - 3) / 2;
+  const int value = cell.fx[fx][(field - 3) % 2];
+  return field % 2 == 1 && value == EMPTY_VALUE_8 ? -1 : value;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int webPhraseSetCell(int row, int field, int value) {
+  const int phrase = webSelectedPhraseId();
+  if (phrase < 0 || row < 0 || row >= 16 || field < 0 || field > 2) return 1;
+  PhraseRow& cell = chipnomadState->project.phrases[phrase].rows[row];
+  if (field == 0) {
+    if (value < -2 || value >= webPhrasePitchCount()) return 1;
+    const uint8_t next = value == -1 ? EMPTY_VALUE_8 : value == -2 ? NOTE_OFF : (uint8_t)value;
+    // Native note CLEAR and OFF clear the inherited-state modifiers too.
+    // A row with no note can still change playback instrument/volume.
+    const bool clearRow = next == EMPTY_VALUE_8 || next == NOTE_OFF;
+    const bool changed = cell.note != next ||
+      (clearRow && (cell.instrument != EMPTY_VALUE_8 || cell.volume != EMPTY_VALUE_16));
+    if (!changed) return 0;
+    cell.note = next;
+    if (clearRow) {
+      cell.instrument = EMPTY_VALUE_8;
+      cell.volume = EMPTY_VALUE_16;
+    }
+  } else if (field == 1) {
+    if (value < -1 || value >= PROJECT_MAX_INSTRUMENTS) return 1;
+    const uint8_t next = value < 0 ? EMPTY_VALUE_8 : (uint8_t)value;
+    if (cell.instrument == next) return 0;
+    cell.instrument = next;
+  } else {
+    if (value < -1 || value > PHRASE_VOLUME_MAX) return 1;
+    const uint16_t next = value < 0 ? EMPTY_VALUE_16 : (uint16_t)value;
+    if (cell.volume == next) return 0;
+    cell.volume = next;
+  }
+  projectModified = 1;
+  audioProjectDirty = 1;
+  if (currentScreen == &screenPhrase) currentScreen->fullRedraw();
+  return 0;
+}
+
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
   switch (action) {
