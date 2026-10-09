@@ -142,3 +142,9 @@ The DIRECT MIX button is unavailable while a different native screen,
 including the Auto Mix Apply/Cancel confirmation, is active. The native dialog
 must be resolved before switching back to semantic controls; previews must
 not be silently accepted by hiding the canvas.
+
+The native `webOpenScreen()` call queues `screenSetup()` and only commits
+`currentScreen` in the following draw frame. Web tab navigation holds a short
+bounded pending target so a stale `webCurrentScreen()` poll cannot replace the
+new workspace while the transition is in flight. This also applies when
+entering FULL MIXER.
