@@ -1746,3 +1746,16 @@ input {
   .sound-control-row { grid-template-columns: 38px minmax(0,1fr) 57px 58px; gap: 5px; padding: 8px; }
   .sound-preset-tools { padding: 10px; }
 }
+
+/* In-page USER preset browser uses native scanner and loader; never parses presets in JS. */
+.sound-preset-library { display: grid; gap: 9px; padding: 10px; border-top: 1px solid var(--line); }
+.sound-preset-library[hidden] { display: none !important; }
+.sound-preset-library > header { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.sound-preset-library > header strong { color: var(--cyan); font-size: 10px; overflow-wrap: anywhere; }
+.sound-preset-library button { min-height: 44px; }
+.sound-preset-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 6px; max-height: 45svh; overflow-y: auto; }
+.sound-preset-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; min-width: 0; }
+.sound-preset-item span { overflow-wrap: anywhere; }
+.sound-preset-item strong { color: var(--amber); font-size: 9px; white-space: nowrap; }
+.sound-preset-item[data-kind="3"] strong { color: var(--green); }
+.sound-preset-library > p { color: var(--muted); margin: 4px; }

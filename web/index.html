@@ -121,8 +121,20 @@
                 <div>
                   <button id="soundImportPresets" type="button" data-needs-runtime disabled>IMPORT FILES</button>
                   <button id="soundBrowsePresets" type="button" data-needs-runtime disabled>BROWSE IN ENGINE ↗</button>
+                  <button id="soundLibraryToggle" type="button" data-needs-runtime disabled>PRESET LIBRARY</button>
+                  <button id="soundSaveCurrent" type="button" data-needs-runtime disabled>SAVE CURRENT .CNI</button>
                 </div>
                 <small>Files remain in this browser's storage. Supported formats depend on the selected engine.</small>
+                <section id="soundPresetLibrary" class="sound-preset-library" aria-label="Compatible USER presets" hidden>
+                  <header>
+                    <button id="soundPresetBack" type="button">← UP</button>
+                    <strong id="soundPresetPath">USER PRESETS</strong>
+                    <button id="soundPresetRefresh" type="button">REFRESH</button>
+                  </header>
+                  <div id="soundPresetItems" class="sound-preset-items"></div>
+                  <p id="soundPresetEmpty">No compatible USER presets yet. Import files or save this instrument.</p>
+                  <small>Select LOAD to replace the current instrument slot with a compatible program.</small>
+                </section>
               </div>
             </div>
           </section>
