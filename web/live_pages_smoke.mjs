@@ -597,7 +597,7 @@ if (success) {
   await page.evaluate(path => window.Module.FS.unlink(path),nativePath);
   await page.locator("#soundPresetRefresh").click();
   await page.locator("#soundLibraryToggle").click();
-  await page.waitForSelector("#soundPresetLibrary[hidden]",{timeout:5_000});
+  await page.waitForFunction(() => document.querySelector("#soundPresetLibrary")?.hidden === true, null, {timeout:5_000});
 
   await page.locator("#soundOpenNative").click();
   if (!(await page.locator("#legacyWorkspace").isVisible()) ||
