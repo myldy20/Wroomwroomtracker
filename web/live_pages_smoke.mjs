@@ -348,7 +348,7 @@ if (success) {
     el.value = "32"; el.dispatchEvent(new Event("input", {bubbles:true}));
   });
   const nativePan = await page.evaluate(() => window.Module.ccall("webMixTrackPan", "number", ["number"], [0]));
-  if (nativePan !== 32 || !/L 75%/.test(await page.locator(".mix-pan-value").first().textContent()))
+  if (nativePan !== 32 || !/L 75%/.test(await page.locator(".mix-pan-slider-value").first().textContent()))
     throw new Error("MIX slider did not update native PAN");
   if (otherPan !== null && (await page.evaluate(() => window.Module.ccall(
       "webMixTrackPan", "number", ["number"], [1]))) !== otherPan)
@@ -364,6 +364,39 @@ if (success) {
     throw new Error("Center button did not reset native PAN");
   await page.evaluate(value => window.Module.ccall(
     "webMixSetTrackPan", "number", ["number","number"], [0, value]), originalPan);
+
+  // Track VOLUME uses the same Project snapshot, and its UI is independent
+  // of PAN and of every other track. Preserve the demo project after the test.
+  const originalVolume = await page.evaluate(() => window.Module.ccall(
+    "webMixTrackVolume", "number", ["number"], [0]));
+  const otherVolume = panTrackCount > 1 ? await page.evaluate(() => window.Module.ccall(
+    "webMixTrackVolume", "number", ["number"], [1])) : null;
+  if (originalVolume < 0 || originalVolume > 100)
+    throw new Error("MIX volume did not read native project");
+  await page.locator("#mixTrackRows .mix-volume-slider").first().evaluate(el => {
+    el.value = "37"; el.dispatchEvent(new Event("input", {bubbles: true}));
+  });
+  const nativeVolume = await page.evaluate(() => window.Module.ccall(
+    "webMixTrackVolume", "number", ["number"], [0]));
+  if (nativeVolume !== 37 || (await page.locator(".mix-volume-slider-value").first().textContent()) !== "37%")
+    throw new Error("MIX volume slider failed to write native Project volume");
+  if (otherVolume !== null && (await page.evaluate(() => window.Module.ccall(
+      "webMixTrackVolume", "number", ["number"], [1]))) !== otherVolume)
+    throw new Error("MIX volume update changed another track");
+  for (const invalid of [-1, 101]) {
+    const status = await page.evaluate(value => window.Module.ccall(
+      "webMixSetTrackVolume", "number", ["number", "number"], [0, value]), invalid);
+    if (status !== 1 || await page.evaluate(() => window.Module.ccall(
+        "webMixTrackVolume", "number", ["number"], [0])) !== 37)
+      throw new Error("Native volume accepted invalid value " + invalid);
+  }
+  await page.locator(".mix-volume-max").first().click();
+  if ((await page.evaluate(() => window.Module.ccall(
+    "webMixTrackVolume", "number", ["number"], [0]))) !== 100)
+    throw new Error("MIX 100% button did not reset native volume");
+  await page.evaluate(value => window.Module.ccall(
+    "webMixSetTrackVolume", "number", ["number", "number"], [0, value]), originalVolume);
+
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songWorkspace:not([hidden]) #songGrid .song-cell", {timeout: 6_000});
 
