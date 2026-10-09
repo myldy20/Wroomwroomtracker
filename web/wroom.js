@@ -778,6 +778,9 @@
   const renderChainWorkspace = () => {
     if (activeUiScreen !== 1 || nativeChainExpanded) return;
     const chain = call("webChainCurrentId", "number");
+    const nativeStep = call("webChainSelectedStep", "number");
+    if (Number.isInteger(nativeStep) && nativeStep >= 0 && nativeStep < 16)
+      directChainStep = nativeStep;
     const host = $("#chainRows");
     host.replaceChildren();
     if (!Number.isInteger(chain) || chain < 0) {
@@ -830,6 +833,9 @@
   const renderPhraseWorkspace = () => {
     if (activeUiScreen !== 2 || nativePhraseExpanded) return;
     const phrase = call("webPhraseCurrentId", "number");
+    const nativeStep = call("webChainSelectedStep", "number");
+    if (Number.isInteger(nativeStep) && nativeStep >= 0 && nativeStep < 16)
+      directChainStep = nativeStep;
     const host = $("#phraseRows");
     host.replaceChildren();
     if (!Number.isInteger(phrase) || phrase < 0) {
@@ -1637,6 +1643,8 @@
     if (result === 0) {
       songRendered = false;
       if (activeUiScreen === 0) renderSongWorkspace();
+      else if (activeUiScreen === 1 && !nativeChainExpanded) renderChainWorkspace();
+      else if (activeUiScreen === 2 && !nativePhraseExpanded) renderPhraseWorkspace();
     }
     setStatus(result === 0 ? "Loaded " + file.name : "Could not load " + file.name);
     event.target.value = "";
