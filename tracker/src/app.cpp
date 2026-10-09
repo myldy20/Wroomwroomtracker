@@ -16,6 +16,8 @@
 #include "corelib_keymap.h"
 #include "screens/screen_quick_help.h"
 #include "screens/screen_instrument.h"
+#include "screens/user_preset_browser.h"
+#include "user_presets.h"
 #include "midi/midi_router.h"
 #include "midi/midi_backend_desktop.h"
 #ifdef ANDROID_BUILD
@@ -674,6 +676,80 @@ extern "C" EMSCRIPTEN_KEEPALIVE int webMixSetTrackVolume(int track, int value) {
   }
   return 0;
 }
+
+
+ // Web SOUND edits canonical Project instruments, not a browser-only shadow.
+ // A selected slot is exactly the native SOUND editor's cInstrument.
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSlotCount(void) {
+   return PROJECT_MAX_INSTRUMENTS;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSelectedSlot(void) {
+   if (!chipnomadState) return -1;
+   return cInstrument;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSelectSlot(int slot) {
+   if (!chipnomadState || currentScreen != &screenInstrument ||
+       slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return 1;
+   cInstrument = slot;
+   screenSetup(&screenInstrument, cInstrument);
+   return 0;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundSlotName(int slot) {
+   if (!chipnomadState || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return "";
+   return chipnomadState->project.instruments[slot].name;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundSlotType(int slot) {
+   if (!chipnomadState || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return "";
+   return instrumentTypeName(chipnomadState->project.instruments[slot].type);
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSlotTypeId(int slot) {
+   if (!chipnomadState || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return -1;
+   return int(chipnomadState->project.instruments[slot].type);
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSlotPan(int slot) {
+   if (!chipnomadState || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return -1;
+   return int(chipnomadState->project.instruments[slot].pan);
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSetSlotPan(int slot, int value) {
+   if (!chipnomadState || currentScreen != &screenInstrument ||
+       slot != cInstrument || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS ||
+       value < 0 || value > 255) return 1;
+   Instrument& inst = chipnomadState->project.instruments[slot];
+   if (inst.pan != uint8_t(value)) {
+     inst.pan = uint8_t(value);
+     projectModified = 1;
+     audioProjectDirty = 1;
+   }
+   return 0;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSlotVolume(int slot) {
+   if (!chipnomadState || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS) return -1;
+   return int(chipnomadState->project.instruments[slot].volume);
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundSetSlotVolume(int slot, int value) {
+   if (!chipnomadState || currentScreen != &screenInstrument ||
+       slot != cInstrument || slot < 0 || slot >= PROJECT_MAX_INSTRUMENTS ||
+       value < 0 || value > 255) return 1;
+   Instrument& inst = chipnomadState->project.instruments[slot];
+   if (inst.volume != uint8_t(value)) {
+     inst.volume = uint8_t(value);
+     projectModified = 1;
+     audioProjectDirty = 1;
+   }
+   return 0;
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE const char* webSoundUserPresetFolder(void) {
+   if (!chipnomadState || cInstrument < 0 || cInstrument >= PROJECT_MAX_INSTRUMENTS)
+     return "";
+   const char* name = userPresetFolder(chipnomadState->project.instruments[cInstrument].type);
+   return name ? name : "";
+ }
+ extern "C" EMSCRIPTEN_KEEPALIVE int webSoundOpenUserPresets(void) {
+   if (!chipnomadState || currentScreen != &screenInstrument ||
+       !userPresetFolder(chipnomadState->project.instruments[cInstrument].type)) return 1;
+   openUserPresetBrowser();
+   return 0;
+ }
 
 extern "C" EMSCRIPTEN_KEEPALIVE void webSemanticAction(int action) {
   int keys = 0;
