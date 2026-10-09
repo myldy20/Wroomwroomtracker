@@ -23,6 +23,13 @@ for (const name of ["webSongToggleTrackMute", "webSongToggleTrackSolo", "webSong
   assert.ok(native.includes(name + "("), "Native Song bridge missing: " + name);
   assert.ok(generated.includes(name), "Compiled Web runtime omits: " + name);
 }
+for (const name of ["webMixTrackPan", "webMixSetTrackPan",
+                    "webMixTrackVolume", "webMixSetTrackVolume"]) {
+  assert.ok(fs.readFileSync("tracker/src/app.cpp", "utf8").includes(name + "("),
+    "Native mixer bridge missing: " + name);
+  assert.ok(generated.includes(name),
+    "Compiled Web mixer runtime omits: " + name);
+}
 const audio = fs.readFileSync("tracker/src/audio_manager.cpp", "utf8");
 assert.ok(audio.includes('extern "C" EMSCRIPTEN_KEEPALIVE int webOutputStereoPeaksPacked('), "Stereo export removed from C++");
 assert.ok(generated.includes("webOutputStereoPeaksPacked"), "Committed WASM loader must include stereo export");
