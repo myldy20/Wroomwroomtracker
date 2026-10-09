@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpe1qjnlyn.js
+// include: /tmp/tmptsz00_04.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -210,21 +210,21 @@ Module['FS_createPath']("/waveforms", "AKWF", true, true);
 
   })();
 
-// end include: /tmp/tmpe1qjnlyn.js
-// include: /tmp/tmpjglrzdy_.js
+// end include: /tmp/tmptsz00_04.js
+// include: /tmp/tmpm0gom1yp.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpjglrzdy_.js
-// include: /tmp/tmp3kebe1eh.js
+  // end include: /tmp/tmpm0gom1yp.js
+// include: /tmp/tmpt1sul5k4.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmp3kebe1eh.js
+  // end include: /tmp/tmpt1sul5k4.js
 
 
 var programArgs = [];
@@ -10733,6 +10733,7 @@ var _webSoundSetSlotVolume = Module['_webSoundSetSlotVolume'] = makeInvalidEarly
 var _webSoundUserPresetFolder = Module['_webSoundUserPresetFolder'] = makeInvalidEarlyAccess('_webSoundUserPresetFolder');
 var _webSoundOpenUserPresets = Module['_webSoundOpenUserPresets'] = makeInvalidEarlyAccess('_webSoundOpenUserPresets');
 var _webChainCurrentId = Module['_webChainCurrentId'] = makeInvalidEarlyAccess('_webChainCurrentId');
+var _webChainSelectedStep = Module['_webChainSelectedStep'] = makeInvalidEarlyAccess('_webChainSelectedStep');
 var _webChainStepValue = Module['_webChainStepValue'] = makeInvalidEarlyAccess('_webChainStepValue');
 var _webChainSelectStep = Module['_webChainSelectStep'] = makeInvalidEarlyAccess('_webChainSelectStep');
 var _webChainSetStep = Module['_webChainSetStep'] = makeInvalidEarlyAccess('_webChainSetStep');
@@ -10893,6 +10894,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webSoundUserPresetFolder'] != 'undefined', 'missing Wasm export: webSoundUserPresetFolder');
   assert(typeof wasmExports['webSoundOpenUserPresets'] != 'undefined', 'missing Wasm export: webSoundOpenUserPresets');
   assert(typeof wasmExports['webChainCurrentId'] != 'undefined', 'missing Wasm export: webChainCurrentId');
+  assert(typeof wasmExports['webChainSelectedStep'] != 'undefined', 'missing Wasm export: webChainSelectedStep');
   assert(typeof wasmExports['webChainStepValue'] != 'undefined', 'missing Wasm export: webChainStepValue');
   assert(typeof wasmExports['webChainSelectStep'] != 'undefined', 'missing Wasm export: webChainSelectStep');
   assert(typeof wasmExports['webChainSetStep'] != 'undefined', 'missing Wasm export: webChainSetStep');
@@ -11049,6 +11051,7 @@ function assignWasmExports(wasmExports) {
   _webSoundUserPresetFolder = Module['_webSoundUserPresetFolder'] = createExportWrapper('webSoundUserPresetFolder', wasmExports['webSoundUserPresetFolder'], 0);
   _webSoundOpenUserPresets = Module['_webSoundOpenUserPresets'] = createExportWrapper('webSoundOpenUserPresets', wasmExports['webSoundOpenUserPresets'], 0);
   _webChainCurrentId = Module['_webChainCurrentId'] = createExportWrapper('webChainCurrentId', wasmExports['webChainCurrentId'], 0);
+  _webChainSelectedStep = Module['_webChainSelectedStep'] = createExportWrapper('webChainSelectedStep', wasmExports['webChainSelectedStep'], 0);
   _webChainStepValue = Module['_webChainStepValue'] = createExportWrapper('webChainStepValue', wasmExports['webChainStepValue'], 2);
   _webChainSelectStep = Module['_webChainSelectStep'] = createExportWrapper('webChainSelectStep', wasmExports['webChainSelectStep'], 1);
   _webChainSetStep = Module['_webChainSetStep'] = createExportWrapper('webChainSetStep', wasmExports['webChainSetStep'], 3);
