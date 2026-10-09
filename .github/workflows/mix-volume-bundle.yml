@@ -1,10 +1,20 @@
 name: Temporary MIX Volume PR Build
 on:
+  push:
+    branches: [feat/web-native-mix-volume-20261009]
+    paths:
+      - 'tracker/src/app.cpp'
+      - 'web/wroom.js'
+      - 'web/wroom.css'
+      - 'web/index.html'
+      - 'web/wasm_bridge_contract_test.mjs'
+      - '.github/workflows/mix-volume-bundle.yml'
   pull_request:
     branches: [feat/web-native-mix-pan-20261009]
     paths:
       - 'tracker/src/app.cpp'
-      - 'web/**'
+      - 'web/wroom.js'
+      - 'web/wasm_bridge_contract_test.mjs'
       - '.github/workflows/mix-volume-bundle.yml'
   workflow_dispatch:
 permissions:
