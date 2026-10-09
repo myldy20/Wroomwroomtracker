@@ -50,3 +50,4 @@ jobs:
 # Browser smoke is triggered after the compiled WASM bundle is committed.
 # Rerun after fixing tab binding; no recompile required.
 # Check semantic MIX visibility after CSS cleanup.
+# Recheck strict-locator correction for direct MIX fallback.
