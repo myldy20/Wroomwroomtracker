@@ -258,14 +258,103 @@ if (success) {
     "webSongLiveQueuePacked", "number", ["number"], [0]));
   if (noQueued !== 0) throw new Error("Native live queue should start empty");
 
-  // Track monitor must survive leaving semantic Song, without a second JS audio model.
+  // Direct CHAIN → PHRASE must edit the native Project, never JS shadow state.
+  // Restore every touched demo-project value before continuing playback smoke.
   await page.locator('.view-tabs [data-screen="1"]').click();
-  await page.waitForFunction(() => document.querySelector("#screenName")?.textContent === "CHAIN",
-    null, {timeout: 5_000});
-  if (!(await page.locator("#songActivityPanel").isVisible()))
-    throw new Error("Global track monitor disappeared on CHAIN");
-  if ((await page.locator("#songActivityPiano .monitor-key").count()) !== 12)
-    throw new Error("Global piano disappeared on CHAIN");
+  await page.waitForSelector("#chainWorkspace:not([hidden]) .chain-step", {timeout: 10_000});
+  if ((await page.locator("#chainRows .chain-step").count()) !== 16)
+    throw new Error("Direct CHAIN did not expose all 16 native steps");
+  if (!(await page.locator("#songActivityPanel").isVisible()) ||
+      (await page.locator("#songActivityPiano .monitor-key").count()) !== 12)
+    throw new Error("Native track monitor disappeared on direct CHAIN");
+  const nativeChain = await page.evaluate(() => window.Module.ccall("webChainCurrentId","number"));
+  const selectedSongChain = await page.evaluate(() => window.Module.ccall(
+    "webSongCellValue","number",["number","number"],[0,0]));
+  if (nativeChain !== selectedSongChain || nativeChain < 0)
+    throw new Error("Direct Chain did not follow selected Song cell");
+  const originalStep = await page.evaluate(() => [0,1].map(field =>
+    window.Module.ccall("webChainStepValue","number",["number","number"],[0,field])));
+  await page.locator('#chainRows .chain-step[data-step="0"] input[aria-label$="transpose"]')
+    .fill("3A");
+  await page.locator('#chainRows .chain-step[data-step="0"] input[aria-label$="transpose"]')
+    .dispatchEvent("change");
+  if (await page.evaluate(() => window.Module.ccall("webChainStepValue",
+      "number",["number","number"],[0,1])) !== 0x3A)
+    throw new Error("Direct CHAIN transpose did not change native Project");
+
+  await page.locator('#chainRows .chain-step[data-step="0"] input[aria-label$="phrase"]')
+    .fill("000");
+  await page.locator('#chainRows .chain-step[data-step="0"] input[aria-label$="phrase"]')
+    .dispatchEvent("change");
+  if (await page.evaluate(() => window.Module.ccall("webChainStepValue",
+      "number",["number","number"],[0,0])) !== 0)
+    throw new Error("Direct CHAIN phrase reference did not change native Project");
+  await page.locator('#chainRows .chain-step[data-step="0"] .pattern-open').click();
+  await page.waitForSelector("#phraseWorkspace:not([hidden]) .phrase-step", {timeout: 10_000});
+  if ((await page.locator("#phraseRows .phrase-step").count()) !== 16 ||
+      await page.evaluate(() => window.Module.ccall("webPhraseCurrentId","number")) !== 0)
+    throw new Error("Direct PHRASE did not follow the chosen Chain step");
+  if ((await page.locator('#phraseRows .phrase-step[data-row="0"] .pattern-fx').textContent())
+      ?.match(/FX\d/g)?.length !== 3)
+    throw new Error("Direct PHRASE hid native FX columns");
+  const oldPhraseRow = await page.evaluate(() => [0,1,2].map(field =>
+    window.Module.ccall("webPhraseCellValue","number",["number","number"],[0,field])));
+  const nextPitch = oldPhraseRow[0] === 0 ? 1 : 0;
+  await page.locator('#phraseRows .phrase-step[data-row="0"] select').selectOption(String(nextPitch));
+  if (await page.evaluate(() => window.Module.ccall("webPhraseCellValue",
+      "number",["number","number"],[0,0])) !== nextPitch)
+    throw new Error("Direct PHRASE note select did not update native Project");
+  const invalidPitch = await page.evaluate(() => window.Module.ccall("webPhraseSetCell",
+      "number",["number","number","number"],[0,0,254]));
+  if (invalidPitch !== 1) throw new Error("Direct PHRASE accepted reserved NOTE_OFF as pitch");
+  for (const [field,value] of [[1,"0C"],[2,"40"]]) {
+    const name = field === 1 ? "instrument" : "volume";
+    const locator = page.locator('#phraseRows .phrase-step[data-row="0"] input[aria-label$="'+name+'"]');
+    await locator.fill(value);
+    await locator.dispatchEvent("change");
+    if (await page.evaluate(([f]) => window.Module.ccall("webPhraseCellValue",
+      "number",["number","number"],[0,f]),[field]) !== Number.parseInt(value,16))
+      throw new Error("Direct PHRASE " + name + " did not update native Project");
+  }
+  // Clearing a NOTE must clear explicit Instrument and Volume too:
+  // those fields can affect playback even when the note is empty.
+  await page.locator('#phraseRows .phrase-step[data-row="0"] select').selectOption("-1");
+  const cleared = await page.evaluate(() => [0,1,2].map(field =>
+    window.Module.ccall("webPhraseCellValue","number",["number","number"],[0,field])));
+  if (cleared.some(value => value !== -1))
+    throw new Error("Clearing native Phrase note retained active Instrument/Volume: " +
+      JSON.stringify(cleared));
+
+  await page.locator("#phraseOpenNative").click();
+  if (!(await page.locator("#legacyWorkspace").isVisible()) ||
+      !(await page.locator("#phraseReturnDirect").isVisible()))
+    throw new Error("FULL PHRASE did not preserve native FX editor");
+  await page.locator("#phraseReturnDirect").click();
+  if (!(await page.locator("#phraseWorkspace").isVisible()))
+    throw new Error("DIRECT PHRASE could not return from native editor");
+  await page.evaluate(original => {
+    for (let field = 0; field < 3; field++) window.Module.ccall(
+      "webPhraseSetCell","number",["number","number","number"],[0,field,original[field]]);
+  },oldPhraseRow);
+  await page.locator('.view-tabs [data-screen="1"]').click();
+  await page.waitForSelector("#chainWorkspace:not([hidden]) .chain-step", {timeout: 8_000});
+  await page.locator("#chainOpenNative").click();
+  if (!(await page.locator("#legacyWorkspace").isVisible()) ||
+      !(await page.locator("#chainReturnDirect").isVisible()))
+    throw new Error("FULL CHAIN did not preserve native editing operations");
+  // The direct highlight must follow the actual native Chain cursor,
+  // including a step selected while FULL CHAIN was open.
+  await page.evaluate(() => window.Module.ccall(
+    "webChainSelectStep","number",["number"],[5]));
+  await page.locator("#chainReturnDirect").click();
+  if (!(await page.locator('#chainRows .chain-step[data-step="5"]').evaluate(
+      row => row.classList.contains("selected"))))
+    throw new Error("Direct CHAIN highlight diverged from native cursor");
+  await page.evaluate(original => {
+    for (let field = 0; field < 2; field++) window.Module.ccall(
+      "webChainSetStep","number",["number","number","number"],[0,field,original[field]]);
+    window.Module.ccall("webChainSelectStep","number",["number"],[0]);
+  },originalStep);
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songGrid .song-cell", {timeout: 5_000});
 

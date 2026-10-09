@@ -1765,3 +1765,32 @@ input {
 .sound-create-controls label { color: var(--muted); font-weight: 800; }
 .sound-create-controls select { min-height: 44px; min-width: 150px; padding: 5px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink); }
 .sound-create-controls button { min-height: 44px; color: var(--green); font-weight: 800; }
+
+
+/* Native-backed Chain / Phrase semantic editors. Scroll only inside the
+   editor; preserve touch-friendly rows and expose all FX without faking edits. */
+.pattern-workspace { min-width: 0; overflow: hidden; }
+.pattern-editor-scroll { overflow-x: auto; overflow-y: auto; min-width: 0; padding: 10px; overscroll-behavior: contain; }
+.pattern-chain-rows, .pattern-phrase-rows { display: grid; gap: 5px; min-width: 0; }
+.pattern-step { display: grid; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 7px; background: #07131d; padding: 7px 9px; min-width: 0; }
+.pattern-step:hover, .pattern-step.selected { border-color: rgba(94,215,255,.55); background: #0a1b27; }
+.chain-step { grid-template-columns: 34px minmax(64px, 1fr) 80px minmax(96px,1fr); }
+.phrase-step { grid-template-columns: 34px minmax(128px, 1.2fr) minmax(72px, .75fr) minmax(72px,.75fr) minmax(126px,1.4fr); }
+.pattern-step-number { color: var(--muted); font-weight: 900; font-size: 12px; text-align: center; }
+.pattern-field { display: grid; min-width: 0; gap: 4px; }
+.pattern-field label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.pattern-field input, .pattern-field select { color: var(--ink); min-width: 0; width: 100%; background: #081723; border: 1px solid var(--line); border-radius: 5px; padding: 0 7px; min-height: 42px; font: 800 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.pattern-field input:focus-visible, .pattern-field select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.pattern-open { min-height: 44px; min-width: 0; color: var(--amber); font-weight: 800; }
+.pattern-open:disabled { color: var(--dim); opacity: .6; }
+.pattern-fx { color: var(--dim); font: 800 10px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; white-space: nowrap; }
+.pattern-footnote { padding: 8px 15px 15px; margin: 0; font-size: 11px; color: var(--muted); }
+#chainReturnDirect, #phraseReturnDirect { min-height: 44px; color: var(--cyan); font-weight: 800; }
+@media (max-width: 720px) {
+  .pattern-editor-scroll { padding: 6px; }
+  .pattern-step { gap: 5px; padding: 7px 5px; }
+  .chain-step { grid-template-columns: 24px minmax(62px, 1fr) 65px 88px; }
+  .phrase-step { grid-template-columns: 26px minmax(128px,1fr) 66px 66px minmax(115px,1fr); min-width: 465px; }
+  .pattern-fx { font-size: 9px; }
+  .pattern-field input, .pattern-field select { font-size: 12px; }
+}

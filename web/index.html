@@ -93,6 +93,28 @@
               <button id="songMoreRows" class="song-more-rows" type="button" data-needs-runtime disabled hidden>SHOW 16 MORE SONG ROWS</button>
             </div>
           </section>
+          <section id="chainWorkspace" class="workspace-view pattern-workspace" aria-label="Direct chain editor" hidden>
+            <header class="mix-toolbar">
+              <div><strong id="chainEditorTitle">CHAIN</strong>
+                <span>16 steps · phrase reference and transpose from the native project</span></div>
+              <button id="chainOpenNative" type="button" data-needs-runtime disabled>FULL CHAIN ↗</button>
+            </header>
+            <div class="pattern-editor-scroll">
+              <div id="chainRows" class="pattern-chain-rows" role="group" aria-label="Chain steps"></div>
+            </div>
+            <p class="pattern-footnote">Values use native hexadecimal IDs. Blank phrase clears a step. Select a step to open its Phrase.</p>
+          </section>
+          <section id="phraseWorkspace" class="workspace-view pattern-workspace" aria-label="Direct phrase editor" hidden>
+            <header class="mix-toolbar">
+              <div><strong id="phraseEditorTitle">PHRASE</strong>
+                <span>16 rows · edit note, instrument and volume. FX stay visible below.</span></div>
+              <button id="phraseOpenNative" type="button" data-needs-runtime disabled>FULL PHRASE ↗</button>
+            </header>
+            <div class="pattern-editor-scroll">
+              <div id="phraseRows" class="pattern-phrase-rows" role="group" aria-label="Phrase note rows"></div>
+            </div>
+            <p class="pattern-footnote">--- = inherit / empty, OFF = note off. FX commands are read-only here; FULL PHRASE opens their native editor.</p>
+          </section>
           <section id="soundWorkspace" class="workspace-view sound-workspace" aria-label="Direct instrument controls" hidden>
             <header class="mix-toolbar">
               <div><strong>INSTRUMENT</strong>
@@ -161,6 +183,9 @@
             <button id="clearAction" type="button" data-needs-runtime disabled>CLEAR</button>
             <button id="backAction" type="button" data-needs-runtime disabled>BACK</button>
             <button id="mixReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT MIX</button>
+            <button id="chainReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT CHAIN</button>
+            <button id="phraseReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT PHRASE</button>
+
             <button id="soundReturnDirect" type="button" data-needs-runtime disabled hidden>← DIRECT SOUND</button>
             <span class="spacer"></span>
             <span class="hint">This screen is still using the legacy tracker view while its web workspace is being migrated.</span>

@@ -8,7 +8,7 @@ It keeps the ChooChooTracker engine and project format, but the web shell is des
 - use **EDIT CELL** to edit a Song cell on desktop or phone, or double-tap a cell;
 - reveal additional Song rows in increments of 16; keyboard navigation expands the view automatically;
 - drag-based value adjustment remains in the legacy canvas screens until their semantic migration;
-- switch directly between **SONG**, **CHAIN**, **PHRASE**, **SOUND**, and **MIX**;
+- switch directly between **SONG**, **CHAIN**, **PHRASE**, **SOUND**, and **MIX**;\n- edit Chain phrase IDs/transposition and Phrase notes/instrument/volume in native-backed Web rows; FULL CHAIN and FULL PHRASE preserve the original editor for complex FX and structural operations;
 - in **MIX**, adjust each track's volume and panorama directly using touch/mouse sliders. **CENTER** resets each track; **FULL MIXER** opens the native level, sends, tilt, PAN, Auto Mix, reverb and delay controls; **DIRECT MIX** returns after any open Apply/Cancel prompt is resolved;
 - use explicit **PLAY**, **STOP**, **OPEN**, and **DOWNLOAD** actions.
 
