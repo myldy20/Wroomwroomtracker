@@ -2,8 +2,8 @@
   "purpose": "Native feature preservation guard. 'fallback-missing' means native behavior still needs a semantic SONG control, so SONG IS NOT feature-complete. 'legacy' means existing legacy canvas is intentionally preserved. Inventory is a growing contract, not proof every upstream feature is mapped.",
   "screens": {
     "song": "semantic-incomplete",
-    "chain": "legacy",
-    "phrase": "legacy",
+    "chain": "semantic-incomplete",
+    "phrase": "semantic-incomplete",
     "sound": "legacy",
     "mix": "legacy",
     "table": "legacy",
@@ -93,14 +93,14 @@
       "screen": "chain",
       "native": "tracker/src/screens/screen_chain.cpp",
       "source": "phraseHasNotes(",
-      "status": "legacy",
+      "status": "semantic",
       "label": "Chain Phrase rows"
     },
     {
       "screen": "phrase",
       "native": "tracker/src/screens/screen_phrase.cpp",
       "source": "noteName(",
-      "status": "legacy",
+      "status": "semantic",
       "label": "Note editing"
     },
     {
@@ -114,7 +114,7 @@
       "screen": "phrase",
       "native": "tracker/src/screens/screen_phrase.cpp",
       "source": "volumeToHexOrEmpty(",
-      "status": "legacy",
+      "status": "semantic",
       "label": "Phrase volume"
     },
     {
@@ -245,11 +245,11 @@
     },
     {
       "symbol": "screenChain",
-      "webStatus": "native-legacy"
+      "webStatus": "semantic-partial"
     },
     {
       "symbol": "screenPhrase",
-      "webStatus": "native-legacy"
+      "webStatus": "semantic-partial"
     },
     {
       "symbol": "screenGroove",
