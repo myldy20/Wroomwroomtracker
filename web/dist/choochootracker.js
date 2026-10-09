@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpznk62d3p.js
+// include: /tmp/tmpe1qjnlyn.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -210,21 +210,21 @@ Module['FS_createPath']("/waveforms", "AKWF", true, true);
 
   })();
 
-// end include: /tmp/tmpznk62d3p.js
-// include: /tmp/tmplqidgawa.js
+// end include: /tmp/tmpe1qjnlyn.js
+// include: /tmp/tmpjglrzdy_.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmplqidgawa.js
-// include: /tmp/tmprq7dc2ya.js
+  // end include: /tmp/tmpjglrzdy_.js
+// include: /tmp/tmp3kebe1eh.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmprq7dc2ya.js
+  // end include: /tmp/tmp3kebe1eh.js
 
 
 var programArgs = [];
@@ -10679,24 +10679,24 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('wasmBinary');
 }
 var ASM_CONSTS = {
-  504284: () => { if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') { window.wroomStartupStage('READY'); } if (typeof window !== 'undefined' && typeof window.wroomRuntimeReady === 'function') { window.wroomRuntimeReady(); } },  
- 504529: ($0) => { if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') { window.wroomStartupStage(UTF8ToString($0)); } },  
- 504666: ($0) => { var str = UTF8ToString($0) + '\n\n' + 'Abort/Retry/Ignore/AlwaysIgnore? [ariA] :'; var reply = window.prompt(str, "i"); if (reply === null) { reply = "i"; } return reply.length === 1 ? reply.charCodeAt(0) : -1; },  
- 504881: () => { if (typeof(AudioContext) !== 'undefined') { return true; } else if (typeof(webkitAudioContext) !== 'undefined') { return true; } return false; },  
- 505028: () => { if ((typeof(navigator.mediaDevices) !== 'undefined') && (typeof(navigator.mediaDevices.getUserMedia) !== 'undefined')) { return true; } else if (typeof(navigator.webkitGetUserMedia) !== 'undefined') { return true; } return false; },  
- 505262: ($0) => { if(typeof(Module['SDL2']) === 'undefined') { Module['SDL2'] = {}; } var SDL2 = Module['SDL2']; if (!$0) { SDL2.audio = {}; } else { SDL2.capture = {}; } if (!SDL2.audioContext) { if (typeof(AudioContext) !== 'undefined') { SDL2.audioContext = new AudioContext(); } else if (typeof(webkitAudioContext) !== 'undefined') { SDL2.audioContext = new webkitAudioContext(); } if (SDL2.audioContext) { if ((typeof navigator.userActivation) === 'undefined') { autoResumeAudioContext(SDL2.audioContext); } } } return SDL2.audioContext === undefined ? -1 : 0; },  
- 505814: () => { var SDL2 = Module['SDL2']; return SDL2.audioContext.sampleRate; },  
- 505882: ($0, $1, $2, $3) => { var SDL2 = Module['SDL2']; var have_microphone = function(stream) { if (SDL2.capture.silenceTimer !== undefined) { clearInterval(SDL2.capture.silenceTimer); SDL2.capture.silenceTimer = undefined; SDL2.capture.silenceBuffer = undefined } SDL2.capture.mediaStreamNode = SDL2.audioContext.createMediaStreamSource(stream); SDL2.capture.scriptProcessorNode = SDL2.audioContext.createScriptProcessor($1, $0, 1); SDL2.capture.scriptProcessorNode.onaudioprocess = function(audioProcessingEvent) { if ((SDL2 === undefined) || (SDL2.capture === undefined)) { return; } audioProcessingEvent.outputBuffer.getChannelData(0).fill(0.0); SDL2.capture.currentCaptureBuffer = audioProcessingEvent.inputBuffer; dynCall('vp', $2, [$3]); }; SDL2.capture.mediaStreamNode.connect(SDL2.capture.scriptProcessorNode); SDL2.capture.scriptProcessorNode.connect(SDL2.audioContext.destination); SDL2.capture.stream = stream; }; var no_microphone = function(error) { }; SDL2.capture.silenceBuffer = SDL2.audioContext.createBuffer($0, $1, SDL2.audioContext.sampleRate); SDL2.capture.silenceBuffer.getChannelData(0).fill(0.0); var silence_callback = function() { SDL2.capture.currentCaptureBuffer = SDL2.capture.silenceBuffer; dynCall('vp', $2, [$3]); }; SDL2.capture.silenceTimer = setInterval(silence_callback, ($1 / SDL2.audioContext.sampleRate) * 1000); if ((navigator.mediaDevices !== undefined) && (navigator.mediaDevices.getUserMedia !== undefined)) { navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(have_microphone).catch(no_microphone); } else if (navigator.webkitGetUserMedia !== undefined) { navigator.webkitGetUserMedia({ audio: true, video: false }, have_microphone, no_microphone); } },  
- 507575: ($0, $1, $2, $3) => { var SDL2 = Module['SDL2']; SDL2.audio.scriptProcessorNode = SDL2.audioContext['createScriptProcessor']($1, 0, $0); SDL2.audio.scriptProcessorNode['onaudioprocess'] = function (e) { if ((SDL2 === undefined) || (SDL2.audio === undefined)) { return; } if (SDL2.audio.silenceTimer !== undefined) { clearInterval(SDL2.audio.silenceTimer); SDL2.audio.silenceTimer = undefined; SDL2.audio.silenceBuffer = undefined; } SDL2.audio.currentOutputBuffer = e['outputBuffer']; dynCall('vp', $2, [$3]); }; SDL2.audio.scriptProcessorNode['connect'](SDL2.audioContext['destination']); if (SDL2.audioContext.state === 'suspended') { SDL2.audio.silenceBuffer = SDL2.audioContext.createBuffer($0, $1, SDL2.audioContext.sampleRate); SDL2.audio.silenceBuffer.getChannelData(0).fill(0.0); var silence_callback = function() { if ((typeof navigator.userActivation) !== 'undefined') { if (navigator.userActivation.hasBeenActive) { SDL2.audioContext.resume(); } } SDL2.audio.currentOutputBuffer = SDL2.audio.silenceBuffer; dynCall('vp', $2, [$3]); SDL2.audio.currentOutputBuffer = undefined; }; SDL2.audio.silenceTimer = setInterval(silence_callback, ($1 / SDL2.audioContext.sampleRate) * 1000); } },  
- 508750: ($0, $1) => { var SDL2 = Module['SDL2']; var numChannels = SDL2.capture.currentCaptureBuffer.numberOfChannels; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.capture.currentCaptureBuffer.getChannelData(c); if (channelData.length != $1) { throw 'Web Audio capture buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } if (numChannels == 1) { for (var j = 0; j < $1; ++j) { setValue($0 + (j * 4), channelData[j], 'float'); } } else { for (var j = 0; j < $1; ++j) { setValue($0 + (((j * numChannels) + c) * 4), channelData[j], 'float'); } } } },  
- 509355: ($0, $1) => { var SDL2 = Module['SDL2']; var buf = $0 >>> 2; var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels']; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.audio.currentOutputBuffer['getChannelData'](c); if (channelData.length != $1) { throw 'Web Audio output buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } for (var j = 0; j < $1; ++j) { channelData[j] = HEAPF32[buf + (j*numChannels + c)]; } } },  
- 509844: ($0) => { var SDL2 = Module['SDL2']; if ($0) { if (SDL2.capture.silenceTimer !== undefined) { clearInterval(SDL2.capture.silenceTimer); } if (SDL2.capture.stream !== undefined) { var tracks = SDL2.capture.stream.getAudioTracks(); for (var i = 0; i < tracks.length; i++) { SDL2.capture.stream.removeTrack(tracks[i]); } } if (SDL2.capture.scriptProcessorNode !== undefined) { SDL2.capture.scriptProcessorNode.onaudioprocess = function(audioProcessingEvent) {}; SDL2.capture.scriptProcessorNode.disconnect(); } if (SDL2.capture.mediaStreamNode !== undefined) { SDL2.capture.mediaStreamNode.disconnect(); } SDL2.capture = undefined; } else { if (SDL2.audio.scriptProcessorNode != undefined) { SDL2.audio.scriptProcessorNode.disconnect(); } if (SDL2.audio.silenceTimer !== undefined) { clearInterval(SDL2.audio.silenceTimer); } SDL2.audio = undefined; } if ((SDL2.audioContext !== undefined) && (SDL2.audio === undefined) && (SDL2.capture === undefined)) { SDL2.audioContext.close(); SDL2.audioContext = undefined; } },  
- 510850: ($0, $1, $2) => { var w = $0; var h = $1; var pixels = $2; if (!Module['SDL2']) Module['SDL2'] = {}; var SDL2 = Module['SDL2']; if (SDL2.ctxCanvas !== Module['canvas']) { SDL2.ctx = Browser.createContext(Module['canvas'], false, true); SDL2.ctxCanvas = Module['canvas']; } if (SDL2.w !== w || SDL2.h !== h || SDL2.imageCtx !== SDL2.ctx) { SDL2.image = SDL2.ctx.createImageData(w, h); SDL2.w = w; SDL2.h = h; SDL2.imageCtx = SDL2.ctx; } var data = SDL2.image.data; var src = pixels / 4; var dst = 0; var num; if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) { num = data.length; while (dst < num) { var val = HEAP32[src]; data[dst ] = val & 0xff; data[dst+1] = (val >> 8) & 0xff; data[dst+2] = (val >> 16) & 0xff; data[dst+3] = 0xff; src++; dst += 4; } } else { if (SDL2.data32Data !== data) { SDL2.data32 = new Int32Array(data.buffer); SDL2.data8 = new Uint8Array(data.buffer); SDL2.data32Data = data; } var data32 = SDL2.data32; num = data32.length; data32.set(HEAP32.subarray(src, src + num)); var data8 = SDL2.data8; var i = 3; var j = i + 4*num; if (num % 8 == 0) { while (i < j) { data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; } } else { while (i < j) { data8[i] = 0xff; i = i + 4 | 0; } } } SDL2.ctx.putImageData(SDL2.image, 0, 0); },  
- 512316: ($0, $1, $2, $3, $4) => { var w = $0; var h = $1; var hot_x = $2; var hot_y = $3; var pixels = $4; var canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; var ctx = canvas.getContext("2d"); var image = ctx.createImageData(w, h); var data = image.data; var src = pixels / 4; var dst = 0; var num; if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) { num = data.length; while (dst < num) { var val = HEAP32[src]; data[dst ] = val & 0xff; data[dst+1] = (val >> 8) & 0xff; data[dst+2] = (val >> 16) & 0xff; data[dst+3] = (val >> 24) & 0xff; src++; dst += 4; } } else { var data32 = new Int32Array(data.buffer); num = data32.length; data32.set(HEAP32.subarray(src, src + num)); } ctx.putImageData(image, 0, 0); var url = hot_x === 0 && hot_y === 0 ? "url(" + canvas.toDataURL() + "), auto" : "url(" + canvas.toDataURL() + ") " + hot_x + " " + hot_y + ", auto"; var urlBuf = _malloc(url.length + 1); stringToUTF8(url, urlBuf, url.length + 1); return urlBuf; },  
- 513304: ($0) => { if (Module['canvas']) { Module['canvas'].style['cursor'] = UTF8ToString($0); } },  
- 513387: () => { if (Module['canvas']) { Module['canvas'].style['cursor'] = 'none'; } },  
- 513456: () => { return window.innerWidth; },  
- 513486: () => { return window.innerHeight; }
+  504316: () => { if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') { window.wroomStartupStage('READY'); } if (typeof window !== 'undefined' && typeof window.wroomRuntimeReady === 'function') { window.wroomRuntimeReady(); } },  
+ 504561: ($0) => { if (typeof window !== 'undefined' && typeof window.wroomStartupStage === 'function') { window.wroomStartupStage(UTF8ToString($0)); } },  
+ 504698: ($0) => { var str = UTF8ToString($0) + '\n\n' + 'Abort/Retry/Ignore/AlwaysIgnore? [ariA] :'; var reply = window.prompt(str, "i"); if (reply === null) { reply = "i"; } return reply.length === 1 ? reply.charCodeAt(0) : -1; },  
+ 504913: () => { if (typeof(AudioContext) !== 'undefined') { return true; } else if (typeof(webkitAudioContext) !== 'undefined') { return true; } return false; },  
+ 505060: () => { if ((typeof(navigator.mediaDevices) !== 'undefined') && (typeof(navigator.mediaDevices.getUserMedia) !== 'undefined')) { return true; } else if (typeof(navigator.webkitGetUserMedia) !== 'undefined') { return true; } return false; },  
+ 505294: ($0) => { if(typeof(Module['SDL2']) === 'undefined') { Module['SDL2'] = {}; } var SDL2 = Module['SDL2']; if (!$0) { SDL2.audio = {}; } else { SDL2.capture = {}; } if (!SDL2.audioContext) { if (typeof(AudioContext) !== 'undefined') { SDL2.audioContext = new AudioContext(); } else if (typeof(webkitAudioContext) !== 'undefined') { SDL2.audioContext = new webkitAudioContext(); } if (SDL2.audioContext) { if ((typeof navigator.userActivation) === 'undefined') { autoResumeAudioContext(SDL2.audioContext); } } } return SDL2.audioContext === undefined ? -1 : 0; },  
+ 505846: () => { var SDL2 = Module['SDL2']; return SDL2.audioContext.sampleRate; },  
+ 505914: ($0, $1, $2, $3) => { var SDL2 = Module['SDL2']; var have_microphone = function(stream) { if (SDL2.capture.silenceTimer !== undefined) { clearInterval(SDL2.capture.silenceTimer); SDL2.capture.silenceTimer = undefined; SDL2.capture.silenceBuffer = undefined } SDL2.capture.mediaStreamNode = SDL2.audioContext.createMediaStreamSource(stream); SDL2.capture.scriptProcessorNode = SDL2.audioContext.createScriptProcessor($1, $0, 1); SDL2.capture.scriptProcessorNode.onaudioprocess = function(audioProcessingEvent) { if ((SDL2 === undefined) || (SDL2.capture === undefined)) { return; } audioProcessingEvent.outputBuffer.getChannelData(0).fill(0.0); SDL2.capture.currentCaptureBuffer = audioProcessingEvent.inputBuffer; dynCall('vp', $2, [$3]); }; SDL2.capture.mediaStreamNode.connect(SDL2.capture.scriptProcessorNode); SDL2.capture.scriptProcessorNode.connect(SDL2.audioContext.destination); SDL2.capture.stream = stream; }; var no_microphone = function(error) { }; SDL2.capture.silenceBuffer = SDL2.audioContext.createBuffer($0, $1, SDL2.audioContext.sampleRate); SDL2.capture.silenceBuffer.getChannelData(0).fill(0.0); var silence_callback = function() { SDL2.capture.currentCaptureBuffer = SDL2.capture.silenceBuffer; dynCall('vp', $2, [$3]); }; SDL2.capture.silenceTimer = setInterval(silence_callback, ($1 / SDL2.audioContext.sampleRate) * 1000); if ((navigator.mediaDevices !== undefined) && (navigator.mediaDevices.getUserMedia !== undefined)) { navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then(have_microphone).catch(no_microphone); } else if (navigator.webkitGetUserMedia !== undefined) { navigator.webkitGetUserMedia({ audio: true, video: false }, have_microphone, no_microphone); } },  
+ 507607: ($0, $1, $2, $3) => { var SDL2 = Module['SDL2']; SDL2.audio.scriptProcessorNode = SDL2.audioContext['createScriptProcessor']($1, 0, $0); SDL2.audio.scriptProcessorNode['onaudioprocess'] = function (e) { if ((SDL2 === undefined) || (SDL2.audio === undefined)) { return; } if (SDL2.audio.silenceTimer !== undefined) { clearInterval(SDL2.audio.silenceTimer); SDL2.audio.silenceTimer = undefined; SDL2.audio.silenceBuffer = undefined; } SDL2.audio.currentOutputBuffer = e['outputBuffer']; dynCall('vp', $2, [$3]); }; SDL2.audio.scriptProcessorNode['connect'](SDL2.audioContext['destination']); if (SDL2.audioContext.state === 'suspended') { SDL2.audio.silenceBuffer = SDL2.audioContext.createBuffer($0, $1, SDL2.audioContext.sampleRate); SDL2.audio.silenceBuffer.getChannelData(0).fill(0.0); var silence_callback = function() { if ((typeof navigator.userActivation) !== 'undefined') { if (navigator.userActivation.hasBeenActive) { SDL2.audioContext.resume(); } } SDL2.audio.currentOutputBuffer = SDL2.audio.silenceBuffer; dynCall('vp', $2, [$3]); SDL2.audio.currentOutputBuffer = undefined; }; SDL2.audio.silenceTimer = setInterval(silence_callback, ($1 / SDL2.audioContext.sampleRate) * 1000); } },  
+ 508782: ($0, $1) => { var SDL2 = Module['SDL2']; var numChannels = SDL2.capture.currentCaptureBuffer.numberOfChannels; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.capture.currentCaptureBuffer.getChannelData(c); if (channelData.length != $1) { throw 'Web Audio capture buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } if (numChannels == 1) { for (var j = 0; j < $1; ++j) { setValue($0 + (j * 4), channelData[j], 'float'); } } else { for (var j = 0; j < $1; ++j) { setValue($0 + (((j * numChannels) + c) * 4), channelData[j], 'float'); } } } },  
+ 509387: ($0, $1) => { var SDL2 = Module['SDL2']; var buf = $0 >>> 2; var numChannels = SDL2.audio.currentOutputBuffer['numberOfChannels']; for (var c = 0; c < numChannels; ++c) { var channelData = SDL2.audio.currentOutputBuffer['getChannelData'](c); if (channelData.length != $1) { throw 'Web Audio output buffer length mismatch! Destination size: ' + channelData.length + ' samples vs expected ' + $1 + ' samples!'; } for (var j = 0; j < $1; ++j) { channelData[j] = HEAPF32[buf + (j*numChannels + c)]; } } },  
+ 509876: ($0) => { var SDL2 = Module['SDL2']; if ($0) { if (SDL2.capture.silenceTimer !== undefined) { clearInterval(SDL2.capture.silenceTimer); } if (SDL2.capture.stream !== undefined) { var tracks = SDL2.capture.stream.getAudioTracks(); for (var i = 0; i < tracks.length; i++) { SDL2.capture.stream.removeTrack(tracks[i]); } } if (SDL2.capture.scriptProcessorNode !== undefined) { SDL2.capture.scriptProcessorNode.onaudioprocess = function(audioProcessingEvent) {}; SDL2.capture.scriptProcessorNode.disconnect(); } if (SDL2.capture.mediaStreamNode !== undefined) { SDL2.capture.mediaStreamNode.disconnect(); } SDL2.capture = undefined; } else { if (SDL2.audio.scriptProcessorNode != undefined) { SDL2.audio.scriptProcessorNode.disconnect(); } if (SDL2.audio.silenceTimer !== undefined) { clearInterval(SDL2.audio.silenceTimer); } SDL2.audio = undefined; } if ((SDL2.audioContext !== undefined) && (SDL2.audio === undefined) && (SDL2.capture === undefined)) { SDL2.audioContext.close(); SDL2.audioContext = undefined; } },  
+ 510882: ($0, $1, $2) => { var w = $0; var h = $1; var pixels = $2; if (!Module['SDL2']) Module['SDL2'] = {}; var SDL2 = Module['SDL2']; if (SDL2.ctxCanvas !== Module['canvas']) { SDL2.ctx = Browser.createContext(Module['canvas'], false, true); SDL2.ctxCanvas = Module['canvas']; } if (SDL2.w !== w || SDL2.h !== h || SDL2.imageCtx !== SDL2.ctx) { SDL2.image = SDL2.ctx.createImageData(w, h); SDL2.w = w; SDL2.h = h; SDL2.imageCtx = SDL2.ctx; } var data = SDL2.image.data; var src = pixels / 4; var dst = 0; var num; if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) { num = data.length; while (dst < num) { var val = HEAP32[src]; data[dst ] = val & 0xff; data[dst+1] = (val >> 8) & 0xff; data[dst+2] = (val >> 16) & 0xff; data[dst+3] = 0xff; src++; dst += 4; } } else { if (SDL2.data32Data !== data) { SDL2.data32 = new Int32Array(data.buffer); SDL2.data8 = new Uint8Array(data.buffer); SDL2.data32Data = data; } var data32 = SDL2.data32; num = data32.length; data32.set(HEAP32.subarray(src, src + num)); var data8 = SDL2.data8; var i = 3; var j = i + 4*num; if (num % 8 == 0) { while (i < j) { data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; data8[i] = 0xff; i = i + 4 | 0; } } else { while (i < j) { data8[i] = 0xff; i = i + 4 | 0; } } } SDL2.ctx.putImageData(SDL2.image, 0, 0); },  
+ 512348: ($0, $1, $2, $3, $4) => { var w = $0; var h = $1; var hot_x = $2; var hot_y = $3; var pixels = $4; var canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h; var ctx = canvas.getContext("2d"); var image = ctx.createImageData(w, h); var data = image.data; var src = pixels / 4; var dst = 0; var num; if (typeof CanvasPixelArray !== 'undefined' && data instanceof CanvasPixelArray) { num = data.length; while (dst < num) { var val = HEAP32[src]; data[dst ] = val & 0xff; data[dst+1] = (val >> 8) & 0xff; data[dst+2] = (val >> 16) & 0xff; data[dst+3] = (val >> 24) & 0xff; src++; dst += 4; } } else { var data32 = new Int32Array(data.buffer); num = data32.length; data32.set(HEAP32.subarray(src, src + num)); } ctx.putImageData(image, 0, 0); var url = hot_x === 0 && hot_y === 0 ? "url(" + canvas.toDataURL() + "), auto" : "url(" + canvas.toDataURL() + ") " + hot_x + " " + hot_y + ", auto"; var urlBuf = _malloc(url.length + 1); stringToUTF8(url, urlBuf, url.length + 1); return urlBuf; },  
+ 513336: ($0) => { if (Module['canvas']) { Module['canvas'].style['cursor'] = UTF8ToString($0); } },  
+ 513419: () => { if (Module['canvas']) { Module['canvas'].style['cursor'] = 'none'; } },  
+ 513488: () => { return window.innerWidth; },  
+ 513518: () => { return window.innerHeight; }
 };
 function webDownloadSupportReport(path) { if (window.choochooDownloadFile) { window.choochooDownloadFile(UTF8ToString(path)); } }
 function webDownloadExportFile(path) { if (window.choochooDownloadFile) window.choochooDownloadFile(UTF8ToString(path)); }
@@ -10720,6 +10720,27 @@ var _webMixTrackPan = Module['_webMixTrackPan'] = makeInvalidEarlyAccess('_webMi
 var _webMixSetTrackPan = Module['_webMixSetTrackPan'] = makeInvalidEarlyAccess('_webMixSetTrackPan');
 var _webMixTrackVolume = Module['_webMixTrackVolume'] = makeInvalidEarlyAccess('_webMixTrackVolume');
 var _webMixSetTrackVolume = Module['_webMixSetTrackVolume'] = makeInvalidEarlyAccess('_webMixSetTrackVolume');
+var _webSoundSlotCount = Module['_webSoundSlotCount'] = makeInvalidEarlyAccess('_webSoundSlotCount');
+var _webSoundSelectedSlot = Module['_webSoundSelectedSlot'] = makeInvalidEarlyAccess('_webSoundSelectedSlot');
+var _webSoundSelectSlot = Module['_webSoundSelectSlot'] = makeInvalidEarlyAccess('_webSoundSelectSlot');
+var _webSoundSlotName = Module['_webSoundSlotName'] = makeInvalidEarlyAccess('_webSoundSlotName');
+var _webSoundSlotType = Module['_webSoundSlotType'] = makeInvalidEarlyAccess('_webSoundSlotType');
+var _webSoundSlotTypeId = Module['_webSoundSlotTypeId'] = makeInvalidEarlyAccess('_webSoundSlotTypeId');
+var _webSoundSlotPan = Module['_webSoundSlotPan'] = makeInvalidEarlyAccess('_webSoundSlotPan');
+var _webSoundSetSlotPan = Module['_webSoundSetSlotPan'] = makeInvalidEarlyAccess('_webSoundSetSlotPan');
+var _webSoundSlotVolume = Module['_webSoundSlotVolume'] = makeInvalidEarlyAccess('_webSoundSlotVolume');
+var _webSoundSetSlotVolume = Module['_webSoundSetSlotVolume'] = makeInvalidEarlyAccess('_webSoundSetSlotVolume');
+var _webSoundUserPresetFolder = Module['_webSoundUserPresetFolder'] = makeInvalidEarlyAccess('_webSoundUserPresetFolder');
+var _webSoundOpenUserPresets = Module['_webSoundOpenUserPresets'] = makeInvalidEarlyAccess('_webSoundOpenUserPresets');
+var _webChainCurrentId = Module['_webChainCurrentId'] = makeInvalidEarlyAccess('_webChainCurrentId');
+var _webChainStepValue = Module['_webChainStepValue'] = makeInvalidEarlyAccess('_webChainStepValue');
+var _webChainSelectStep = Module['_webChainSelectStep'] = makeInvalidEarlyAccess('_webChainSelectStep');
+var _webChainSetStep = Module['_webChainSetStep'] = makeInvalidEarlyAccess('_webChainSetStep');
+var _webPhraseCurrentId = Module['_webPhraseCurrentId'] = makeInvalidEarlyAccess('_webPhraseCurrentId');
+var _webPhrasePitchCount = Module['_webPhrasePitchCount'] = makeInvalidEarlyAccess('_webPhrasePitchCount');
+var _webPhrasePitchLabel = Module['_webPhrasePitchLabel'] = makeInvalidEarlyAccess('_webPhrasePitchLabel');
+var _webPhraseCellValue = Module['_webPhraseCellValue'] = makeInvalidEarlyAccess('_webPhraseCellValue');
+var _webPhraseSetCell = Module['_webPhraseSetCell'] = makeInvalidEarlyAccess('_webPhraseSetCell');
 var _webSemanticAction = Module['_webSemanticAction'] = makeInvalidEarlyAccess('_webSemanticAction');
 var _webTouchTapAt = Module['_webTouchTapAt'] = makeInvalidEarlyAccess('_webTouchTapAt');
 var _webTouchAdjustAt = Module['_webTouchAdjustAt'] = makeInvalidEarlyAccess('_webTouchAdjustAt');
@@ -10859,6 +10880,27 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['webMixSetTrackPan'] != 'undefined', 'missing Wasm export: webMixSetTrackPan');
   assert(typeof wasmExports['webMixTrackVolume'] != 'undefined', 'missing Wasm export: webMixTrackVolume');
   assert(typeof wasmExports['webMixSetTrackVolume'] != 'undefined', 'missing Wasm export: webMixSetTrackVolume');
+  assert(typeof wasmExports['webSoundSlotCount'] != 'undefined', 'missing Wasm export: webSoundSlotCount');
+  assert(typeof wasmExports['webSoundSelectedSlot'] != 'undefined', 'missing Wasm export: webSoundSelectedSlot');
+  assert(typeof wasmExports['webSoundSelectSlot'] != 'undefined', 'missing Wasm export: webSoundSelectSlot');
+  assert(typeof wasmExports['webSoundSlotName'] != 'undefined', 'missing Wasm export: webSoundSlotName');
+  assert(typeof wasmExports['webSoundSlotType'] != 'undefined', 'missing Wasm export: webSoundSlotType');
+  assert(typeof wasmExports['webSoundSlotTypeId'] != 'undefined', 'missing Wasm export: webSoundSlotTypeId');
+  assert(typeof wasmExports['webSoundSlotPan'] != 'undefined', 'missing Wasm export: webSoundSlotPan');
+  assert(typeof wasmExports['webSoundSetSlotPan'] != 'undefined', 'missing Wasm export: webSoundSetSlotPan');
+  assert(typeof wasmExports['webSoundSlotVolume'] != 'undefined', 'missing Wasm export: webSoundSlotVolume');
+  assert(typeof wasmExports['webSoundSetSlotVolume'] != 'undefined', 'missing Wasm export: webSoundSetSlotVolume');
+  assert(typeof wasmExports['webSoundUserPresetFolder'] != 'undefined', 'missing Wasm export: webSoundUserPresetFolder');
+  assert(typeof wasmExports['webSoundOpenUserPresets'] != 'undefined', 'missing Wasm export: webSoundOpenUserPresets');
+  assert(typeof wasmExports['webChainCurrentId'] != 'undefined', 'missing Wasm export: webChainCurrentId');
+  assert(typeof wasmExports['webChainStepValue'] != 'undefined', 'missing Wasm export: webChainStepValue');
+  assert(typeof wasmExports['webChainSelectStep'] != 'undefined', 'missing Wasm export: webChainSelectStep');
+  assert(typeof wasmExports['webChainSetStep'] != 'undefined', 'missing Wasm export: webChainSetStep');
+  assert(typeof wasmExports['webPhraseCurrentId'] != 'undefined', 'missing Wasm export: webPhraseCurrentId');
+  assert(typeof wasmExports['webPhrasePitchCount'] != 'undefined', 'missing Wasm export: webPhrasePitchCount');
+  assert(typeof wasmExports['webPhrasePitchLabel'] != 'undefined', 'missing Wasm export: webPhrasePitchLabel');
+  assert(typeof wasmExports['webPhraseCellValue'] != 'undefined', 'missing Wasm export: webPhraseCellValue');
+  assert(typeof wasmExports['webPhraseSetCell'] != 'undefined', 'missing Wasm export: webPhraseSetCell');
   assert(typeof wasmExports['webSemanticAction'] != 'undefined', 'missing Wasm export: webSemanticAction');
   assert(typeof wasmExports['webTouchTapAt'] != 'undefined', 'missing Wasm export: webTouchTapAt');
   assert(typeof wasmExports['webTouchAdjustAt'] != 'undefined', 'missing Wasm export: webTouchAdjustAt');
@@ -10994,6 +11036,27 @@ function assignWasmExports(wasmExports) {
   _webMixSetTrackPan = Module['_webMixSetTrackPan'] = createExportWrapper('webMixSetTrackPan', wasmExports['webMixSetTrackPan'], 2);
   _webMixTrackVolume = Module['_webMixTrackVolume'] = createExportWrapper('webMixTrackVolume', wasmExports['webMixTrackVolume'], 1);
   _webMixSetTrackVolume = Module['_webMixSetTrackVolume'] = createExportWrapper('webMixSetTrackVolume', wasmExports['webMixSetTrackVolume'], 2);
+  _webSoundSlotCount = Module['_webSoundSlotCount'] = createExportWrapper('webSoundSlotCount', wasmExports['webSoundSlotCount'], 0);
+  _webSoundSelectedSlot = Module['_webSoundSelectedSlot'] = createExportWrapper('webSoundSelectedSlot', wasmExports['webSoundSelectedSlot'], 0);
+  _webSoundSelectSlot = Module['_webSoundSelectSlot'] = createExportWrapper('webSoundSelectSlot', wasmExports['webSoundSelectSlot'], 1);
+  _webSoundSlotName = Module['_webSoundSlotName'] = createExportWrapper('webSoundSlotName', wasmExports['webSoundSlotName'], 1);
+  _webSoundSlotType = Module['_webSoundSlotType'] = createExportWrapper('webSoundSlotType', wasmExports['webSoundSlotType'], 1);
+  _webSoundSlotTypeId = Module['_webSoundSlotTypeId'] = createExportWrapper('webSoundSlotTypeId', wasmExports['webSoundSlotTypeId'], 1);
+  _webSoundSlotPan = Module['_webSoundSlotPan'] = createExportWrapper('webSoundSlotPan', wasmExports['webSoundSlotPan'], 1);
+  _webSoundSetSlotPan = Module['_webSoundSetSlotPan'] = createExportWrapper('webSoundSetSlotPan', wasmExports['webSoundSetSlotPan'], 2);
+  _webSoundSlotVolume = Module['_webSoundSlotVolume'] = createExportWrapper('webSoundSlotVolume', wasmExports['webSoundSlotVolume'], 1);
+  _webSoundSetSlotVolume = Module['_webSoundSetSlotVolume'] = createExportWrapper('webSoundSetSlotVolume', wasmExports['webSoundSetSlotVolume'], 2);
+  _webSoundUserPresetFolder = Module['_webSoundUserPresetFolder'] = createExportWrapper('webSoundUserPresetFolder', wasmExports['webSoundUserPresetFolder'], 0);
+  _webSoundOpenUserPresets = Module['_webSoundOpenUserPresets'] = createExportWrapper('webSoundOpenUserPresets', wasmExports['webSoundOpenUserPresets'], 0);
+  _webChainCurrentId = Module['_webChainCurrentId'] = createExportWrapper('webChainCurrentId', wasmExports['webChainCurrentId'], 0);
+  _webChainStepValue = Module['_webChainStepValue'] = createExportWrapper('webChainStepValue', wasmExports['webChainStepValue'], 2);
+  _webChainSelectStep = Module['_webChainSelectStep'] = createExportWrapper('webChainSelectStep', wasmExports['webChainSelectStep'], 1);
+  _webChainSetStep = Module['_webChainSetStep'] = createExportWrapper('webChainSetStep', wasmExports['webChainSetStep'], 3);
+  _webPhraseCurrentId = Module['_webPhraseCurrentId'] = createExportWrapper('webPhraseCurrentId', wasmExports['webPhraseCurrentId'], 0);
+  _webPhrasePitchCount = Module['_webPhrasePitchCount'] = createExportWrapper('webPhrasePitchCount', wasmExports['webPhrasePitchCount'], 0);
+  _webPhrasePitchLabel = Module['_webPhrasePitchLabel'] = createExportWrapper('webPhrasePitchLabel', wasmExports['webPhrasePitchLabel'], 1);
+  _webPhraseCellValue = Module['_webPhraseCellValue'] = createExportWrapper('webPhraseCellValue', wasmExports['webPhraseCellValue'], 2);
+  _webPhraseSetCell = Module['_webPhraseSetCell'] = createExportWrapper('webPhraseSetCell', wasmExports['webPhraseSetCell'], 3);
   _webSemanticAction = Module['_webSemanticAction'] = createExportWrapper('webSemanticAction', wasmExports['webSemanticAction'], 1);
   _webTouchTapAt = Module['_webTouchTapAt'] = createExportWrapper('webTouchTapAt', wasmExports['webTouchTapAt'], 2);
   _webTouchAdjustAt = Module['_webTouchAdjustAt'] = createExportWrapper('webTouchAdjustAt', wasmExports['webTouchAdjustAt'], 3);
