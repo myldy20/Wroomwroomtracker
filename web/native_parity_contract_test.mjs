@@ -13,6 +13,8 @@ assert.match(html, /id="soundOpenNative"/, "SOUND must retain its full native ed
 assert.match(html, /id="soundReturnDirect"/, "Native preset dialogs must remain accessible");
 assert.match(html, /id="soundPresetInput"/, "USER preset file import must be exposed");
 assert.match(html, /id="soundPresetLibrary"/, "SOUND needs an in-page native USER catalog");
+assert.match(html, /id="soundCreateControls"/, "Empty SOUND slots need direct engine creation");
+assert.match(shell, /webSoundCreateInstrument/, "Engine creation must use native initializer");
 assert.match(shell, /webSoundPresetsOpen/, "USER LOAD action must invoke the native parser");
 assert.match(app, /webSoundSaveUserPreset/, "Native .cni saving must not be duplicated in JS");
 assert.match(app, /userPresetFolder\(/, "Web library must reuse native engine type mapping");
