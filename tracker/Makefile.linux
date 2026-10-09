@@ -92,7 +92,7 @@ appimage: linux
 	@cp -r packaging/common/* $(BUILD)/$(APPNAME).AppDir/usr/share/choochootracker/common/
 	@cp packaging/linux-appimage/AppRun $(BUILD)/$(APPNAME).AppDir/
 	@sed -i 's/\r$$//' $(BUILD)/$(APPNAME).AppDir/AppRun
-	@if grep -q "$$(printf '\r')" $(BUILD)/$(APPNAME).AppDir/AppRun || ! grep -q 'readlink' $(BUILD)/$(APPNAME).AppDir/AppRun || ! grep -q '^for item in ' $(BUILD)/$(APPNAME).AppDir/AppRun; then \
+	@if grep -q "$$(printf '\r')" $(BUILD)/$(APPNAME).AppDir/AppRun || ! grep -q 'readlink' $(BUILD)/$(APPNAME).AppDir/AppRun || ! grep -q '^for item in ' $(BUILD)/$(APPNAME).AppDir/AppRun || ! grep -Fq 'cd "$${DATA_DIR}"' $(BUILD)/$(APPNAME).AppDir/AppRun; then \
 		echo "Error: generated AppRun is not a valid LF-normalized launcher."; \
 		exit 1; \
 	fi

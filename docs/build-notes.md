@@ -116,6 +116,9 @@ top-level bonus directory independently and only if it's missing on the
 destination - so an interrupted first run, or a user who already created
 their own e.g. `projects` folder before the rest was seeded, still gets the
 remaining bonus content on a later launch instead of never seeing it.
+`AppRun` then starts the executable from that workspace, so relative assets
+including the animated title artwork resolve from the writable copy rather
+than the read-only mount (or the caller's current directory).
 `initDefaultAppSettings()` (`src/common.cpp`) points
 `projectPath`/`samplePath`/`themePath`/etc at that same directory when
 `fileIsRunningFromAppImage()` is true - normal desktop builds keep their

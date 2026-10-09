@@ -16,11 +16,11 @@ FXName fxNamesSequencer[] = {
   {fxRET, "RET"}, {fxDEL, "DEL"}, {fxOFF, "OFF"}, {fxKIL, "KIL"}, {fxTIC, "TIC"},
   {fxTBL, "TBL"}, {fxTBX, "TBX"}, {fxTHO, "THO"}, {fxTXH, "TXH"}, {fxGRV, "GRV"},
   {fxGGR, "GGR"}, {fxHOP, "HOP"}, {fxSNG, "SNG"}, {fxPRO, "PRO"},
-  {fxMOD, "MOD"}, {fxSPD, "SPD"}, {fxSLE, "SLE"}
+  {fxMOD, "MOD"}, {fxSPD, "SPD"}, {fxSLE, "SLE"}, {fxPAN, "PAN"}
 };
 int fxSequencerCount = sizeof(fxNamesSequencer) / sizeof(FXName);
 
-FXName fxNamesTrack[] = {{fxRSN, "RSN"}, {fxDSN, "DSN"}, {fxSCL, "SCL"}, {fxCRD, "CRD"}};
+FXName fxNamesTrack[] = {{fxRSN, "RSN"}, {fxDSN, "DSN"}, {fxSCL, "SCL"}, {fxCRD, "CRD"}, {fxTPN, "TPN"}};
 int fxTrackCount = sizeof(fxNamesTrack) / sizeof(FXName);
 
 FXName fxNamesEnvelope[] = {
@@ -88,7 +88,8 @@ FXGroup fxGroups[] = {
   {"ADSR / Trigger FX", fxNamesEnvelope, 0, 7, InstrumentType::none},
   {"Modulation FX", fxNamesModulation, 0, 5, InstrumentType::none},
   {"MIDI FX", NULL, 0, 4, InstrumentType::Midi},
-  {"Insert FX", fxNamesInsert, 16, 8, InstrumentType::none},
+  {"TF1", fxNamesInsert, 8, 8, InstrumentType::none},
+  {"TF2", fxNamesInsert + 8, 8, 8, InstrumentType::none},
 };
 int fxGroupCount = sizeof(fxGroups) / sizeof(FXGroup);
 
@@ -190,6 +191,7 @@ void projectInit(Project* p) {
   p->scaleCustomMask = 0x0fff;
   for (int i = 0; i < PROJECT_MAX_TRACKS; i++) {
     p->trackVolume[i] = 100;
+    p->trackPan[i] = 128;
     p->trackTilt[i] = 0x80;
   }
   p->tiltPivotHz = 1000;

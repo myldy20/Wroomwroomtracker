@@ -1,3 +1,4 @@
+#include "packaged_presets.h"
 #include "doctest.h"
 #include "project.h"
 #include "opl_patch.h"
@@ -28,14 +29,14 @@ TEST_CASE("OPL renders two, four and dual voice configurations with stable block
 }
 TEST_CASE("Every packaged OPL preset reloads and renders finite audible native audio"){
   auto p=std::make_unique<Project>();projectInit(p.get());fillFXNames();
-  const std::filesystem::path folder="packaging/common/instruments/chips";
+  const std::filesystem::path folder="packaging/common/instruments/FACTORY";
   REQUIRE(std::filesystem::exists(folder/"catalog.tsv"));
   int count=0,silent=0;double peak=0;std::vector<float> audio(24000);
-  for(const auto& entry:std::filesystem::directory_iterator(folder)){
-    if(entry.path().extension()!=".cni")continue;
-    REQUIRE(instrumentLoad(p.get(),entry.path().string().c_str(),0)==0);
+  for(const auto& entry:packagedPresets()){
+    if(false)continue;
+    REQUIRE((loadFMPreset("packaging/common/instruments/FACTORY",entry,p.get(),0)?0:1)==0);
     auto& instrument=p->instruments[0];if(!isOPL(instrument.type))continue;
-    CAPTURE(entry.path().filename().string());REQUIRE(validOPL(instrument.type,instrument.chip.opl));
+    CAPTURE(entry.path);REQUIRE(validOPL(instrument.type,instrument.chip.opl));
     OPLVoice voice;voice.init(48000);voice.configure(instrument.type,&instrument.chip.opl,6000,1);voice.noteOn();voice.render(audio.data(),audio.size()/2);
     double energy=0;for(float v:audio){REQUIRE(std::isfinite(v));peak=std::max(peak,double(std::abs(v)));energy+=v*v;}
     // Very slow source envelopes (e.g. Seashore AT=1) need a held audition.

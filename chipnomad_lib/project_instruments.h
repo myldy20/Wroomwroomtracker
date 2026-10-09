@@ -366,6 +366,14 @@ struct InstrumentOPL {
   InstrumentFMTone tone;
 };
 
+// Bounded, owned source sequences. Zero format preserves legacy patch behavior.
+// Format 1: canonical Furnace sequence macros; format 2: GoatTracker GTI5.
+struct ChipProgram {
+  uint8_t format, rate;
+  uint16_t size;
+  uint8_t data[512];
+};
+
 struct InstrumentSimpleChip : InstrumentVoicePostSettings {
   uint8_t schema, preset;
   uint8_t mode; // Sega: tone/white/periodic. Pulse: 4 duties. Noise: 15/7 bits.
@@ -374,6 +382,7 @@ struct InstrumentSimpleChip : InstrumentVoicePostSettings {
   uint8_t sweepPeriod, sweepShift, sweepNegate;
   int8_t fineTune;
   uint8_t segaBassExtension; // Lower the virtual clock for notes below the 10-bit divider range.
+  ChipProgram program;
 };
 
 // Four-operator Yamaha native order: S1, S2, S3, S4 (M1,C1,M2,C2).
@@ -408,6 +417,7 @@ struct InstrumentSID {
   uint16_t value[25];
   uint16_t bankId;
   char presetName[64];
+  ChipProgram program;
 };
 
 union InstrumentChipData {
@@ -440,6 +450,7 @@ struct Instrument {
   uint8_t tableSpeed;
   uint8_t transposeEnabled;
   uint8_t volume;
+  uint8_t pan;
   Modulation modulation[4];
   InstrumentChipData chip;
 };
@@ -564,7 +575,10 @@ enum GenericModDestination {
   genericModSIDAttack, genericModSIDDecay, genericModSIDSustain, genericModSIDRelease,
   genericModSIDPartner,
   genericModFirstDirectFM,
-  genericModTotalCount = genericModFirstDirectFM + 78,
+  // Appended to preserve the numeric destinations stored by existing songs.
+  genericModInstrumentPan = genericModFirstDirectFM + 78,
+  genericModTrackPan,
+  genericModTotalCount,
 };
 
 bool nativeFMModTarget(int generic,int* fx,int* op);

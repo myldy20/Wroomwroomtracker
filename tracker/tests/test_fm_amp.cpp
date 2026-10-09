@@ -87,7 +87,7 @@ TEST_CASE("Native macros append IDs and expose only supported controls") {
  CHECK(fxFBR==fxF28+1);CHECK(fxTotalCount<255);fillFXNames();
  for(int type=0;type<int(InstrumentType::totalCount);++type) {
   Instrument i{};getInstrumentFunctions(InstrumentType(type)).init(&i);
-  for(int g=genericModFMBrightness;g<genericModTotalCount;++g) {
+  for(int g=genericModFMBrightness;g<genericModInstrumentPan;++g) {
    int dest=getInstrumentFunctions(i.type).modDestinationsCount+1+g;
    const auto* d=instrumentNativeModDestination(i.type,g);
    const int directIndex=g-genericModFirstDirectFM;
@@ -112,6 +112,23 @@ TEST_CASE("Native macros append IDs and expose only supported controls") {
     REQUIRE(instrumentMotionDestination(&i,dest,&fx,&base,&range,&encoding));
     CHECK(fx==d->fx);CHECK(base>=0);CHECK(base<=range);
    }
+  }
+ }
+}
+
+TEST_CASE("Pan modulation destinations map to pan FX") {
+ for(int type=0;type<int(InstrumentType::totalCount);++type) {
+  Instrument i{};getInstrumentFunctions(InstrumentType(type)).init(&i);
+  int first=getInstrumentFunctions(i.type).modDestinationsCount+1;
+  for(int g : {genericModInstrumentPan,genericModTrackPan}) {
+   int dest=first+g;
+   const bool available=i.type!=InstrumentType::Midi;
+   CHECK(bool(instrumentModDestinationAvailable(&i,dest))==available);
+   if(!available)continue;
+   uint8_t fx;int base,range;InstrumentMotionValue encoding;
+   REQUIRE(instrumentMotionDestination(&i,dest,&fx,&base,&range,&encoding));
+   CHECK(fx==(g==genericModInstrumentPan?fxPAN:fxTPN));
+   CHECK(base==128);CHECK(range==255);CHECK(encoding==InstrumentMotionValue::raw);
   }
  }
 }

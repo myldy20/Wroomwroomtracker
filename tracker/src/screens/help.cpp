@@ -128,6 +128,12 @@ const char* helpFXHint(uint8_t* fx, int isTable, uint8_t instrumentIdx) {
     case fxVSL: // Volume slide
       snprintf(buffer, bufferSize, "Volume slide %+hhd per step", (int8_t)fx[1]);
       break;
+    case fxPAN:
+      snprintf(buffer, bufferSize, "Instrument pan: %02X", fx[1]);
+      break;
+    case fxTPN:
+      snprintf(buffer, bufferSize, "Track pan: %02X", fx[1]);
+      break;
     case fxRET: // Retrigger
       snprintf(buffer, bufferSize, "Retrigger note every %hhd tics", fx[1] & 0xf);
       break;
@@ -439,6 +445,8 @@ static void initFxHelpText() {
   fxHelpText[fxPRD] = "Period (relative)\nAdds offset to note period\n(chip specific)";
   fxHelpText[fxVOL] = "Volume (relative)\nAdds volume offset";
   fxHelpText[fxVSL] = "Volume Slide\nChanges volume by specified\namount per step continuously";
+  fxHelpText[fxPAN] = "Instrument Pan\n00 left; 80 centre; FF right\nOverrides the instrument PAN";
+  fxHelpText[fxTPN] = "Track Pan\n00 left; 80 centre; FF right\nOverrides the mixer PAN";
   fxHelpText[fxRET] = "Retrigger\nRetriggers note every N tics";
   fxHelpText[fxDEL] = "Delay\nDelays note start by N tics";
   fxHelpText[fxOFF] = "Note Off\nSends note off after N tics";
@@ -608,6 +616,28 @@ static void initFxHelpText() {
 
 const char* helpFXDescription(enum FX fxIdx, uint8_t instrumentIdx) {
   initFxHelpText(); // Initialize on first use
+  if (fxIdx >= fxF11 && fxIdx <= fxF28 && chipnomadState && pSongTrack &&
+      *pSongTrack >= 0 && *pSongTrack < PROJECT_MAX_TRACKS) {
+    static char text[240];
+    const int address = fxIdx - fxF11, slot = address / 8, parameter = address % 8;
+    const auto& config = chipnomadState->project.trackInserts[*pSongTrack][slot];
+    const auto& descriptor = insertDescriptor(config.module);
+    if (parameter >= descriptor.count) {
+      snprintf(text, sizeof(text),
+               "F%d%d - TF%d %s\nUnused parameter %d\nThis command has no effect\nChoose a control on Insert FX",
+               slot + 1, parameter + 1, slot + 1, descriptor.name, parameter + 1);
+    } else {
+      char low[32], high[32];
+      const int maximum = insertClamp(config.module, parameter, 255);
+      insertDescribe(low, sizeof(low), config.module, parameter, 0);
+      insertDescribe(high, sizeof(high), config.module, parameter, maximum);
+      snprintf(text, sizeof(text),
+               "TF%d %s: %s\nF%d%d - absolute track control\n00: %s\n%02X: %s\nPersists across notes and phrases",
+               slot + 1, descriptor.name, descriptor.parameters[parameter].name,
+               slot + 1, parameter + 1, low, maximum, high);
+    }
+    return text;
+  }
   if(fxIdx==fxFBK)return "FM Feedback\n00-07: eight native levels\nAbsolute feedback amount\nStarts at the instrument setting";
   if(fxIdx>=fxOL1&&fxIdx<=fxOL6) {
     static char text[200];

@@ -721,7 +721,9 @@ static int projectLoadInternal(FILE* file, Project* project) {
 
   // Detect version
   if (strlen(version) > 0) {
-    if (strncmp(version, " 9.0", 4) == 0) {
+    if (strncmp(version, " 10.0", 5) == 0) {
+      projectFileVersion = 10;
+    } else if (strncmp(version, " 9.0", 4) == 0) {
       projectFileVersion = 9;
     } else if (strncmp(version, " 8.0", 4) == 0) {
       projectFileVersion = 8;
@@ -808,6 +810,14 @@ static int projectLoadInternal(FILE* file, Project* project) {
     if (p.trackVolume[i] > 100) p.trackVolume[i] = 100;
   }
   consumeLine(file);
+
+  line = peekLine(file);
+  if (line && strncmp(line, "- Track pans: ", 14) == 0) {
+    if (sscanf(line + 14, "%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu",
+        &p.trackPan[0], &p.trackPan[1], &p.trackPan[2], &p.trackPan[3],
+        &p.trackPan[4], &p.trackPan[5], &p.trackPan[6], &p.trackPan[7]) != PROJECT_MAX_TRACKS) return 1;
+    consumeLine(file);
+  }
 
   line = peekLine(file);
   if (line && strncmp(line, "- Reverb sends: ", 16) == 0) {
@@ -1511,9 +1521,11 @@ static int projectSaveInternal(FILE* file, Project* project) {
   for (const auto& instrument : project->instruments) nativeChips |= (instrument.type==InstrumentType::SID || instrument.type==InstrumentType::DX7 || isOPLL(instrument.type) || (isOPL(instrument.type) || isFourOp(instrument.type)) || isSimpleChip(instrument.type));
   for (const auto& phrase : project->phrases) for (const auto& row : phrase.rows) for (const auto& fx : row.fx) nativeChips |= fx[0] >= fxFBR && fx[0] < fxTotalCount;
   for (const auto& table : project->tables) for (const auto& row : table.rows) for (const auto& fx : row.fx) nativeChips |= fx[0] >= fxFBR && fx[0] < fxTotalCount;
+  bool sourcePrograms=false;
+  for(const auto& i:project->instruments)sourcePrograms |= i.type==InstrumentType::SID?bool(i.chip.sid.program.format):isSimpleChip(i.type)?bool(i.chip.simpleChip.program.format):false;
   // Native formats 6-8 predate upstream's expanded phrase volume. Format 9
   // distinguishes new 00-7F songs while retaining their native patches and FX.
-  fprintf(file, "# ChooChooTracker Module %d.0\n\n", nativeChips ? 9 : 6);
+  fprintf(file, "# ChooChooTracker Module %d.0\n\n", sourcePrograms ? 10 : nativeChips ? 9 : 6);
 
   fprintf(file, "- Title: %s\n", project->title);
   fprintf(file, "- Author: %s\n", project->author);
@@ -1530,6 +1542,9 @@ static int projectSaveInternal(FILE* file, Project* project) {
   fprintf(file, "- Track volumes: %hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu\n",
     project->trackVolume[0], project->trackVolume[1], project->trackVolume[2], project->trackVolume[3],
     project->trackVolume[4], project->trackVolume[5], project->trackVolume[6], project->trackVolume[7]);
+  fprintf(file, "- Track pans: %hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu\n",
+    project->trackPan[0], project->trackPan[1], project->trackPan[2], project->trackPan[3],
+    project->trackPan[4], project->trackPan[5], project->trackPan[6], project->trackPan[7]);
   fprintf(file, "- Reverb sends: %hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu,%hhu\n",
     project->trackReverbSend[0], project->trackReverbSend[1], project->trackReverbSend[2], project->trackReverbSend[3],
     project->trackReverbSend[4], project->trackReverbSend[5], project->trackReverbSend[6], project->trackReverbSend[7]);
@@ -1737,7 +1752,9 @@ int instrumentSave(Project* project, const char* path, int instrumentIdx) {
   for (const auto& row : project->tables[instrumentIdx].rows) for (const auto& fx : row.fx) nativeFormat |= fx[0] >= fxFBR && fx[0] < fxTotalCount;
   bool absoluteLevels=false;
   for(const auto& row:project->tables[instrumentIdx].rows)for(const auto& fx:row.fx)absoluteLevels |= fx[0]>=fxOL1&&fx[0]<=fxFBK;
-  fprintf(file, "# ChipNomad Instrument %d.0\n\n", absoluteLevels ? 8 : nativeFormat ? 7 : 5);
+  const auto& inst=project->instruments[instrumentIdx];
+  bool sourceProgram=inst.type==InstrumentType::SID?bool(inst.chip.sid.program.format):isSimpleChip(inst.type)?bool(inst.chip.simpleChip.program.format):false;
+  fprintf(file, "# ChipNomad Instrument %d.0\n\n", sourceProgram ? 9 : absoluteLevels ? 8 : nativeFormat ? 7 : 5);
   instrumentSaveData(file, 0, &project->instruments[instrumentIdx]);
   saveTable(file, 0, &project->tables[instrumentIdx]);
 
@@ -1755,7 +1772,9 @@ static int instrumentLoadInternal(FILE* file, Project* project, int instrumentId
 
   // Detect version
   if (strlen(line) > 22) {
-    if (strncmp(line + 22, " 8.0", 4) == 0) {
+    if (strncmp(line + 22, " 9.0", 4) == 0) {
+      projectFileVersion = 9;
+    } else if (strncmp(line + 22, " 8.0", 4) == 0) {
       projectFileVersion = 8;
     } else if (strncmp(line + 22, " 7.0", 4) == 0) {
       projectFileVersion = 7;
@@ -1806,19 +1825,14 @@ static int instrumentLoadInternal(FILE* file, Project* project, int instrumentId
   return 0;
 }
 
-int instrumentLoad(Project* project, const char* path, int instrumentIdx) {
+static int instrumentLoadStream(Project* project, FILE* file, int instrumentIdx) {
   projectFileError[0] = 0;
   resetPeekConsume();  // Ensure clean state
 
-  FILE* file = fopen(path, "rb");
-  if (file == NULL) {
-    snprintf(projectFileError, 40, "Can't open file");
-    return 1;
-  }
-
+  if (!file) return 1;
   int result;
   const char* header = peekLine(file);
-  if (header && (strncmp(header, "# ChipNomad Instrument 6.0", 25) == 0 || strncmp(header, "# ChipNomad Instrument 7.0", 25) == 0)) {
+  if (header && (strncmp(header, "# ChipNomad Instrument 6.0", 25) == 0 || strncmp(header, "# ChipNomad Instrument 7.0", 25) == 0 || strncmp(header, "# ChipNomad Instrument 8.0",25)==0 || strncmp(header,"# ChipNomad Instrument 9.0",25)==0)) {
     auto temporary = std::make_unique<Project>();
     projectInit(temporary.get());
     result = instrumentLoadInternal(file, temporary.get(), instrumentIdx);
@@ -1831,6 +1845,21 @@ int instrumentLoad(Project* project, const char* path, int instrumentIdx) {
     }
     projectFree(temporary.get());
   } else result = instrumentLoadInternal(file, project, instrumentIdx);
-  fclose(file);
   return result;
+}
+
+int instrumentLoad(Project* project, const char* path, int instrumentIdx) {
+  FILE* file = fopen(path, "rb");
+  if (!file) { snprintf(projectFileError, 40, "Can't open file"); return 1; }
+  int result = instrumentLoadStream(project, file, instrumentIdx);
+  fclose(file); return result;
+}
+
+int instrumentLoadMemory(Project* project, const uint8_t* bytes, size_t size, int instrumentIdx) {
+  if (!project || !bytes || !size || size > 1024 * 1024 || instrumentIdx < 0 || instrumentIdx >= PROJECT_MAX_INSTRUMENTS) return 1;
+  FILE* file = tmpfile();
+  if (!file) { snprintf(projectFileError, 40, "Cannot read preset buffer"); return 1; }
+  bool ok = fwrite(bytes, 1, size, file) == size && !fseek(file, 0, SEEK_SET);
+  int result = ok ? instrumentLoadStream(project, file, instrumentIdx) : 1;
+  fclose(file); return result;
 }

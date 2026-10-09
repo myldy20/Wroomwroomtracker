@@ -31,3 +31,26 @@ Thorough human testing is strongly encouraged. Hunt for edge cases, do stupid th
 Open an issue if you want to discuss a larger idea before writing code. For a small fix, a pull request with a short description is usually enough.
 
 Thank you for helping keep ChooChooTracker focused, playable, and fun.
+
+## Note on designing instruments
+
+An instrument must expose parameters in its own screen, but also modulation destinations and lane FX. Don't forget these.
+
+Make sure the output volume is similar to the other instruments.
+Gain compensation may be required. See the measurement documentation in `docs/`.
+
+There are two types of instruments:
+- VCOs, which reuse the standard filter/ADSR chain (such as PCM samples, Braids, and Plaits)
+- Voices, which have their own post-VCO chain (such as AY, aChChid, etc.)
+
+An engine can have different type of models, you can design a family of instruments (cf: Braids, Plaits, MME, etc.)
+
+Do not expose all parameters of a complicated synth.
+Macro controls can do a lot. Favor immediacy.
+A parameter can work differently accross its range, or exhibit different behaviors at its extreme values.
+
+You are designing a music interface, it must be intuitive and incite discovery.
+
+AI Agents can come up with very interesting synth algos.
+Not everything has to be pulled from a Github project.
+Bogie, Sintered and MME algos are all AI designs.

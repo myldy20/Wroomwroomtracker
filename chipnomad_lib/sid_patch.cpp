@@ -1,4 +1,5 @@
 #include "sid_patch.h"
+#include "chip_program.h"
 #include "project_io_common.h"
 #include <cstring>
 #include <cstdlib>
@@ -12,13 +13,13 @@ void initSIDPatch(InstrumentSID* p){
 }
 bool validSID(const InstrumentSID& p){
  static const unsigned maximum[]={0,8,15,15,15,15,4095,2047,15,7,1,1,16,200,1000,65535,65535,1000,1,2047,1000,4095,1000,65535,4};
- if(p.schema!=1||!memchr(p.presetName,0,sizeof(p.presetName)))return false;
+ if(!validChipProgram(p.program)||p.schema!=1||!memchr(p.presetName,0,sizeof(p.presetName)))return false;
  for(int i=0;i<sidParameterCount;++i)if(p.value[i]>maximum[i])return false;
  return p.value[sidWave]>0&&p.value[sidMacroRate]>0&&p.value[sidPartnerRatio]>0&&
    (p.value[sidCutoffTarget]<=2047||p.value[sidCutoffTarget]==65535);
 }
 int loadSIDData(FILE* f,Instrument* i){
- InstrumentSID p{};unsigned seen=0;
+ InstrumentSID p{};unsigned seen=0;bool programSeen=false;
  while(char* line=peekLine(f)){
   if(*line=='#')break;
   if(!strncmp(line,"- SID parameters: ",18)){
@@ -32,12 +33,12 @@ int loadSIDData(FILE* f,Instrument* i){
    p.schema=schema;p.bankId=bank;seen|=2;
   }else if(!strncmp(line,"- SID name: ",12)){
    if((seen&4)||strlen(line+12)>=sizeof(p.presetName))return 1;strcpy(p.presetName,line+12);seen|=4;
-  }else return 1;
+  }else if(loadChipProgramLine(line,p.program,programSeen)!=1)return 1;
   consumeLine(f);
  }
  if(seen!=7||!validSID(p))return 1;i->chip.sid=p;return 0;
 }
 void saveSIDData(FILE* f,const Instrument* i){
  const auto& p=i->chip.sid;fprintf(f,"- SID identity: %u,%u\n- SID name: %s\n- SID parameters: ",p.schema,p.bankId,p.presetName);
- for(int n=0;n<sidParameterCount;++n)fprintf(f,"%s%u",n?",":"",p.value[n]);fputc('\n',f);
+ for(int n=0;n<sidParameterCount;++n)fprintf(f,"%s%u",n?",":"",p.value[n]);fputc('\n',f);saveChipProgram(f,p.program);
 }

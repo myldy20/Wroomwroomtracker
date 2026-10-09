@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 ROOT=Path(__file__).resolve().parents[2]
-OUT=ROOT/'tracker/packaging/common/instruments/chips'
+OUT=ROOT/'tracker/packaging/common/instruments/FACTORY'
 WAVE={'TRIANGLE':1,'SAWTOOTH':2,'PULSE':4,'NOISE':8}
 MODE={'off':0,'lowpass':1,'bandpass':2,'highpass':4}
 def parameters(p):

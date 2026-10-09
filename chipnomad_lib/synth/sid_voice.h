@@ -2,6 +2,7 @@
 #include "../sid_patch.h"
 #include "../external/chips/m6581.h"
 #include "native_fm_amp.h"
+#include "../chip_program.h"
 #include <cstddef>
 // One independent note/filter context. Quiet/released notes are retired first
 // by the same bounded policy as other CPU-heavy native instruments.
@@ -21,5 +22,7 @@ class SIDVoice {
   unsigned macroFrame_=0,silent_=0;
   int registers_[25]{};
   bool active_=false,gated_=false,configured_=false,fresh_=false;
+  ChipMacroPlayer macros_;
+  GoatProgramPlayer goat_;
 };
 unsigned limitSIDVoices(SIDVoice* const* voices,size_t count,unsigned limit);

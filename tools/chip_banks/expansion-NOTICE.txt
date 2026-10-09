@@ -18,4 +18,4 @@ Each original source has an accompanying .LICENSE file. expansion.py and
 four_op.py document the conversion and authored additional OPLL programs;
 ChooChoo-authored code/programs use the project MIT license. No game or song
 recordings are included or claimed as the source of these new programs.
-Detailed conversion exclusions are in instruments/chips/expansion-manifest.json.
+Detailed conversion exclusions are in instruments/FACTORY/expansion-manifest.json.

@@ -19,6 +19,10 @@ void initDefaultAppSettings(void) {
   appSettings.audioSampleRate = kAudioSampleRate;
 #ifdef WEB_BUILD
   appSettings.audioBufferSize = 1024;
+#elif defined(PORTMASTER_BUILD)
+  // A 4,906-frame buffer only publishes scope data about ten times a second.
+  // 512 frames keeps handheld audio safe while making the live view responsive.
+  appSettings.audioBufferSize = 512;
 #elif defined(ANDROID_BUILD) || defined(DESKTOP_BUILD)
   // Keep Android input latency low while leaving enough render headroom.
   appSettings.audioBufferSize = 256;
@@ -28,7 +32,12 @@ void initDefaultAppSettings(void) {
   appSettings.aySampleDithering = 1; // Default: ON
   appSettings.doubleTapFrames = 20;
   appSettings.keyRepeatDelay = 16;
+#ifdef PORTMASTER_BUILD
+  // One navigation step per 60 Hz UI frame feels natural on a physical D-pad.
+  appSettings.keyRepeatSpeed = 1;
+#else
   appSettings.keyRepeatSpeed = 2;
+#endif
   appSettings.mixVolume = 1.0f;
   appSettings.quality = (int)ChipNomadQuality::medium;
   appSettings.braidsBits = 6;
@@ -40,7 +49,11 @@ void initDefaultAppSettings(void) {
   appSettings.pitchConflictWarning = 0;
   appSettings.quickHelpReleaseSeen = 0;
   appSettings.ayWavetableLfoView = 0;
+#ifdef PORTMASTER_BUILD
+  appSettings.waveformRefreshHz = 60;
+#else
   appSettings.waveformRefreshHz = 30;
+#endif
   appSettings.stickLiveMode = StickLiveMode::hold;
   for (auto& visual : appSettings.trackVisuals)
     visual.mode = TrackVisualMode::detailed;
@@ -461,6 +474,13 @@ int settingsLoad(void) {
   if (appSettings.audioBufferSize == 1600) appSettings.audioBufferSize = 512;
   if (appSettings.audioBufferSize == 512) appSettings.audioBufferSize = 256;
 #endif
+#elif defined(PORTMASTER_BUILD)
+  // Migrate the old PortMaster default, which made live scopes update at
+  // roughly 10 Hz. There is no user-facing audio-buffer selector yet.
+  if (appSettings.audioBufferSize == 4906 || appSettings.audioBufferSize == 1600)
+    appSettings.audioBufferSize = 512;
+  if (appSettings.keyRepeatSpeed == 2) appSettings.keyRepeatSpeed = 1;
+  if (appSettings.waveformRefreshHz == 30) appSettings.waveformRefreshHz = 60;
 #endif
   if (appSettings.braidsBits < 0 || appSettings.braidsBits > 6) appSettings.braidsBits = 6;
   if (appSettings.braidsDrift < 0 || appSettings.braidsDrift > 4) appSettings.braidsDrift = 0;

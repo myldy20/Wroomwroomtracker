@@ -21,10 +21,14 @@ TEST_CASE("Audio monitor sums voices per track and measures stereo peaks") {
   AudioMonitorSnapshot snapshot;
   REQUIRE(monitor.receive(snapshot));
   CHECK_FALSE(monitor.receive(snapshot));
-  CHECK(snapshot.peaks[0] == doctest::Approx(0.5f));
-  CHECK(snapshot.peaks[1] == doctest::Approx(0.25f));
+  CHECK(snapshot.peaks[0][0] == doctest::Approx(0.5f));
+  CHECK(snapshot.peaks[0][1] == doctest::Approx(0.5f));
+  CHECK(snapshot.peaks[1][0] == doctest::Approx(0.25f));
+  CHECK(snapshot.peaks[1][1] == doctest::Approx(0.25f));
   for (int i = 0; i < 256; ++i) {
     CHECK(snapshot.mix[i] == doctest::Approx(0.7f));
+    CHECK(snapshot.mixStereo[i][0] == doctest::Approx(0.7f));
+    CHECK(snapshot.mixStereo[i][1] == doctest::Approx(0.7f));
     CHECK(snapshot.tracks[0][i] == 0.0f); // Opposite stereo polarity cancels in scope, not meter.
     CHECK(snapshot.tracks[1][i] == 0.25f);
     CHECK(snapshot.tracks[2][i] == 0.0f);
@@ -33,7 +37,8 @@ TEST_CASE("Audio monitor sums voices per track and measures stereo peaks") {
   float silent[512]{};
   monitor.finishChunk(silent, 256, 12000); monitor.publish();
   REQUIRE(monitor.receive(snapshot));
-  CHECK(snapshot.peaks[0] == 0.0f);
+  CHECK(snapshot.peaks[0][0] == 0.0f);
+  CHECK(snapshot.peaks[0][1] == 0.0f);
   CHECK(snapshot.mix[255] == 0.0f);
   CHECK(snapshot.tracks[0][255] == 0.0f);
 }

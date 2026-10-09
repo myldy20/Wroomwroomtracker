@@ -1,3 +1,4 @@
+#include "native_chip_gain.h"
 #include "four_op_voice.h"
 #include <cstring>
 #include "../native_fm_values.h"
@@ -60,7 +61,7 @@ void FourOpVoice::native(float& l,float& r){
 }
 void FourOpVoice::render(float* stereo,size_t frames){
   auto& resampler=type_==InstrumentType::GenesisFM?opnResampler_:opmResampler_;
-  for(size_t i=0;i<frames;++i){float l=0,r=0;if(active_)resampler.next([&](float& a,float& b){native(a,b);},l,r);float values[]={l,r};for(int c=0;c<2;++c){float filtered=values[c]-dcInput_[c]+dcCoefficient_*dcOutput_[c];dcInput_[c]=values[c];dcOutput_[c]=filtered;stereo[2*i+c]=filtered*.25f;}amp_.process(stereo[2*i],stereo[2*i+1]);level_=std::max(std::max(std::abs(l),std::abs(r)),level_*.999f);if(silent_>56000)kill();}
+  for(size_t i=0;i<frames;++i){float l=0,r=0;if(active_)resampler.next([&](float& a,float& b){native(a,b);},l,r);float values[]={l,r};for(int c=0;c<2;++c){float filtered=values[c]-dcInput_[c]+dcCoefficient_*dcOutput_[c];dcInput_[c]=values[c];dcOutput_[c]=filtered;stereo[2*i+c]=filtered*(.25f*nativeChipGain(type_));}amp_.process(stereo[2*i],stereo[2*i+1]);level_=std::max(std::max(std::abs(l),std::abs(r)),level_*.999f);if(silent_>56000)kill();}
 }
 
 void FourOpVoice::macros() {

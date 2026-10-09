@@ -1,5 +1,6 @@
 // Offline audit artifacts and portable demo. Never part of the runtime build.
 #include "project.h"
+#include "fm_catalog.h"
 #include "pitch_table_utils.h"
 #include "chipnomad_lib.h"
 #include "synth/opll_voice.h"
@@ -19,19 +20,19 @@
 #include <memory>
 #include <cstring>
 #include <cmath>
-struct Entry{int type,bank;std::string bankName,category,name,path;};
+using Entry=FMPresetEntry;
 static void u32(FILE* f,unsigned n){for(int i=0;i<4;++i)fputc((n>>(8*i))&255,f);}
 static void u16(FILE* f,unsigned n){fputc(n&255,f);fputc(n>>8,f);}
 static void wav(const std::filesystem::path& file,const std::vector<float>& audio){FILE* f=fopen(file.string().c_str(),"wb");if(!f)exit(3);fwrite("RIFF",1,4,f);u32(f,36+audio.size()*2);fwrite("WAVEfmt ",1,8,f);u32(f,16);u16(f,1);u16(f,2);u32(f,48000);u32(f,192000);u16(f,4);u16(f,16);fwrite("data",1,4,f);u32(f,audio.size()*2);for(float x:audio)u16(f,uint16_t(int16_t(std::lround(std::clamp(x,-1.f,1.f)*32767))));fclose(f);}
 int main(int argc,char** argv){
  if(argc!=4&&argc!=5)return 2;bool sidOnly=argc==5&&!strcmp(argv[4],"--sid");bool expanded=argc==5&&!strcmp(argv[4],"--expanded");std::filesystem::path folder=argv[1],out=argv[2];std::filesystem::create_directories(out);std::map<int,std::vector<Entry>> banks;
- for(const char* filename:{"catalog.tsv","builtins.tsv"}){std::ifstream f(folder/filename);std::string line;std::getline(f,line);if(line!="CCT-CHIP-CATALOG\t1")return 3;while(std::getline(f,line)){std::istringstream row(line);std::vector<std::string>fields;std::string field;while(std::getline(row,field,'\t'))fields.push_back(field);if(fields.size()!=6)return 4;Entry e{stoi(fields[0]),stoi(fields[1]),fields[2],fields[3],fields[4],fields[5]};banks[e.bank].push_back(e);}}
+ for(const char* filename:{"catalog.tsv","builtins.tsv"}){std::vector<Entry> entries;if(!loadFMCatalog((folder/filename).string().c_str(),entries))return 3;for(const auto& e:entries)banks[e.bank].push_back(e);}
  auto p=std::make_unique<Project>(),demo=std::make_unique<Project>();projectInit(p.get());projectInit(demo.get());fillFXNames();if(projectLoad(demo.get(),"packaging/common/projects/gm-midi-demo.cct"))return 5;
  for(auto& row:demo->song)for(auto& v:row)v=EMPTY_VALUE_16;for(auto& c:demo->chains)chainClear(&c);for(auto& ph:demo->phrases)phraseClear(&ph);for(auto& i:demo->instruments)instrumentClear(&i);for(auto& t:demo->tables)tableClear(&t);
  strcpy(demo->title,"Native Chip Audition");strcpy(demo->author,"ChooChooTracker");demo->linearPitch=1;calculateLinearPitchTable12TET(demo.get());demo->grooves[0].speed[0]=6;demo->grooves[0].speed[1]=6;
  std::ofstream report(out/"auditions.tsv");report<<"bank\tpreset\tsource_cni\twav\tstart_seconds\tduration_seconds\tpeak\trms\tdc\thuman_listened\n";int section=0;
  for(const auto& bank:banks){if(sidOnly&&bank.first<600)continue;std::vector<float>bankAudio;int pick=0;for(size_t index=0;index<bank.second.size();index+=(expanded&&bank.first>=210?1:std::max(size_t(1),bank.second.size()/4))){
-   if(pick++==4&&!(expanded&&bank.first>=210))break;const auto& e=bank.second[index];if(instrumentLoad(p.get(),(folder/e.path).string().c_str(),0))return 6;auto& i=p->instruments[0];
+   if(pick++==4&&!(expanded&&bank.first>=210))break;const auto& e=bank.second[index];if(!loadFMPreset(folder.string(),e,p.get(),0))return 6;auto& i=p->instruments[0];
    if(index==0){demo->instruments[section]=i;demo->song[section][0]=section;demo->chains[section].rows[0].phrase=section;demo->chains[section].rows[0].transpose=0;auto& ph=demo->phrases[section];for(int n=0;n<4;++n){ph.rows[n*3].note=48+(n==1?4:n==2?7:n==3?12:0);ph.rows[n*3].instrument=section;ph.rows[n*3].volume=80;}ph.rows[14].note=NOTE_OFF;++section;}
    SIDVoice sid;sid.init(48000);OPLLVoice opll;OPLVoice opl;SimpleChipVoice simple;DX7Part dx7;FourOpVoice four;opll.init(48000);opl.init(48000);simple.init(48000);dx7.init(48000);four.init(48000);
    auto on=[&](float cents){if(i.type==InstrumentType::SID){sid.configure(&i.chip.sid,cents,1);sid.noteOn();}else if(isOPLL(i.type)){opll.configure(&i.chip.opll,cents,1);opll.noteOn();}else if(isOPL(i.type)){opl.configure(i.type,&i.chip.opl,cents,1);opl.noteOn();}else if(isSimpleChip(i.type)){simple.configure(i.type,&i.chip.simpleChip,cents,1);simple.noteOn();}else if(isFourOp(i.type)){four.configure(i.type,&i.chip.fourOp,cents,1);four.noteOn();}else{dx7.voices[0].configure(&i.chip.dx7,cents,1);dx7.voices[0].noteOn();}};

@@ -22,6 +22,10 @@
 #include "copy_paste.h"
 #include "insert_fx.h"
 #include "help.h"
+#include "help.h"
+#include "fm_catalog.h"
+#include "user_presets.h"
+#include "user_preset_browser.h"
 extern SDL_Renderer* renderer;
 static const char* output;
 static void require(bool condition,const char* why){if(!condition){fprintf(stderr,"FAIL: %s\n",why);exit(2);}}
@@ -31,7 +35,243 @@ static void tapEdit(){key(1,keyEdit);key(0,0);}
 int main(int argc,char** argv){
   if(argc!=2&&argc!=3)return 1;output=argv[1];initDefaultAppSettings();appSettings.screenWidth=640;appSettings.screenHeight=480;fontSetCurrent(fontGetDefault());require(!gfxSetup(&appSettings.screenWidth,&appSettings.screenHeight),"SDL dummy setup");
   chipnomadState=chipnomadCreate();require(chipnomadState,"state");require(!projectLoad(&chipnomadState->project,"projects/gm-midi-demo.cct"),"fixture");
+  if(argc==3 && !strcmp(argv[2],"--insert-popup-only")) {
+    screensInitAll();waveformDisplayInit();monitorDisplayInit();
+    auto& project=chipnomadState->project;
+    *pSongRow=*pChainRow=*pSongTrack=0;
+    project.song[0][0]=0;project.chains[0].rows[0].phrase=0;
+    phraseClear(&project.phrases[0]);
+    getInstrumentFunctions(InstrumentType::Braids).init(&project.instruments[0]);
+    project.phrases[0].rows[0].instrument=0;
+    for(int header:{0,1}) {
+      appSettings.persistentWaveform=header;
+      screenSetup(&screenPhrase,-1);appDraw();screenPhrase.init();
+      for(int col=0;col<3;++col)key(1,keyRight);
+      key(1,keyEdit|keyUp);
+      for(int module=0;module<insertModuleCount;++module)for(int slot=0;slot<2;++slot) {
+        insertSelect(&project.trackInserts[0][slot],module);
+        const auto& descriptor=insertDescriptor(module);
+        for(int parameter=0;parameter<8;++parameter) {
+          FX fx=FX(fxF11+slot*8+parameter);
+          const char* help=helpFXDescription(fx,0);
+          require(strstr(help,descriptor.name),"popup names selected insert module");
+          require(strstr(help,parameter<descriptor.count?descriptor.parameters[parameter].name:"no effect"),"popup describes active or unused parameter");
+          fxEditFullDraw(fx,0,0);
+          uint8_t selected[]={uint8_t(fx),91},last[]={0,0};
+          fxEditInput(0,1,selected,last);
+          if(parameter<descriptor.count) require(selected[0]==fx,"active control selectable");
+          else require(selected[0]!=fx,"unused control is not selectable");
+          if(selected[0]>=fxF11&&selected[0]<=fxF28) {
+            const int a=selected[0]-fxF11;
+            require(a%8<insertDescriptor(project.trackInserts[0][a/8].module).count,"fallback is active");
+          }
+          require(selected[1]==91,"selection preserves automation value");
+          if((module==insertRotary && (parameter==0||parameter==4)) ||
+             (module==insertCompressor && slot==0 && parameter==5)) {
+            char name[100];snprintf(name,sizeof(name),"insert-%d-slot-%d-param-%d-header-%d",module,slot,parameter,header);capture(name);
+          }
+        }
+      }
+      screenPhrase.onInput(0,0,1);
+    }
+    auto eventKey=[](int button,bool down) {
+      appDraw(); // Commit pending screenSetup before dispatching the next input.
+      MainLoopEventData event{};event.type=down?MainLoopEvent::keyDown:MainLoopEvent::keyUp;
+      event.data.input={InputDeviceType::logical,button};appOnEvent(event);
+      appDraw(); // Production screen changes are deferred until the next draw.
+    };
+    struct Route { const AppScreen *from,*left,*right; };
+    const Route routes[]={
+      {&screenProject,&screenMixer,&screenChain},{&screenSettings,&screenMixer,&screenChain},
+      {&screenSynthSettings,&screenMixer,&screenChain},{&screenMixerSettings,&screenMixer,&screenChain},
+      {&screenGraphicsSettings,&screenMixer,&screenChain},{&screenTrackVisuals,&screenMixer,&screenChain},
+      {&screenMidi,&screenMixer,&screenChain},{&screenMidiChannelMap,&screenMixer,&screenChain},
+      {&screenMidiCC,&screenMixer,&screenChain},{&screenGroove,&screenChain,&screenInstrument},
+      {&screenModulation,&screenPhrase,&screenTable},{&screenInsertFX,&screenPhrase,&screenTable},
+      {&screenAYWavetable,&screenInstrument,&screenTable},{&screenInstrumentPool,&screenPhrase,&screenTable}};
+    for(const auto& route:routes)for(int direction:{keyLeft,keyRight}) {
+      screenSetup(route.from,0);appDraw();eventKey(keyShift,true);eventKey(direction,true);
+      const auto* destination=direction==keyLeft?route.left:route.right;
+      require(currentScreen==destination,"Shift leaves branch for expected spine neighbour");
+      eventKey(direction,false);require(currentScreen==destination,"direction release does not navigate twice");
+      eventKey(keyShift,false);
+    }
+    screenSetup(&screenMixer,0);eventKey(keyShift,true);eventKey(keyUp,true);eventKey(keyUp,false);
+    require(screenMixerGetPage()==1,"reverb page entered");eventKey(keyLeft,true);eventKey(keyLeft,false);eventKey(keyShift,false);
+    require(currentScreen==&screenMixer&&screenMixerGetPage()==0,"left edge returns to mixer");
+    printf("Insert popup production UI and Shift spine navigation passed: all modules, both slots, active-only selection, waveform off/on\n");
+    chipnomadDestroy(chipnomadState);SDL_Quit();return 0;
+  }
+  if(argc==3 && !strcmp(argv[2],"--user-step-ui-only")) {
+    screensInitAll();waveformDisplayInit();monitorDisplayInit();
+    namespace fs=std::filesystem;
+    fs::path dxRoot="instruments/USER/dx7",first=dxRoot/"A-step-test.syx",second=dxRoot/"B-step-test.zip";
+    require(!fs::exists(first)&&!fs::exists(second),"isolated step fixtures");
+    PresetZip zip;std::vector<uint8_t> bytes;std::string error;
+    require(zip.open("../../tests/fixtures/preset-packs/compressed.zip",error)&&zip.read("DX7/Test.syx",bytes,error),"synthetic bank");
+    FILE* f=fopen(first.string().c_str(),"wb");require(f,"fixture file");require(fwrite(bytes.data(),1,bytes.size(),f)==bytes.size(),"fixture write");fclose(f);
+    fs::copy_file("../../tests/fixtures/preset-packs/compressed.zip",second);
+    getInstrumentFunctions(InstrumentType::DX7).init(&chipnomadState->project.instruments[0]);screenSetup(&screenInstrument,0);appDraw();
+    instrumentPresetCycleCollection(-1);require(!strcmp(instrumentPresetCollectionName(),"USER"),"USER filter");
+    instrumentPresetOpenSounds();tapEdit();key(1,keyUp);key(1,keyUp);tapEdit(); // Back row, then last voice of A.
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==31,"selected A last voice");
+    screenInstrumentOPL.cursorRow=4;key(1,keyEdit);key(1,keyEdit|keyRight);key(0,0);
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==0,"A last to zipped B first despite duplicate names");
+    instrumentPresetOpenSounds();capture("user-step-dx7");key(1,keyOpt);key(1,keyOpt);
+    require(currentScreen==&screenSelectionPopup,"reopened at zipped B bank, not loose A");key(1,keyOpt);key(1,keyOpt);
+    screenInstrumentOPL.cursorRow=4;key(1,keyEdit);key(1,keyEdit|keyLeft);key(0,0);
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==31,"B first to A last");
+    instrumentPresetOpenSounds();key(1,keyOpt);key(1,keyOpt);require(currentScreen==&screenInstrument,"reverse restored loose A location");
+    key(1,keyEdit);for(int n=0;n<33;++n)key(1,keyEdit|keyRight);key(0,0);
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==0,"end of USER wraps to A first");
+    key(1,keyEdit);key(1,keyEdit|keyLeft);key(0,0);require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==31,"reverse wraps to B last");
+    fs::remove(first);key(1,keyEdit);key(1,keyEdit|keyRight);key(0,0);
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==0,"missing A bank skipped");fs::remove(second);
+    fs::path segaRoot="instruments/USER/sega",a=segaRoot/"A-step-test",b=segaRoot/"B-step-test";
+    require(!fs::exists(a)&&!fs::exists(b),"isolated CNI folders");fs::create_directory(a);fs::create_directory(b);
+    getInstrumentFunctions(InstrumentType::SegaPSG).init(&chipnomadState->project.instruments[0]);
+    strcpy(chipnomadState->project.instruments[0].name,"DUPLICATE");
+    chipnomadState->project.instruments[0].chip.simpleChip.mode=0;require(!instrumentSave(&chipnomadState->project,(a/"One.cni").string().c_str(),0),"first CNI");
+    chipnomadState->project.instruments[0].chip.simpleChip.mode=1;require(!instrumentSave(&chipnomadState->project,(b/"Two.cni").string().c_str(),0),"second CNI");
+    screenSetup(&screenInstrument,0);appDraw();instrumentPresetCycleCollection(-1);instrumentPresetOpenSounds();tapEdit();tapEdit();
+    screenInstrumentSimpleChip.cursorRow=4;key(1,keyEdit);key(1,keyEdit|keyRight);key(0,0);
+    require(chipnomadState->project.instruments[0].chip.simpleChip.mode==1,"CNI steps across folders with identical names");capture("user-step-sega");
+    key(1,keyEdit);key(1,keyEdit|keyRight);key(0,0);require(chipnomadState->project.instruments[0].chip.simpleChip.mode==0,"CNI wraps");
+    key(1,keyEdit);key(1,keyEdit|keyLeft);key(0,0);require(chipnomadState->project.instruments[0].chip.simpleChip.mode==1,"CNI reverse wraps");
+    fs::remove(a/"One.cni");fs::remove(b/"Two.cni");fs::remove(a);fs::remove(b);
+    printf("USER stepping across SYX ZIP and CNI folders, duplicate names, wrap, focus and missing files passed; no audio tests run\n");
+    chipnomadDestroy(chipnomadState);SDL_Quit();return 0;
+  }
+  if(argc==3 && !strcmp(argv[2],"--bank-cycle-ui-only")) {
+    screensInitAll();waveformDisplayInit();monitorDisplayInit();
+    std::vector<FMPresetEntry> factory,builtins;
+    require(loadFMCatalog("instruments/FACTORY/catalog.tsv",factory),"catalog");
+    require(loadFMCatalog("instruments/FACTORY/builtins.tsv",builtins),"builtins");
+    factory.insert(factory.end(),builtins.begin(),builtins.end());
+    for(auto type:{InstrumentType::OPLL,InstrumentType::VRC7,InstrumentType::OPL2,InstrumentType::OPL3,InstrumentType::GenesisFM,InstrumentType::ArcadeFM,InstrumentType::DX7,InstrumentType::SID,InstrumentType::SegaPSG,InstrumentType::GBPulse,InstrumentType::GBNoise}) {
+      getInstrumentFunctions(type).init(&chipnomadState->project.instruments[0]);screenSetup(&screenInstrument,0);
+      auto& screen=(type==InstrumentType::SegaPSG||type==InstrumentType::GBPulse||type==InstrumentType::GBNoise)?screenInstrumentSimpleChip:screenInstrumentOPL;
+      screen.cursorRow=3;screen.cursorCol=0;
+      auto original=chipnomadState->project.instruments[0];int modified=projectModified;
+      std::vector<std::string> expected={"ALL"};
+      for(const auto& group:factoryCollections(factory,type))expected.push_back(&screen==&screenInstrumentSimpleChip?"Factory":group.name);
+      expected.push_back("USER");
+      // Repeated directions while EDIT stays held, including wraparound.
+      key(1,keyEdit);
+      for(size_t n=1;n<=expected.size();++n){key(1,keyEdit|keyRight);require(expected[n%expected.size()]==instrumentPresetCollectionName(),"forward bank order");}
+      key(0,0);require(currentScreen==&screenInstrument,"release after cycling does not open popup");
+      key(1,keyEdit);
+      for(size_t n=1;n<=expected.size();++n){key(1,keyEdit|keyLeft);require(expected[(expected.size()-n)%expected.size()]==instrumentPresetCollectionName(),"reverse bank order");}
+      key(0,0);require(currentScreen==&screenInstrument,"reverse release stays on instrument");
+      require(!memcmp(&original,&chipnomadState->project.instruments[0],sizeof(original))&&modified==projectModified,"bank cycling changes no instrument or dirty flag");
+      key(1,keyEdit);key(1,keyEdit|keyLeft);key(0,0);
+      if(type==InstrumentType::DX7||type==InstrumentType::SegaPSG){char name[64];snprintf(name,sizeof(name),"bank-cycle-%d",int(type));capture(name);}
+      tapEdit();require(currentScreen==&screenSelectionPopup,"EDIT tap still opens chooser");key(1,keyOpt);
+    }
+    printf("Bank EDIT left/right order, wrap, release and tap passed for all 11 engines; no audio tests run\n");
+    chipnomadDestroy(chipnomadState);SDL_Quit();return 0;
+  }
+  if(argc==3 && !strcmp(argv[2],"--bank-ui-only")) {
+    // Structural UI checks only: no audio initialization, playback or audition.
+    screensInitAll();waveformDisplayInit();monitorDisplayInit();
+    std::vector<FMPresetEntry> factory;
+    require(loadFMCatalog("instruments/FACTORY/builtins.tsv",factory),"simple factory catalog");
+    for(auto type:{InstrumentType::SegaPSG,InstrumentType::GBPulse,InstrumentType::GBNoise}) {
+      auto found=std::find_if(factory.begin(),factory.end(),[&](const auto& e){return e.type==int(type);});
+      require(found!=factory.end(),"simple factory entry");
+      auto path=std::filesystem::path("instruments/USER")/userPresetFolder(type)/"UI-flat-test.cni";
+      require(!std::filesystem::exists(path),"isolated user fixture");
+      require(loadFMPreset("instruments/FACTORY",*found,&chipnomadState->project,0),"factory fixture load");
+      strcpy(chipnomadState->project.instruments[0].name,"UI USER");
+      require(!instrumentSave(&chipnomadState->project,path.string().c_str(),0),"user fixture save");
+      require(loadFMPreset("instruments/FACTORY",*found,&chipnomadState->project,0),"factory fixture restore");
+      screenSetup(&screenInstrument,0);
+      char name[64];snprintf(name,sizeof(name),"bank-label-%d",int(type));capture(name);
+      instrumentPresetOpenCollections();snprintf(name,sizeof(name),"bank-options-%d",int(type));capture(name);key(1,keyOpt);
+      instrumentPresetOpenSounds();require(selectionPopupIsFullWidth(),"ALL has no category panel");
+      key(1,keyUp);snprintf(name,sizeof(name),"flat-all-%d",int(type));capture(name);tapEdit();
+      require(!strcmp(chipnomadState->project.instruments[0].name,"UI USER"),"ALL includes user preset");
+      instrumentPresetOpenCollections();key(1,keyDown);tapEdit();
+      require(!strcmp(instrumentPresetCollectionName(),"Factory"),"Factory choice retained");
+      instrumentPresetOpenSounds();require(selectionPopupIsFullWidth(),"Factory has no category panel");tapEdit();
+      require(strcmp(chipnomadState->project.instruments[0].name,"UI USER"),"Factory excludes user preset");
+      instrumentPresetOpenCollections();key(1,keyDown);tapEdit();
+      require(!strcmp(instrumentPresetCollectionName(),"USER"),"USER choice retained");
+      instrumentPresetOpenSounds();require(selectionPopupIsFullWidth(),"USER folder browser retained");tapEdit();
+      require(!strcmp(chipnomadState->project.instruments[0].name,"UI USER"),"USER selects own preset");
+      std::filesystem::remove(path);
+    }
+    getInstrumentFunctions(InstrumentType::DX7).init(&chipnomadState->project.instruments[0]);screenSetup(&screenInstrument,0);
+    capture("bank-label-dx7");instrumentPresetOpenSounds();require(!selectionPopupIsFullWidth(),"DX7 keeps category panel");key(1,keyOpt);
+    printf("Bank labels and Sega/GB ALL Factory USER navigation passed; no audio tests run\n");
+    chipnomadDestroy(chipnomadState);SDL_Quit();return 0;
+  }
   chipnomadInitChips(chipnomadState,48000,nullptr);chipnomadReserveRenderBuffers(chipnomadState,1024);screensInitAll();waveformDisplayInit();monitorDisplayInit();
+  if(argc==3 && !strcmp(argv[2],"--presets-only")) {
+    std::vector<FMPresetEntry> factory, builtins;
+    require(loadFMCatalog("instruments/FACTORY/catalog.tsv",factory),"factory catalog");
+    require(loadFMCatalog("instruments/FACTORY/builtins.tsv",builtins),"builtin catalog");
+    factory.insert(factory.end(),builtins.begin(),builtins.end());
+    for(auto type:{InstrumentType::OPLL,InstrumentType::VRC7,InstrumentType::OPL2,InstrumentType::OPL3,InstrumentType::GenesisFM,InstrumentType::ArcadeFM,InstrumentType::DX7,InstrumentType::SID,InstrumentType::SegaPSG,InstrumentType::GBPulse,InstrumentType::GBNoise}) {
+      auto found=std::find_if(factory.begin(),factory.end(),[&](const auto& e){return e.type==int(type);});
+      require(found!=factory.end(),"engine factory pack");
+      require(loadFMPreset("instruments/FACTORY",*found,&chipnomadState->project,0),"factory ZIP loads on ARM");
+      screenSetup(&screenInstrument,0);appDraw();
+      char name[64];snprintf(name,sizeof(name),"factory-engine-%d",int(type));capture(name);
+      instrumentPresetOpenCollections();snprintf(name,sizeof(name),"collections-engine-%d",int(type));capture(name);
+      key(1,keyDown);tapEdit();instrumentPresetOpenSounds();key(1,keyRight);tapEdit();
+      require(currentScreen==&screenInstrument,"factory collection selection for every engine");
+      openUserPresetBrowser();appDraw();require(currentScreen==&screenSelectionPopup,"USER popup for every engine");
+      key(1,keyOpt);require(currentScreen==&screenInstrument,"empty USER back");
+    }
+    namespace fs=std::filesystem;
+    const char* fixture="../../tests/fixtures/preset-packs/compressed.zip";
+    const char* oplPack="instruments/USER/opl3/UI-test.zip";
+    const char* dxPack="instruments/USER/dx7/UI-test.zip";
+    require(!fs::exists(oplPack)&&!fs::exists(dxPack),"isolated ZIP fixtures");
+    fs::copy_file(fixture,oplPack);fs::copy_file(fixture,dxPack);
+    getInstrumentFunctions(InstrumentType::OPL3).init(&chipnomadState->project.instruments[0]);
+    screenSetup(&screenInstrument,0);appDraw();
+    screenInstrumentOPL.onEdit(0,3,CellEditAction::tap);key(1,keyUp);tapEdit(); // Collection -> USER
+    screenInstrumentOPL.onEdit(0,4,CellEditAction::tap);capture("user-root");
+    tapEdit();capture("user-zip-folders");tapEdit();tapEdit();capture("user-zip-presets");
+    auto before=std::make_unique<Project>(chipnomadState->project);
+    key(1,keyEdit);key(1,keyEdit|keyPlay);
+    std::vector<float> audio(2048);double energy=0;
+    for(int n=0;n<12;++n){chipnomadRender(chipnomadState,audio.data(),1024);for(float x:audio)energy+=x*x;}
+    require(energy>1e-7,"USER ZIP audition audio");
+    require(!memcmp(before.get(),&chipnomadState->project,sizeof(Project)),"USER audition leaves song unchanged");
+    key(0,keyPlay);tapEdit();require(currentScreen==&screenInstrument,"USER ZIP commit");
+    require(!strcmp(chipnomadState->project.instruments[0].name,"Acoustic Grand"),"USER ZIP chosen patch");
+    getInstrumentFunctions(InstrumentType::DX7).init(&chipnomadState->project.instruments[0]);screenSetup(&screenInstrument,0);
+    openUserPresetBrowser();appDraw();
+    UserPresets dxListing;std::string error;
+    dxListing.setup("instruments/USER/dx7",InstrumentType::DX7,"instruments/banks/dx7");
+    require(dxListing.refresh(error),"DX7 USER listing");
+    size_t packIndex=0;
+    while(packIndex<dxListing.items().size()&&dxListing.items()[packIndex].name!="UI-test.zip")++packIndex;
+    require(packIndex<dxListing.items().size(),"DX7 ZIP listed alongside previous banks folder");
+    for(size_t i=0;i<packIndex;++i)key(1,keyDown);
+    tapEdit();key(1,keyDown);tapEdit();tapEdit();capture("user-dx7-bank-voices");
+    tapEdit();require(currentScreen==&screenInstrument,"zipped DX7 bank voice commit");
+    require(!strcmp(chipnomadState->project.instruments[0].name,"TEST VOICE"),"synthetic DX7 bank patch");
+    // ALL flattens USER bank voices into Unsorted while USER stays a peer.
+    instrumentPresetOpenCollections();capture("dx7-collections");tapEdit();
+    require(!strcmp(instrumentPresetCollectionName(),"ALL"),"ALL collection selected");
+    instrumentPresetOpenSounds();
+    std::vector<std::string> categories={"All"};
+    for(const auto& e:factory)if(e.type==int(InstrumentType::DX7)&&std::find(categories.begin(),categories.end(),e.category)==categories.end())categories.push_back(e.category);
+    if(std::find(categories.begin(),categories.end(),"Unsorted")==categories.end())categories.push_back("Unsorted");
+    auto unsorted=std::find(categories.begin(),categories.end(),"Unsorted")-categories.begin();
+    for(int i=0;i<unsorted;++i)key(1,keyDown);
+    key(1,keyRight);key(1,keyUp);capture("dx7-all-unsorted");tapEdit();
+    require(chipnomadState->project.instruments[0].chip.dx7.sourceProgram==31,"ALL Unsorted loads last USER bank voice");
+    require(!strcmp(chipnomadState->project.instruments[0].name,"TEST VOICE"),"ALL Unsorted USER voice name");
+    printf("Engine collections, top-level USER and ALL Unsorted bank selection passed\n");
+    fs::remove(oplPack);fs::remove(dxPack);
+    printf("Factory ZIPs, all 11 USER roots, nested ZIP navigation, audition, selection and DX7 bank voices passed\n");
+    chipnomadDestroy(chipnomadState);SDL_Quit();return 0;
+  }
   if(argc==3 && !strcmp(argv[2],"--fx-only")) {
     for(auto type:{InstrumentType::OPLL,InstrumentType::VRC7,InstrumentType::OPL2,InstrumentType::OPL3,InstrumentType::GenesisFM,InstrumentType::ArcadeFM,InstrumentType::DX7}) {
       auto& inst=chipnomadState->project.instruments[0];getInstrumentFunctions(type).init(&inst);
@@ -203,7 +443,7 @@ int main(int argc,char** argv){
     for(int edit=0;edit<12;++edit){
       int col=edit%4;
       if(amp){instrumentFMAmpEdit(col,1,CellEditAction::increaseBig);instrumentFMAmpDrawField(col,1,CellState::normal);}
-      else{screenInstrumentSimpleChip.onEdit(col,7,CellEditAction::increaseBig);screenInstrumentSimpleChip.drawField(col,7,CellState::normal);}
+      else{screenInstrumentSimpleChip.onEdit(col,8,CellEditAction::increaseBig);screenInstrumentSimpleChip.drawField(col,8,CellState::normal);}
       appDraw();
     }
     auto incremental=pixels();currentScreen->fullRedraw();appDraw();auto clean=pixels();
@@ -224,15 +464,14 @@ int main(int argc,char** argv){
   // Local SysEx opens the same transactional browser from another instrument.
   InstrumentDX7 patch{};initDX7Patch(&patch);char path[2048];snprintf(path,sizeof(path),"%s/original-test.syx",output);FILE* f=fopen(path,"wb");require(f,"syx fixture");uint8_t h[]={240,67,0,0,1,27};fwrite(h,1,6,f);fwrite(patch.voice,1,155,f);unsigned sum=0;for(auto b:patch.voice)sum+=b;fputc((-sum)&127,f);fputc(247,f);fclose(f);
   // A bank dropped in the persistent hierarchy appears without Load Instrument.
-  const char* libraryFile="instruments/banks/dx7/UI-test.syx";
+  const char* libraryFile="instruments/USER/dx7/UI-test.syx";
   require(!std::filesystem::exists(libraryFile),"isolated persistent library fixture");
   std::filesystem::copy_file(path,libraryFile);
   getInstrumentFunctions(InstrumentType::DX7).init(&chipnomadState->project.instruments[0]);screenSetup(&screenInstrument,0);appDraw();
   screenInstrumentOPL.onEdit(0,3,CellEditAction::tap);appDraw();capture("dx7-persistent-banks");
-  // All, three shipped banks, then the newly discovered file.
-  for(int n=0;n<4;++n)key(1,keyDown);tapEdit();
-  screenInstrumentOPL.onEdit(0,4,CellEditAction::tap);key(1,keyRight);tapEdit();
-  require(chipnomadState->project.instruments[0].chip.dx7.bankId>=40000,"persistent bank selected");
+  // USER is the final top-level collection; the single voice loads directly.
+  key(1,keyUp);tapEdit();
+  screenInstrumentOPL.onEdit(0,4,CellEditAction::tap);tapEdit();
   require(!memcmp(patch.voice,chipnomadState->project.instruments[0].chip.dx7.voice,155),"persistent bank voice exact");
   auto savedLibraryPatch=chipnomadState->project.instruments[0];
   std::filesystem::remove(libraryFile);

@@ -77,6 +77,36 @@ struct StickLiveFixture {
 };
 }
 
+TEST_CASE_FIXTURE(StickLiveFixture, "Shift horizontal navigation exits branch screens to the spine") {
+  struct Route { const AppScreen *from, *left, *right; };
+  const Route routes[] = {
+    {&screenProject,&screenMixer,&screenChain},
+    {&screenSettings,&screenMixer,&screenChain},
+    {&screenSynthSettings,&screenMixer,&screenChain},
+    {&screenMixerSettings,&screenMixer,&screenChain},
+    {&screenGraphicsSettings,&screenMixer,&screenChain},
+    {&screenTrackVisuals,&screenMixer,&screenChain},
+    {&screenMidi,&screenMixer,&screenChain},
+    {&screenMidiChannelMap,&screenMixer,&screenChain},
+    {&screenMidiCC,&screenMixer,&screenChain},
+    {&screenGroove,&screenChain,&screenInstrument},
+    {&screenModulation,&screenPhrase,&screenTable},
+    {&screenInsertFX,&screenPhrase,&screenTable},
+    {&screenAYWavetable,&screenInstrument,&screenTable},
+  };
+  for (const auto& route : routes) for (int direction : {keyLeft,keyRight}) {
+    currentScreen = route.from;
+    motion(keyShift,true);
+    motion(direction,true);
+    const auto* destination = direction == keyLeft ? route.left : route.right;
+    CHECK(currentScreen == destination);
+    motion(direction,false);
+    CHECK(currentScreen == destination); // releasing direction while still holding Shift
+    motion(keyShift,false);
+    CHECK(currentScreen == destination);
+  }
+}
+
 TEST_SUITE("Stick live") {
 TEST_CASE_FIXTURE(StickLiveFixture, "FM motion records one native command without a selector") {
   auto& row=chipnomadState->project.phrases[0].rows[0];

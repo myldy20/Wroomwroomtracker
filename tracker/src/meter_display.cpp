@@ -25,18 +25,20 @@ int monitorMeterHeight(float peak, int height) {
 }
 
 void monitorDisplayDrawMeter(int track, int col, int row) {
-  if (track < 0 || track >= PROJECT_MAX_TRACKS || !sized(meter, 1, 1)) return;
+  if (track < 0 || track >= PROJECT_MAX_TRACKS || !sized(meter, 2, 1)) return;
   const auto cs = appSettings.colorScheme;
   gfxSetBgColor(cs.background);
-  gfxClearRect(col, row, 1, 1);
+  gfxClearRect(col, row, 2, 1);
   const int w = meter->widthPixels, h = meter->heightPixels;
-  const int pixels = monitorMeterHeight(monitorDisplayTrackPeak(track), h - 2);
-  for (int band = 0; band < 3; ++band) {
+  for (int channel = 0; channel < 2; ++channel) for (int band = 0; band < 3; ++band) {
     gfxBitmapClear(meter);
+    const int pixels = monitorMeterHeight(monitorDisplayTrackPeak(track, channel), h - 2);
     for (int level = 0; level < pixels; ++level) {
       int zone = level >= (h - 2) * 15 / 16 ? 2 : level >= (h - 2) * 3 / 4 ? 1 : 0;
       if (zone != band) continue;
-      for (int x = w / 3; x < w - w / 3; ++x)
+      int left = channel ? w / 2 + 1 : w / 2 - w / 5;
+      int right = channel ? w / 2 + w / 5 : w / 2 - 1;
+      for (int x = left; x < right; ++x)
         meter->data[(h - 2 - level) * w + x] = 255;
     }
     gfxSetFgColor(band == 2 ? 0xff0000 : band == 1 ? cs.textTitles : cs.textInfo);

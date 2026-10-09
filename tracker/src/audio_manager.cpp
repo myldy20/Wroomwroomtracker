@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <algorithm>
 #include <atomic>
 #ifdef WEB_BUILD
 #include <cmath>
@@ -6,6 +7,7 @@
 #include <emscripten/emscripten.h>
 #endif
 #include <chrono>
+#include <thread>
 #include <limits.h>
 #include <string.h>
 #include "audio_manager.h"
@@ -218,7 +220,20 @@ static int start(int sampleRate, int bufferSize) {
     return 1;
   }
 
+#ifndef WEB_BUILD
+#ifdef PORTMASTER_BUILD
+  // Keep the PortMaster callback deterministic; multicore workers may starve input.
+  chipnomadConfigureRealtimeWorkers(chipnomadState, 0);
+#else
+  const unsigned cores = std::thread::hardware_concurrency();
+  // Leave spare CPU capacity for the UI/input thread on native desktop.
+  chipnomadConfigureRealtimeWorkers(chipnomadState,
+    cores > 2 ? (int)std::min(cores - 2, 7u) : 0);
+#endif
+#endif
+
   if (audioSetup(audioCallback, sampleRate, bufferSize)) {
+    chipnomadConfigureRealtimeWorkers(chipnomadState, 0);
     free(floatBuffer);
     free(samplePreviewBuffer);
     floatBuffer = NULL;
@@ -263,6 +278,7 @@ static void reinitializeChips(void) {
 
 static void stop() {
   audioCleanup();
+  chipnomadConfigureRealtimeWorkers(chipnomadState, 0);
   free(floatBuffer);
   free(samplePreviewBuffer);
   floatBuffer = NULL;

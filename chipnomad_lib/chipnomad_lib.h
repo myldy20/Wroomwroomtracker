@@ -26,6 +26,7 @@ class SimpleChipVoice;
 class AudioCommandQueue;
 struct MidiRouterState;
 class AudioMonitor;
+class RenderWorkerPool;
 
 constexpr int VOICE_MONITOR_SAMPLES = 256;
 
@@ -123,6 +124,7 @@ struct ChipNomadState {
   MasterEffects* masterEffects;
   AudioCommandQueue* audioCommands;
   AudioMonitor* audioMonitor;
+  RenderWorkerPool* renderWorkers;
   PlaybackStatus uiPlaybackStatus;
 };
 
@@ -149,6 +151,9 @@ void chipnomadInitChips(ChipNomadState* state, int sampleRate, ChipFactory facto
 // Reserve render buffers before starting the audio device. Rendering never
 // grows these buffers, so this must be called again after reconfiguration.
 int chipnomadReserveRenderBuffers(ChipNomadState* state, int frames);
+// Configure persistent workers for real-time rendering while audio is stopped.
+// Returns the number of workers actually enabled; 0 is the serial fallback.
+int chipnomadConfigureRealtimeWorkers(ChipNomadState* state, int requestedWorkers);
 int chipnomadQueueTrackEnabled(ChipNomadState* state, const uint8_t enabled[PROJECT_MAX_TRACKS]);
 int chipnomadQueueProjectRefresh(ChipNomadState* state);
 int chipnomadQueuePlaybackScale(ChipNomadState* state, uint8_t root, ScalePreset preset);

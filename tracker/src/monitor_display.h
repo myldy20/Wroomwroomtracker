@@ -5,4 +5,5 @@ void monitorDisplayInit(void);
 void monitorDisplayUpdate(void);
 const float* monitorDisplayTrackSamples(int track);
 const float* monitorDisplayMixSamples(void);
-float monitorDisplayTrackPeak(int track);
+const float (*monitorDisplayMixStereoSamples(void))[2];
+float monitorDisplayTrackPeak(int track, int channel);
