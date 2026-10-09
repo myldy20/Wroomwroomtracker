@@ -1717,7 +1717,8 @@ input {
 .mix-pan-slider-value, .mix-volume-slider-value { color: var(--amber); font-size: 10px; font-weight: 800; text-align: right; white-space: nowrap; }
 .mix-pan-center, .mix-volume-max { min-height: 44px; padding: 0 6px; font-weight: 800; font-size: 10px; color: var(--muted); }
 @media (max-width: 560px) {
-  .mix-track-grid { grid-template-columns: 1fr; padding: 8px; }
-  .mix-track-row { padding: 9px; }
-  .mix-control-row { grid-template-columns: 28px minmax(0,1fr) 46px 56px; gap: 4px; }
+  .mix-track-grid { grid-template-columns: 1fr; padding: 5px; }
+  .mix-track-row { padding: 6px; }
+  .mix-control-row { grid-template-columns: 24px minmax(0,1fr) 40px 44px; gap: 3px; }
+  .mix-pan-center, .mix-volume-max { padding-inline: 2px; }
 }
