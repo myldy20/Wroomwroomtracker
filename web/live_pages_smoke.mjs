@@ -541,16 +541,22 @@ if (success) {
   // instrument serializer, navigate the native USER library, and reload it.
   const compatibleSlot = await page.evaluate(() => {
     const call = window.Module.ccall;
-    for (let i = 0; i < call("webSoundSlotCount", "number"); ++i) {
-      if (call("webSoundSlotTypeId","number",["number"],[i]) <= 0) continue;
-      if (call("webSoundSelectSlot","number",["number"],[i]) !== 0) continue;
-      if (call("webSoundUserPresetFolder","string")) return i;
-    }
+    for (let i = call("webSoundSlotCount","number")-1; i >= 0; i--)
+      if (call("webSoundSlotTypeId","number",["number"],[i]) === 0) return i;
     return -1;
   });
   if (compatibleSlot < 0)
-    throw new Error("The bundled FM demonstration must expose at least one compatible USER instrument");
+    throw new Error("Expected an unused instrument slot in the demo project");
   await page.locator("#soundSlot").selectOption(String(compatibleSlot));
+  await page.waitForSelector("#soundCreateControls:not([hidden])", {timeout:5000});
+  await page.locator("#soundTypeChoice").selectOption("17"); // OPLL: supported native FM USER library
+  await page.locator("#soundCreateInstrument").click();
+  if (await page.evaluate(slot => window.Module.ccall(
+      "webSoundSlotTypeId","number",["number"],[slot]),compatibleSlot) !== 17)
+    throw new Error("Empty slot did not become an initialized native OPLL instrument");
+  if ((await page.evaluate(slot => window.Module.ccall(
+      "webSoundCreateInstrument","number",["number","number"],[slot,24]),compatibleSlot)) !== 1)
+    throw new Error("CREATE INSTRUMENT must refuse to overwrite occupied slots");
   const originalInstrumentPan = await page.evaluate(slot =>
     window.Module.ccall("webSoundSlotPan","number",["number"],[slot]),compatibleSlot);
   const originalInstrumentType = await page.evaluate(slot =>
