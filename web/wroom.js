@@ -21,6 +21,7 @@
   const chainPickerList = $("#chainPickerList");
   let trackerStarted = false;
   let activeUiScreen = 0;
+  let nativeMixerExpanded = false;
   let songRendered = false;
   let songMinimumRows = 32;
   let songSelection = { row: 0, track: 0 };
@@ -680,19 +681,21 @@
     $("#screenName").textContent = screenNames[screen] || "TRACKER";
     $("#workspaceEyebrow").textContent = screenEyebrows[screen] || "WORKSPACE";
 
-    const semantic = screen === 0 || screen === 4;
+    const semantic = screen === 0 || (screen === 4 && !nativeMixerExpanded);
     semanticWorkspace.hidden = !semantic;
     legacyWorkspace.hidden = semantic;
     songWorkspace.hidden = screen !== 0;
-    mixWorkspace.hidden = screen !== 4;
+    mixWorkspace.hidden = screen !== 4 || nativeMixerExpanded;
+    $("#mixReturnDirect").hidden = screen !== 4 || !nativeMixerExpanded;
     $("#gestureHint").textContent = screen === 0
       ? "CLICK A CELL · EDIT IN THE INSPECTOR · DOUBLE CLICK TO OPEN"
-      : screen === 4 ? "DRAG PAN · TAP CENTER TO RESET"
+      : screen === 4 && !nativeMixerExpanded ? "DRAG VOL / PAN · TAP BUTTONS TO RESET"
+      : screen === 4 ? "FULL NATIVE MIXER · DIRECT MIX TO RETURN"
       : "DIRECT WEB WORKSPACE COMING NEXT · LEGACY VIEW FOR NOW";
 
     if (screen === 0) {
       if (!songRendered) renderSongWorkspace();
-    } else if (screen === 4) {
+    } else if (screen === 4 && !nativeMixerExpanded) {
       updateMixWorkspace();
     } else if (syncNative) {
       requestAnimationFrame(() => canvas.focus());
@@ -708,6 +711,7 @@
       return false;
     }
 
+    nativeMixerExpanded = false;
     setWorkspaceMode(screen, true);
     if (screen === 0) {
       songRendered = false;
@@ -1181,6 +1185,15 @@
     updateSongPlaybackVisuals();
     updateMixWorkspace();
   };
+
+  $("#mixOpenNative").addEventListener("click", () => {
+    nativeMixerExpanded = true;
+    setWorkspaceMode(4, true);
+  });
+  $("#mixReturnDirect").addEventListener("click", () => {
+    nativeMixerExpanded = false;
+    setWorkspaceMode(4, true);
+  });
 
   $(".view-tabs [data-screen], .utility-buttons [data-screen]").forEach((button) => {
     button.addEventListener("click", () => navigateToScreen(Number(button.dataset.screen)));
