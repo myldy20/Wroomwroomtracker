@@ -15,8 +15,8 @@ assert.match(shell, /runtime\.removeRunDependency\("wroom-storage-ready"\)/,
   "Successful browser storage restore must release startup dependency");
 assert.match(shell, /fs\.syncfs\(true/,
   "IDBFS must populate persistent files before native project load");
-assert.match(shell, /window\.addEventListener\("visibilitychange"/,
-  "Hidden-tab transition must save the in-memory Project");
+assert.match(shell, /document\.addEventListener\("visibilitychange"/,
+  "Hidden-tab autosave must listen at Document; the event does not bubble to Window");
 assert.match(shell, /storageSyncQueued = true/,
   "Concurrent persistence requests must not acknowledge unfinished sync");
 
@@ -76,6 +76,7 @@ function makeContext() {
 
   const document = {
     title: "",
+    addEventListener() {},
     body: {
       appendChild(node) {
         appendedScripts.push(node);
