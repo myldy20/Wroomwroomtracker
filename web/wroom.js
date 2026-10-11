@@ -42,6 +42,9 @@
   let storageSyncing = false;
   let storageMounted = false;
   let storageReady = false;
+  let storageBootFailed = false;
+  let storageSyncQueued = false;
+  let storageNextWaiters = [];
   let pointer = null;
   let lastTap = { time: 0, x: 0, y: 0 };
 
@@ -61,53 +64,97 @@
     fs.mkdirTree("/user/instruments/USER");
   };
 
+  // Serialize IDBFS flushes. A queued write must not be reported as saved
+  // merely because an earlier sync is still running.
   const syncUserStorage = (done) => {
     const fs = getFs();
-    if (!fs || !storageMounted || storageSyncing) {
-      done?.(null);
+    if (!fs || !storageMounted || !storageReady) {
+      done?.(new Error("Persistent browser storage is not ready"));
       return;
     }
+    if (storageSyncing) {
+      storageSyncQueued = true;
+      if (done) storageNextWaiters.push(done);
+      return;
+    }
+    const waiters = storageNextWaiters.splice(0);
+    if (done) waiters.push(done);
     storageSyncing = true;
-    fs.syncfs(false, (error) => {
+    const finished = (error) => {
       storageSyncing = false;
-      if (error) setStatus("Browser storage could not be saved");
-      done?.(error);
-    });
+      if (error) setStatus("Browser storage could not be saved — download your project");
+      for (const waiter of waiters) waiter(error || null);
+      if (storageSyncQueued) {
+        storageSyncQueued = false;
+        syncUserStorage();
+      }
+    };
+    try { fs.syncfs(false, finished); }
+    catch (error) { finished(error); }
   };
 
-  const initUserStorage = () => {
+  // Restoration MUST finish before native appSetup() reads /user/autosave.cct.
+  // A run dependency blocks native initialization but does not block the page UI.
+  // On failure we deliberately do not start a blank project: doing so could
+  // overwrite existing IndexedDB data that we failed to restore.
+  const initUserStorageBeforeMain = () => {
     const fs = getFs();
-    if (!fs || storageMounted) return;
-
-    try { fs.mkdir("/user"); } catch (_) {}
-    try {
-      fs.mount(IDBFS, {}, "/user");
-      storageMounted = true;
-    } catch (error) {
-      console.warn("Persistent browser storage unavailable", error);
-      setStatus("READY · persistent browser storage unavailable");
-      return;
-    }
-
-    // Persistence is useful but not required for the tracker to start.
-    // Populate IDBFS in the background so a slow/blocked IndexedDB can never
-    // hold the Emscripten runtime behind a run dependency.
-    fs.syncfs(true, (error) => {
-      if (error) {
-        console.warn("Could not open browser storage", error);
-        setStatus("READY · browser storage unavailable");
+    const runtime = window.Module;
+    if (!fs || !runtime?.addRunDependency || !runtime?.removeRunDependency)
+      throw new Error("Browser runtime does not expose persistent storage hooks");
+    runtime.addRunDependency("wroom-storage-ready");
+    let settled = false;
+    let timeoutId = null;
+    const failed = (reason) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      storageBootFailed = true;
+      trackerStarted = false;
+      startButton.disabled = false;
+      startButton.textContent = "RETRY STORAGE";
+      setStatus("Saved projects could not be restored (" + reason + "). Reload to retry; existing data was not overwritten.");
+      // Intentionally keep run dependency: the native app must not read an
+      // empty /user and later write a demo over a real user's autosave.
+    };
+    const restored = () => {
+      if (settled) return;
+      try {
+        ensureUserDirectories(fs);
+      } catch (error) {
+        failed("filesystem setup");
         return;
       }
-      ensureUserDirectories(fs);
-      fs.syncfs(false, (saveError) => {
-        storageReady = !saveError;
-        if (saveError) {
-          console.warn("Could not initialize browser storage", saveError);
-          setStatus("READY · browser storage is temporary");
-        } else {
-          setStatus("READY · browser storage connected");
-        }
+      settled = true;
+      clearTimeout(timeoutId);
+      storageReady = true;
+      setStatus("Saved projects restored");
+      runtime.removeRunDependency("wroom-storage-ready");
+    };
+    try {
+      try { fs.mkdir("/user"); } catch (_) {}
+      fs.mount(IDBFS, {}, "/user");
+      storageMounted = true;
+      timeoutId = setTimeout(() => failed("storage timeout"), 15000);
+      fs.syncfs(true, (error) => {
+        if (error) failed("storage error");
+        else restored();
       });
+    } catch (error) {
+      console.error("Persistent storage initialization failed", error);
+      failed("storage unavailable");
+    }
+  };
+
+  const saveCurrentAutosave = () => {
+    if (!storageReady || !window.Module?.ccall) return;
+    const result = call("webSaveProject", "number", ["string"], ["/user/autosave.cct"]);
+    if (result !== 0) {
+      setStatus("Could not autosave project — use DOWNLOAD PROJECT");
+      return;
+    }
+    syncUserStorage((error) => {
+      if (error) setStatus("Project autosave not persisted — use DOWNLOAD PROJECT");
     });
   };
 
@@ -1757,6 +1804,7 @@
   $("#sampleFolderInput").addEventListener("change", importSamples);
 
   const loadTracker = () => {
+    if (storageBootFailed) { window.location.reload(); return; }
     if (trackerStarted) return;
     trackerStarted = true;
     startButton.disabled = true;
@@ -1837,6 +1885,15 @@
           }
         }, 1200);
 
+        // Save the actual in-memory Project, not only already-written FS
+        // files. pagehide alone is too late for reliable async IndexedDB writes.
+        setInterval(() => {
+          if (!document.hidden) {
+            try { saveCurrentAutosave(); }
+            catch (error) { console.error("Project autosave failed", error); }
+          }
+        }, 15000);
+
         // Master output peak data is read once per bounded UI tick, regardless
         // of which tracker workspace is open.
         setInterval(() => {
@@ -1870,10 +1927,10 @@
       });
     };
 
+    window.Module.preRun = [initUserStorageBeforeMain];
     window.Module.onRuntimeInitialized = () => {
       startButton.textContent = "OPENING…";
       setStatus("Initializing tracker…");
-      initUserStorage();
     };
 
     const script = document.createElement("script");
@@ -1895,5 +1952,8 @@
     loadTracker();
   }
 
-  window.addEventListener("pagehide", () => syncUserStorage());
+  window.addEventListener("visibilitychange", () => {
+    if (document.hidden) saveCurrentAutosave();
+  });
+  window.addEventListener("pagehide", saveCurrentAutosave);
 })();
