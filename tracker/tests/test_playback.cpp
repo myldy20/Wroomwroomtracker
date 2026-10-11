@@ -541,6 +541,30 @@ TEST_CASE_FIXTURE(PlaybackFixture, "ADSR volume envelope ranges") {
   CHECK(volEnd == 0);
 }
 
+TEST_CASE_FIXTURE(PlaybackFixture, "parallel realtime renderer completes consecutive voice batches") {
+  // Regression for the lost CV notification and late-worker pointer races.
+  // Separate instruments/tracks produce concurrent render jobs. Running many
+  // short blocks deliberately creates tight generation handoff windows.
+  for (int track = 0; track < 4; ++track)
+    getInstrumentFunctions(InstrumentType::Braids).init(&state->project.instruments[track]);
+  REQUIRE(chipnomadQueueProjectRefresh(state));
+  REQUIRE(chipnomadConfigureRealtimeWorkers(state, 3) == 3);
+
+  float buffer[512] = {};
+  for (int block = 0; block < 1600; ++block) {
+    if ((block % 128) == 0) {
+      for (int track = 0; track < 4; ++track)
+        playbackPreviewNote(&state->playbackState, track, 48 + track * 5, track);
+    }
+    REQUIRE(chipnomadRender(state, buffer, 256) == 256);
+    if ((block & 63) == 0) {
+      CHECK(std::isfinite(buffer[0]));
+      CHECK(std::isfinite(buffer[1]));
+    }
+  }
+  CHECK(chipnomadConfigureRealtimeWorkers(state, 0) == 0);
+}
+
 TEST_CASE_FIXTURE(PlaybackFixture, "Braids instrument renders through a tracker track") {
   getInstrumentFunctions(InstrumentType::Braids).init(&state->project.instruments[0]);
   REQUIRE(chipnomadQueueProjectRefresh(state));

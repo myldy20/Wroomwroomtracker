@@ -96,7 +96,10 @@ class RenderWorkerPool {
   void run(RenderJob* jobs, int count, int frames) {
     if (count <= 0) return;
     {
-      std::lock_guard<std::mutex> lock(mutex_);
+      std::unique_lock<std::mutex> lock(mutex_);
+      // A worker that woke after the previous batch may still hold its
+      // stack-backed jobs pointer. Never reset next_ until it has exited.
+      done_.wait(lock, [this] { return active_ == 0; });
       jobs_ = jobs; count_ = count; frames_ = frames;
       next_.store(0, std::memory_order_relaxed);
       completed_.store(0, std::memory_order_relaxed);
@@ -105,7 +108,10 @@ class RenderWorkerPool {
     workReady_.notify_all();
     execute(jobs, count, frames); // The audio callback is also a renderer.
     std::unique_lock<std::mutex> lock(mutex_);
-    done_.wait(lock, [this, count] { return completed_.load(std::memory_order_acquire) == count; });
+    // All jobs AND every worker using this stack-local jobs array must finish.
+    done_.wait(lock, [this, count] {
+      return completed_.load(std::memory_order_acquire) == count && active_ == 0;
+    });
   }
  private:
   void execute(RenderJob* jobs, int count, int frames) {
@@ -114,7 +120,12 @@ class RenderWorkerPool {
       if (index >= count) break;
       RenderJob& job = jobs[index];
       job.render(job.voice, scratch(job.scratchIndex), frames);
-      if (completed_.fetch_add(1, std::memory_order_release) + 1 == count) done_.notify_one();
+      if (completed_.fetch_add(1, std::memory_order_release) + 1 == count) {
+        // Pair the notification with the waiter's mutex: otherwise the audio
+        // callback can miss a wakeup and hang indefinitely in SDL_CloseAudio.
+        { std::lock_guard<std::mutex> lock(mutex_); }
+        done_.notify_one();
+      }
     }
   }
   void worker() {
@@ -126,7 +137,10 @@ class RenderWorkerPool {
       seen = generation_;
       RenderJob* jobs = jobs_;
       int count = count_, frames = frames_;
+      ++active_;
       lock.unlock(); execute(jobs, count, frames); lock.lock();
+      --active_;
+      done_.notify_one();
     }
   }
   void stop() {
@@ -136,7 +150,7 @@ class RenderWorkerPool {
     workers_.clear();
   }
   float* scratch_ = NULL;
-  int samples_ = 0, count_ = 0, frames_ = 0;
+  int samples_ = 0, count_ = 0, frames_ = 0, active_ = 0;
   RenderJob* jobs_ = NULL;
   std::vector<std::thread> workers_;
   std::mutex mutex_;
