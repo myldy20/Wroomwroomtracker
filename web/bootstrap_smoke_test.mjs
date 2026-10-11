@@ -76,6 +76,7 @@ function makeContext() {
 
   const document = {
     title: "",
+    addEventListener() {},
     body: {
       appendChild(node) {
         appendedScripts.push(node);
