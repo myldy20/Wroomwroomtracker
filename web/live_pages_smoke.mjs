@@ -707,17 +707,53 @@ if (success) {
     return encoded === 0 ? -1 : encoded - 1;
   });
   const persistenceValue = originalPersistenceCell === 0 ? 1 : 0;
+  // Use the non-bubbling real Document event. A listener on Window silently
+  // misses tab-hide autosave, even when explicit-save persistence tests pass.
   const persisted = await page.evaluate(async value => {
-    const ccall = window.Module.ccall;
-    if (ccall("webSongSetCell", "number",
+    const module = window.Module;
+    if (module.ccall("webSongSetCell", "number",
       ["number", "number", "number"], [23, 7, value]) !== 0) return false;
-    if (ccall("webSaveProject", "number", ["string"], ["/user/autosave.cct"]) !== 0)
-      return false;
-    await new Promise((resolve, reject) => window.Module.FS.syncfs(false,
-      error => error ? reject(error) : resolve()));
-    return true;
+    const fs = module.FS;
+    const nativeCall = module.ccall;
+    const nativeSync = fs.syncfs;
+    let saves = 0;
+    let flushResolve, flushReject;
+    const flushed = new Promise((resolve, reject) => {
+      flushResolve = resolve;
+      flushReject = reject;
+    });
+    module.ccall = function (name, ...args) {
+      if (name === "webSaveProject") saves++;
+      return nativeCall.call(this, name, ...args);
+    };
+    fs.syncfs = function (populate, callback) {
+      return nativeSync.call(this, populate, error => {
+        try { callback(error); }
+        finally {
+          if (!populate) {
+            if (error) flushReject(error);
+            else flushResolve();
+          }
+        }
+      });
+    };
+    Object.defineProperty(document, "hidden", { configurable: true, value: true });
+    try {
+      document.dispatchEvent(new Event("visibilitychange"));
+      if (saves !== 1) throw new Error("Document hidden did not autosave Project");
+      await Promise.race([
+        flushed,
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error("Hidden-tab IDBFS flush timed out")), 10000))
+      ]);
+      return true;
+    } finally {
+      module.ccall = nativeCall;
+      fs.syncfs = nativeSync;
+      delete document.hidden;
+    }
   }, persistenceValue);
-  if (!persisted) throw new Error("Could not save persistent Song fixture");
+  if (!persisted) throw new Error("Could not persist Song via hidden-tab autosave");
 
   await page.reload({waitUntil:"domcontentloaded", timeout:60000});
   await page.locator("#startButton").click();

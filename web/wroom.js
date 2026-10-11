@@ -112,7 +112,7 @@
       storageBootFailed = true;
       trackerStarted = false;
       startButton.disabled = false;
-      startButton.textContent = "RETRY STORAGE";
+      startButton.textContent = "RELOAD TO RETRY";
       setStatus("Saved projects could not be restored (" + reason + "). Reload to retry; existing data was not overwritten.");
       // Intentionally keep run dependency: the native app must not read an
       // empty /user and later write a demo over a real user's autosave.
@@ -1952,7 +1952,9 @@
     loadTracker();
   }
 
-  window.addEventListener("visibilitychange", () => {
+  // visibilitychange is dispatched at Document and does not bubble to Window.
+  // Commit the in-memory native Project before tab suspension or pagehide.
+  document.addEventListener("visibilitychange", () => {
     if (document.hidden) saveCurrentAutosave();
   });
   window.addEventListener("pagehide", saveCurrentAutosave);
