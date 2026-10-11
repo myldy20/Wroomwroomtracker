@@ -7,6 +7,18 @@ const shell = fs.readFileSync("web/wroom.js", "utf8");
 
 const bootstrapMatch = html.match(/<script id="wroom-bootstrap">([\s\S]*?)<\/script>/);
 assert.ok(bootstrapMatch, "inline Start bootstrap must exist");
+assert.match(shell, /window\.Module\.preRun = \[initUserStorageBeforeMain\]/,
+  "IDBFS restore must block native main, not run after runtime initialization");
+assert.match(shell, /runtime\.addRunDependency\("wroom-storage-ready"\)/,
+  "Browser storage restore must register native startup dependency");
+assert.match(shell, /runtime\.removeRunDependency\("wroom-storage-ready"\)/,
+  "Successful browser storage restore must release startup dependency");
+assert.match(shell, /fs\.syncfs\(true/,
+  "IDBFS must populate persistent files before native project load");
+assert.match(shell, /window\.addEventListener\("visibilitychange"/,
+  "Hidden-tab transition must save the in-memory Project");
+assert.match(shell, /storageSyncQueued = true/,
+  "Concurrent persistence requests must not acknowledge unfinished sync");
 
 class MockElement {
   constructor(name = "") {

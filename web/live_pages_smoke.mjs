@@ -698,6 +698,55 @@ if (success) {
   await page.locator('.view-tabs [data-screen="0"]').click();
   await page.waitForSelector("#songWorkspace:not([hidden]) .song-cell", {timeout:6000});
 
+  // Regression: a saved Web Project must survive a *new WASM runtime*.
+  // The restored Song value proves IDBFS population completed before appSetup.
+  const originalPersistenceCell = await page.evaluate(() => {
+    const packed = window.Module.ccall("webSongCellPacked", "number",
+      ["number", "number"], [23, 7]);
+    const encoded = packed & 0xffff;
+    return encoded === 0 ? -1 : encoded - 1;
+  });
+  const persistenceValue = originalPersistenceCell === 0 ? 1 : 0;
+  const persisted = await page.evaluate(async value => {
+    const ccall = window.Module.ccall;
+    if (ccall("webSongSetCell", "number",
+      ["number", "number", "number"], [23, 7, value]) !== 0) return false;
+    if (ccall("webSaveProject", "number", ["string"], ["/user/autosave.cct"]) !== 0)
+      return false;
+    await new Promise((resolve, reject) => window.Module.FS.syncfs(false,
+      error => error ? reject(error) : resolve()));
+    return true;
+  }, persistenceValue);
+  if (!persisted) throw new Error("Could not save persistent Song fixture");
+
+  await page.reload({waitUntil:"domcontentloaded", timeout:60000});
+  await page.locator("#startButton").click();
+  await page.waitForFunction(() => {
+    const overlay = document.querySelector("#startOverlay");
+    return overlay?.hidden && window.Module?.ccall &&
+      document.querySelector("#songGrid .song-cell");
+  }, null, {timeout:180000});
+  const restoredPersistenceCell = await page.evaluate(() => {
+    const packed = window.Module.ccall("webSongCellPacked", "number",
+      ["number", "number"], [23, 7]);
+    const encoded = packed & 0xffff;
+    return encoded === 0 ? -1 : encoded - 1;
+  });
+  if (restoredPersistenceCell !== persistenceValue)
+    throw new Error("IDBFS autosave was not restored before native appSetup: " +
+      JSON.stringify({persistenceValue, restoredPersistenceCell}));
+
+  // Restore the demo Song and persist it, so repeat runs remain independent.
+  await page.evaluate(async original => {
+    const ccall = window.Module.ccall;
+    if (ccall("webSongSetCell", "number", ["number", "number", "number"],
+      [23, 7, original]) !== 0) throw new Error("Could not restore fixture");
+    if (ccall("webSaveProject", "number", ["string"], ["/user/autosave.cct"]) !== 0)
+      throw new Error("Could not persist restored fixture");
+    await new Promise((resolve, reject) => window.Module.FS.syncfs(false,
+      error => error ? reject(error) : resolve()));
+  }, originalPersistenceCell);
+
   interaction = {
     rowsBefore,
     rowsAfter,
