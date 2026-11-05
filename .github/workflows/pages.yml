@@ -85,3 +85,4 @@ jobs:
           name: live-pages-smoke-${{ github.sha }}
           path: artifacts/live-pages-smoke/
           if-no-files-found: warn
+          retention-days: 7

@@ -76,3 +76,4 @@ jobs:
           name: choochootracker-appimage
           path: releases/*.AppImage
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || github.event_name == 'pull_request' && 3 || 7 }}

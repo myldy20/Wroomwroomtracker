@@ -1,0 +1,121 @@
+name: Actions artifact retention cleanup
+
+on:
+  schedule:
+    - cron: '43 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Preview deletions only'
+        type: boolean
+        default: true
+        required: true
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/actions-artifact-cleanup.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: actions-artifact-retention-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Prune superseded CI artifacts; preserve release builds
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            if (owner + '/' + repo !== 'myldy20/Wroomwroomtracker') {
+              throw new Error('Cleanup restricted to myldy20/Wroomwroomtracker');
+            }
+            if (context.ref !== 'refs/heads/main') {
+              throw new Error('Cleanup only runs from main');
+            }
+            const dryRun = context.eventName === 'workflow_dispatch' &&
+              String(context.payload.inputs?.dry_run) !== 'false';
+            const records = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              owner, repo, per_page: 100,
+            });
+            // Fail closed if tag enumeration fails: release builds must be preserved.
+            const tags = await github.paginate(github.rest.repos.listTags, {
+              owner, repo, per_page: 100,
+            });
+            const releaseHeads = new Set(tags.map(x => x.commit.sha));
+            const exactNames = new Set([
+              'choochootracker-windows', 'choochootracker-android',
+              'choochootracker-portmaster', 'choochootracker-web',
+              'choochootracker-appimage', 'choochootracker-miyooports',
+            ]);
+            const familyOf = name => {
+              if (exactNames.has(name)) return name;
+              if (name.startsWith('pr-browser-smoke-')) return 'pr-browser-smoke';
+              if (name.startsWith('live-pages-smoke-')) return 'live-pages-smoke';
+              return null;
+            };
+            const families = new Map();
+            for (const art of records) {
+              if (art.expired) continue;
+              const family = familyOf(art.name);
+              if (!family) continue; // Never touch Pages deployment or unknown artifacts.
+              if (!families.has(family)) families.set(family, []);
+              families.get(family).push(art);
+            }
+            const victims = [];
+            const protectedCount = { recent: 0, latest: 0, release: 0, uncertain: 0 };
+            const cutoff = Date.now() - 48 * 60 * 60 * 1000;
+            for (const [family, arts] of families) {
+              arts.sort((a, b) =>
+                Date.parse(b.created_at) - Date.parse(a.created_at) || b.id - a.id);
+              for (let i = 0; i < arts.length; i++) {
+                const art = arts[i];
+                const run = art.workflow_run;
+                if (i < 2) { protectedCount.latest++; continue; }
+                if (Date.parse(art.created_at) > cutoff) {
+                  protectedCount.recent++; continue;
+                }
+                if (!run?.head_sha || !run?.head_repository_id) {
+                  protectedCount.uncertain++; continue;
+                }
+                if (releaseHeads.has(run.head_sha) ||
+                    /^v[0-9]/.test(run.head_branch ?? '')) {
+                  protectedCount.release++; continue;
+                }
+                victims.push({ id: art.id, name: art.name,
+                  size: art.size_in_bytes ?? 0, family });
+              }
+            }
+            const reclaimed = victims.reduce((sum, x) => sum + x.size, 0);
+            core.info('dry_run=' + dryRun + ' total=' + records.length +
+              ' protected=' + JSON.stringify(protectedCount));
+            core.info('candidates=' + victims.length + ' estimated_bytes=' + reclaimed);
+            const groupCounts = {};
+            for (const v of victims) {
+              if (!groupCounts[v.family]) groupCounts[v.family] = {count: 0, bytes: 0};
+              groupCounts[v.family].count++;
+              groupCounts[v.family].bytes += v.size;
+            }
+            core.info('by_family=' + JSON.stringify(groupCounts));
+            await core.summary
+              .addHeading('Actions artifacts retention cleanup')
+              .addTable([
+                [{data:'Total artifacts',header:true},String(records.length)],
+                [{data:'Deletion candidates',header:true},String(victims.length)],
+                [{data:'Estimated reclaim (MiB)',header:true},(reclaimed / 1048576).toFixed(1)],
+                [{data:'Dry run',header:true},String(dryRun)],
+                [{data:'Protected',header:true},JSON.stringify(protectedCount)],
+              ]).write();
+            if (dryRun) return;
+            let deleted = 0;
+            for (const artifact of victims) {
+              await github.rest.actions.deleteArtifact({owner, repo, artifact_id: artifact.id});
+              deleted++;
+            }
+            core.info('deleted=' + deleted + ' reclaimed_estimated_bytes=' + reclaimed);

@@ -11,6 +11,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: portmaster-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 permissions:
   contents: read
 
@@ -56,3 +60,4 @@ jobs:
           name: choochootracker-portmaster
           path: releases/choochootracker.zip
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || github.event_name == 'pull_request' && 3 || 7 }}

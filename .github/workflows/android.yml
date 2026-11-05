@@ -11,6 +11,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
 permissions:
   contents: read
 
@@ -53,3 +57,4 @@ jobs:
             tracker/platforms/android/app/build/outputs/apk/release/*.apk
             tracker/platforms/android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || github.event_name == 'pull_request' && 3 || 7 }}

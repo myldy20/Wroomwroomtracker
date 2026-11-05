@@ -57,3 +57,4 @@ jobs:
             releases/*-MiyooPorts.zip
             releases/*-MiyooPorts.7z
           if-no-files-found: error
+          retention-days: ${{ github.ref_type == 'tag' && 30 || github.event_name == 'pull_request' && 3 || 7 }}
